@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>สรุปผลความพึงพอใจ ด้านอาหารและการบริการ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;700;900&family=Noto+Sans+Thai:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --ink:#2B2620; --paper:#EAE0C8; --paper-dark:#D8CBA8;
+    --oxblood:#8B2E3C; --gold:#C99A2E; --teal:#1F4B4C; --jade:#4F7965;
+    --l5:#4F7965; --l4:#8FAE7B; --l3:#C99A2E; --l2:#C97B3D; --l1:#8B2E3C;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Noto Sans Thai',sans-serif; color:var(--ink);
+    background:var(--teal);
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(201,154,46,0.10), transparent 45%),
+      radial-gradient(circle at 85% 90%, rgba(139,46,60,0.14), transparent 45%);
+    padding:28px 14px 60px;
+  }
+  .wrap{max-width:640px; margin:0 auto;}
+  .eyebrow{color:var(--gold); font-size:11px; letter-spacing:3px; font-weight:700; text-align:center; margin-bottom:4px;}
+  h1{font-family:'Noto Serif Thai',serif; color:var(--paper); font-size:22px; font-weight:900; margin:0 0 20px; text-align:center; line-height:1.35;}
+  .card{
+    position:relative; background:var(--paper); border:1px solid var(--paper-dark); border-radius:4px;
+    box-shadow:0 6px 0 rgba(43,38,32,0.06), 0 12px 24px rgba(43,38,32,0.12);
+    background-image:repeating-linear-gradient(0deg, rgba(43,38,32,0.015) 0px, rgba(43,38,32,0.015) 1px, transparent 1px, transparent 3px);
+    padding:20px 22px; margin-bottom:16px;
+  }
+  .perf{position:absolute; top:0; bottom:0; width:18px; display:flex; flex-direction:column; justify-content:space-around; align-items:center; pointer-events:none;}
+  .perf.left{left:-9px;} .perf.right{right:-9px;}
+  .dot{width:14px; height:14px; border-radius:50%; background:#f5f1e6; box-shadow:inset 0 1px 2px rgba(0,0,0,0.25);}
+  .section-title{font-family:'Noto Serif Thai',serif; font-weight:700; color:var(--oxblood); font-size:15px; margin:0 0 10px;}
+  .error{color:var(--oxblood); font-size:12.5px; font-weight:600; margin-bottom:12px;}
+  .refresh-btn{margin-top:8px; padding:6px 12px; border-radius:4px; border:1px solid var(--paper-dark); background:transparent; color:var(--ink); font-size:11px; cursor:pointer; font-family:inherit;}
+  .stat-row{display:flex; gap:20px; align-items:center;}
+  .stamp{width:108px; height:108px; border-radius:50%; border:3px solid var(--oxblood); display:flex; align-items:center; justify-content:center; flex-direction:column; transform:rotate(-8deg); color:var(--oxblood); opacity:0.92; flex-shrink:0; position:relative;}
+  .stamp::before{content:''; position:absolute; inset:6px; border-radius:50%; border:1px solid var(--oxblood);}
+  .stamp .score{font-family:'Space Mono',monospace; font-size:30px; font-weight:700; line-height:1;}
+  .stamp .label{font-size:11px; font-weight:700; letter-spacing:0.5px;}
+  .stat-info{flex:1;}
+  .stat-info .title{font-family:'Noto Serif Thai',serif; font-weight:700; font-size:16px; color:var(--teal); margin-bottom:4px;}
+  .stat-info .line{font-size:12px; margin-bottom:2px;}
+  .bar-chart-row{display:flex; align-items:flex-end; gap:8px; height:180px; margin-top:8px;}
+  .bar-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;}
+  .bar-col .bar{width:70%; background:var(--oxblood); border-radius:3px 3px 0 0; min-height:2px;}
+  .bar-col .bar.empty{background:var(--paper-dark);}
+  .bar-col .val{font-family:'Space Mono',monospace; font-size:10.5px; margin-bottom:3px; font-weight:700;}
+  .bar-col .lbl{font-size:9px; text-align:center; margin-top:6px; line-height:1.25;}
+  .cat-row{margin-bottom:10px;}
+  .cat-head{display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:3px;}
+  .cat-head .name{font-weight:600;}
+  .cat-head .val{font-family:'Space Mono',monospace; font-weight:700;}
+  .cat-track{height:8px; background:rgba(43,38,32,0.08); border-radius:4px; overflow:hidden;}
+  .cat-fill{height:100%; border-radius:4px;}
+  .cat-group-label{font-size:11px; font-weight:700; color:var(--teal); margin:12px 0 8px; text-transform:uppercase; letter-spacing:0.5px;}
+  .cat-group-label:first-child{margin-top:0;}
+  .wish-tabs{display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap;}
+  .wish-tab{padding:6px 10px; border-radius:20px; border:1px solid var(--paper-dark); background:transparent; font-size:11px; cursor:pointer; font-family:inherit; color:var(--ink);}
+  .wish-tab.active{background:var(--teal); border-color:var(--teal); color:var(--paper); font-weight:700;}
+  .wish-item{display:flex; align-items:center; gap:10px; margin-bottom:8px;}
+  .wish-rank{width:22px; height:22px; border-radius:50%; background:var(--teal); color:var(--paper); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-family:'Space Mono',monospace;}
+  .wish-name{flex:1; font-size:13px; font-weight:600;}
+  .wish-count{font-family:'Space Mono',monospace; font-size:12px; color:var(--oxblood); font-weight:700;}
+  .comment-item{border-top:1px dashed var(--paper-dark); padding:10px 0; font-size:12.5px;}
+  .comment-item .who{font-weight:700; color:var(--teal); margin-bottom:2px;}
+  .empty-state{text-align:center; font-size:13px; padding:30px 0;}
+  .loading{text-align:center; color:var(--paper); padding:30px; font-size:13px;}
+  .updated{text-align:center; font-size:10.5px; color:rgba(234,224,200,0.7); margin-top:-6px; margin-bottom:18px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">รายงานสำหรับผู้บริหาร</div>
+  <h1>สรุปผลความพึงพอใจ<br/>ด้านอาหารและการบริการ</h1>
+  <div id="updatedAt" class="updated"></div>
+  <div id="viewDashboard"></div>
+</div>
+
+<script>
+// ============================================================
+// ⚠️ CONFIG — fill in before deploying to Vercel (same project as index.html)
+// ============================================================
+const SUPABASE_URL = 'https://uhefxwccuqagnbrbidbh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVoZWZ4d2NjdXFhZ25icmJpZGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDI1NDYsImV4cCI6MjEwMTU3ODU0Nn0.EE5QWPVjSkZpUTU37hgiz4LsGMAfq87dxFOkt9OYynY';
+const TABLE = 'food_survey_responses';
+
+if (SUPABASE_URL.includes('YOUR_') || SUPABASE_ANON_KEY.includes('YOUR_')) {
+  document.getElementById('viewDashboard').innerHTML =
+    '<div class="card"><div class="error">ยังไม่ได้ตั้งค่า Supabase — กรุณาใส่ค่า SUPABASE_URL และ SUPABASE_ANON_KEY จริง ในไฟล์นี้ (บรรทัดบนสุดของ &lt;script&gt;) แล้วอัปโหลดใหม่</div></div>';
+  throw new Error('Supabase config not set — replace SUPABASE_URL / SUPABASE_ANON_KEY placeholders.');
+}
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
+
+// ============================================================
+// Data
+// ============================================================
+const UNITS = [
+  'อาคารเรียน-รู้-เรื่องโขน',
+  'แผนกนักเรียนศิลปาชีพ',
+  'พิพิธภัณฑ์ศิลป์แผ่นดิน',
+  'โครงการก่อสร้างศิลปาชีพ ตำบลเกาะเกิด',
+  'อาคารศิลปาชีพ ตำบลช้างใหญ่',
+  'อาคารเก็บผลิตภัณฑ์ศิลปาชีพ',
+];
+const UNITS_SHORT = {
+  'อาคารเรียน-รู้-เรื่องโขน': 'เรียน-รู้-เรื่องโขน',
+  'แผนกนักเรียนศิลปาชีพ': 'แผนกนักเรียนศิลปาชีพ',
+  'พิพิธภัณฑ์ศิลป์แผ่นดิน': 'พิพิธภัณฑ์ศิลป์แผ่นดิน',
+  'โครงการก่อสร้างศิลปาชีพ ตำบลเกาะเกิด': 'ก่อสร้างฯ ต.เกาะเกิด',
+  'อาคารศิลปาชีพ ตำบลช้างใหญ่': 'ศิลปาชีพ ต.ช้างใหญ่',
+  'อาคารเก็บผลิตภัณฑ์ศิลปาชีพ': 'เก็บผลิตภัณฑ์ศิลปาชีพ',
+};
+const FOOD_CATS = [
+  { key:'taste', label:'1. รสชาติของอาหารโดยรวม' },
+  { key:'freshness', label:'2. ความสด สะอาด และคุณภาพของวัตถุดิบ' },
+  { key:'variety', label:'3. ความหลากหลายของรายการอาหาร' },
+  { key:'presentation', label:'4. ความน่ารับประทานและการจัดตกแต่งอาหาร' },
+  { key:'quantity', label:'5. ปริมาณอาหารมีความเหมาะสม' },
+];
+const SERVICE_CATS = [
+  { key:'politeness', label:'6. ความสุภาพและมีมารยาทของผู้ให้บริการ' },
+  { key:'speed', label:'7. ความรวดเร็วและความคล่องตัวในการให้บริการ' },
+  { key:'cleanliness', label:'8. ความสะอาดของภาชนะ โต๊ะ และบริเวณรับประทานอาหาร' },
+  { key:'attentiveness', label:'9. การเอาใจใส่และความพร้อมในการให้บริการ' },
+  { key:'overall', label:'10. ความพึงพอใจโดยรวมต่ออาหารและการบริการ' },
+];
+const ALL_CATS = [...FOOD_CATS, ...SERVICE_CATS];
+
+const WISH_FIELDS = [
+  { key:'savory_suggestions', label:'อาหารคาว' },
+  { key:'dessert_suggestions', label:'ของหวาน' },
+  { key:'snack_suggestions', label:'ของทานเล่น' },
+  { key:'other_menu_suggestions', label:'เมนูอื่น ๆ' },
+];
+
+let dash = { loading:false, error:'', responses:[], wishFilter:'all' };
+
+async function loadDashboard(){
+  dash.loading = true; dash.error = ''; renderDashboard();
+  try{
+    const { data, error } = await sb.from(TABLE).select('*').order('created_at', { ascending:false });
+    if(error) throw error;
+    dash.responses = data || [];
+    document.getElementById('updatedAt').textContent = 'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH');
+  }catch(e){
+    console.error(e);
+    const detail = e?.message || e?.error_description || e?.hint || (typeof e === 'string' ? e : '');
+    dash.error = 'ไม่สามารถโหลดข้อมูลสรุปผลได้: ' + (detail || 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ');
+  }finally{
+    dash.loading = false;
+    renderDashboard();
+  }
+}
+
+function computeStats(){
+  const responses = dash.responses;
+  const total = responses.length;
+  let sum=0, n=0;
+  responses.forEach(r => ALL_CATS.forEach(c => { const v=r.ratings?.[c.key]; if(v>0){sum+=v;n+=1;} }));
+  const overallAvg = n ? sum/n : 0;
+
+  const categoryAverages = ALL_CATS.map(c => {
+    const vals = responses.map(r => r.ratings?.[c.key]).filter(v => v>0);
+    return { key:c.key, label:c.label, avg: vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0 };
+  });
+
+  const unitStats = UNITS.map(u => {
+    const list = responses.filter(r => r.unit === u);
+    let s=0, cnt=0;
+    list.forEach(r => ALL_CATS.forEach(c => { const v=r.ratings?.[c.key]; if(v>0){s+=v;cnt+=1;} }));
+    return { unit:u, short:UNITS_SHORT[u], count:list.length, avg: cnt ? s/cnt : 0 };
+  });
+
+  function tally(fieldKeys){
+    const freq = {};
+    responses.forEach(r => {
+      fieldKeys.forEach(fk => {
+        const txt = r[fk];
+        if(!txt) return;
+        txt.split(/[,\n،、]/).map(s=>s.trim()).filter(Boolean).forEach(item => {
+          const key = item.toLowerCase();
+          if(!freq[key]) freq[key] = { label:item, count:0 };
+          freq[key].count += 1;
+        });
+      });
+    });
+    return Object.values(freq).sort((a,b)=>b.count-a.count).slice(0,10);
+  }
+  const wishlists = {
+    all: tally(WISH_FIELDS.map(f=>f.key)),
+    savory_suggestions: tally(['savory_suggestions']),
+    dessert_suggestions: tally(['dessert_suggestions']),
+    snack_suggestions: tally(['snack_suggestions']),
+    other_menu_suggestions: tally(['other_menu_suggestions']),
+  };
+
+  const recentComments = responses.filter(r => r.additional_comments).slice(0,6);
+  const bestUnit = unitStats.filter(u=>u.count>0).sort((a,b)=>b.avg-a.avg)[0];
+
+  return { total, overallAvg, categoryAverages, unitStats, wishlists, recentComments, bestUnit };
+}
+
+function perf(side){ return `<div class="perf ${side}">${'<div class="dot"></div>'.repeat(9)}</div>`; }
+function stampLabel(s){
+  return s>=4.5?'เยี่ยมยอด' : s>=3.5?'พอใจดี' : s>=2.5?'ปานกลาง' : 'ควรปรับปรุง';
+}
+function catColor(avg){
+  return avg>=4.5?'var(--l5)': avg>=3.5?'var(--l4)': avg>=2.5?'var(--l3)': avg>=1.5?'var(--l2)':'var(--l1)';
+}
+
+function setWishFilter(key){
+  dash.wishFilter = key;
+  renderDashboard();
+}
+
+function renderDashboard(){
+  const el = document.getElementById('viewDashboard');
+  if(dash.loading){ el.innerHTML = `<div class="loading">กำลังโหลดข้อมูล…</div>`; return; }
+  if(dash.error){
+    el.innerHTML = `<div class="card">${perf('left')}${perf('right')}
+      <div class="error">${dash.error}</div>
+      <button class="refresh-btn" onclick="loadDashboard()">ลองใหม่</button>
+    </div>`;
+    return;
+  }
+  const s = computeStats();
+  if(s.total === 0){
+    el.innerHTML = `<div class="card">${perf('left')}${perf('right')}<div class="empty-state">ยังไม่มีแบบประเมินเข้ามา</div></div>`;
+    return;
+  }
+
+  const barChart = `
+    <div class="bar-chart-row">
+      ${s.unitStats.map(u => `
+        <div class="bar-col">
+          <div class="val">${u.count?u.avg.toFixed(1):'-'}</div>
+          <div class="bar ${u.count?'':'empty'}" style="height:${u.count?(u.avg/5*100):4}%"></div>
+          <div class="lbl">${u.short}</div>
+        </div>`).join('')}
+    </div>`;
+
+  function catBarsFor(cats){
+    return cats.map(key => {
+      const c = s.categoryAverages.find(x => x.key === key);
+      return `
+      <div class="cat-row">
+        <div class="cat-head"><span class="name">${c.label}</span><span class="val">${c.avg.toFixed(2)}</span></div>
+        <div class="cat-track"><div class="cat-fill" style="width:${(c.avg/5*100)}%; background:${catColor(c.avg)}"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  const wishTabs = [{key:'all',label:'ทั้งหมด'}, ...WISH_FIELDS].map(f => `
+    <button class="wish-tab ${dash.wishFilter===f.key?'active':''}" onclick="setWishFilter('${f.key}')">${f.label}</button>
+  `).join('');
+  const activeWish = s.wishlists[dash.wishFilter] || [];
+  const wishHtml = activeWish.length === 0
+    ? `<div style="font-size:12px;color:#6b6250;">ยังไม่มีข้อเสนอในหมวดนี้</div>`
+    : activeWish.map((w,i) => `
+      <div class="wish-item">
+        <div class="wish-rank">${i+1}</div>
+        <div class="wish-name">${w.label}</div>
+        <div class="wish-count">×${w.count}</div>
+      </div>`).join('');
+
+  const commentsHtml = s.recentComments.length === 0 ? '' : `
+    <div class="card">${perf('left')}${perf('right')}
+      <div class="section-title">ข้อ 15 · ข้อเสนอแนะเพิ่มเติมล่าสุด</div>
+      ${s.recentComments.map(r => `
+        <div class="comment-item">
+          <div class="who">${UNITS_SHORT[r.unit] || r.unit}</div>
+          <div>${r.additional_comments}</div>
+        </div>`).join('')}
+    </div>`;
+
+  el.innerHTML = `
+    <div class="card" style="padding:22px 26px;">${perf('left')}${perf('right')}
+      <div class="stat-row">
+        <div class="stamp"><div class="score">${s.overallAvg.toFixed(1)}</div><div class="label">${stampLabel(s.overallAvg)}</div></div>
+        <div class="stat-info">
+          <div class="title">คะแนนความพึงพอใจโดยรวม</div>
+          <div class="line">จำนวนแบบประเมินทั้งหมด: <b style="font-family:'Space Mono',monospace;">${s.total}</b> ฉบับ</div>
+          ${s.bestUnit ? `<div class="line" style="color:var(--jade);font-weight:600;">หน่วยงานที่ให้คะแนนสูงสุด: ${s.bestUnit.short} (${s.bestUnit.avg.toFixed(1)})</div>` : ''}
+          <button class="refresh-btn" onclick="loadDashboard()">↻ รีเฟรชข้อมูล</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">${perf('left')}${perf('right')}
+      <div class="section-title">คะแนนเฉลี่ยแยกตามหน่วยงาน</div>
+      ${barChart}
+    </div>
+
+    <div class="card">${perf('left')}${perf('right')}
+      <div class="section-title">คะแนนเฉลี่ยแยกตามหัวข้อ (ข้อ 1-10)</div>
+      <div class="cat-group-label">ด้านอาหาร</div>
+      ${catBarsFor(FOOD_CATS.map(c=>c.key))}
+      <div class="cat-group-label">ด้านการบริการ</div>
+      ${catBarsFor(SERVICE_CATS.map(c=>c.key))}
+    </div>
+
+    <div class="card">${perf('left')}${perf('right')}
+      <div class="section-title">เมนูที่มีผู้เสนอมากที่สุด (ข้อ 11-14)</div>
+      <div class="wish-tabs">${wishTabs}</div>
+      ${wishHtml}
+    </div>
+
+    ${commentsHtml}
+  `;
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>แบบประเมินความพึงพอใจ ด้านอาหารและการบริการ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;700;900&family=Noto+Sans+Thai:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --ink:#2B2620; --paper:#EAE0C8; --paper-dark:#D8CBA8;
+    --oxblood:#8B2E3C; --gold:#C99A2E; --teal:#1F4B4C; --jade:#4F7965;
+    --l5:#4F7965; --l4:#8FAE7B; --l3:#C99A2E; --l2:#C97B3D; --l1:#8B2E3C;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Noto Sans Thai',sans-serif; color:var(--ink);
+    background:var(--teal);
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(201,154,46,0.10), transparent 45%),
+      radial-gradient(circle at 85% 90%, rgba(139,46,60,0.14), transparent 45%);
+    padding:28px 14px 60px;
+  }
+  .wrap{max-width:640px; margin:0 auto;}
+  .eyebrow{color:var(--gold); font-size:11px; letter-spacing:3px; font-weight:700; text-align:center; margin-bottom:4px;}
+  h1{font-family:'Noto Serif Thai',serif; color:var(--paper); font-size:22px; font-weight:900; margin:0 0 4px; text-align:center; line-height:1.35;}
+  .subhead{text-align:center; font-size:12px; color:rgba(234,224,200,0.85); margin:0 0 20px;}
+  .card{
+    position:relative; background:var(--paper); border:1px solid var(--paper-dark); border-radius:4px;
+    box-shadow:0 6px 0 rgba(43,38,32,0.06), 0 12px 24px rgba(43,38,32,0.12);
+    background-image:repeating-linear-gradient(0deg, rgba(43,38,32,0.015) 0px, rgba(43,38,32,0.015) 1px, transparent 1px, transparent 3px);
+    padding:24px 26px; margin-bottom:16px;
+  }
+  .perf{position:absolute; top:0; bottom:0; width:18px; display:flex; flex-direction:column; justify-content:space-around; align-items:center; pointer-events:none;}
+  .perf.left{left:-9px;} .perf.right{right:-9px;}
+  .dot{width:14px; height:14px; border-radius:50%; background:#f5f1e6; box-shadow:inset 0 1px 2px rgba(0,0,0,0.25);}
+  .section-title{font-family:'Noto Serif Thai',serif; font-weight:700; color:var(--oxblood); font-size:15px; margin:0 0 4px; display:flex; align-items:center; gap:6px;}
+  .section-sub{font-size:11px; color:#6b6250; margin-bottom:12px;}
+  .divider{border-top:2px dashed var(--paper-dark); margin:18px 0;}
+  .legend{display:flex; flex-wrap:wrap; gap:8px; font-size:10.5px; margin-bottom:16px; justify-content:center;}
+  .legend span{display:flex; align-items:center; gap:4px;}
+  .legend .sw{width:10px; height:10px; border-radius:50%; display:inline-block;}
+  .unit-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .unit-btn{text-align:left; padding:10px; border-radius:3px; border:1.5px solid var(--paper-dark); background:rgba(255,255,255,0.35); color:var(--ink); font-size:12px; font-weight:500; cursor:pointer; line-height:1.35; font-family:inherit;}
+  .unit-btn.active{background:var(--teal); border-color:var(--teal); color:var(--paper); font-weight:700;}
+  .rating-row{margin-bottom:16px;}
+  .rating-label{font-size:13px; font-weight:600; margin-bottom:6px; line-height:1.4;}
+  .rating-opts{display:flex; gap:5px;}
+  .rating-opt{flex:1 1 0; padding:7px 2px; border-radius:3px; border:1.5px solid var(--paper-dark); background:transparent; color:var(--ink); font-family:inherit; font-size:10px; font-weight:500; cursor:pointer; line-height:1.25; text-align:center;}
+  .rating-opt .num{font-family:'Space Mono',monospace; font-size:14px; margin-bottom:1px; font-weight:700;}
+  .rating-opt[data-active="true"]{color:var(--paper); font-weight:700; border-color:transparent;}
+  textarea{width:100%; padding:10px; border-radius:3px; border:1.5px solid var(--paper-dark); background:rgba(255,255,255,0.5); font-family:inherit; font-size:13px; color:var(--ink); resize:vertical;}
+  .field-label{font-size:13px; font-weight:700; margin-bottom:3px;}
+  .field-hint{font-size:10.5px; color:#6b6250; margin-bottom:6px;}
+  .field-block{margin-bottom:16px;}
+  .submit-btn{width:100%; padding:13px; border-radius:4px; border:none; background:var(--oxblood); color:var(--paper); font-weight:700; font-size:14.5px; cursor:pointer; letter-spacing:1px; font-family:inherit;}
+  .submit-btn:disabled{background:var(--paper-dark); cursor:default;}
+  .note{text-align:center; font-size:10.5px; color:#6b6250; margin-top:8px;}
+  .error{color:var(--oxblood); font-size:12.5px; font-weight:600; margin-bottom:12px;}
+  .success{text-align:center; padding:20px 0;}
+  .success .emoji{font-size:44px; margin-bottom:8px;}
+  .success h2{font-family:'Noto Serif Thai',serif; font-weight:700; font-size:19px; color:var(--teal); margin:0 0 6px;}
+  .success p{font-size:13px; margin:0 0 20px;}
+  .btn-outline{padding:10px 18px; border-radius:4px; border:1.5px solid var(--teal); background:transparent; color:var(--teal); font-weight:700; font-size:13px; cursor:pointer; font-family:inherit;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">แบบสำรวจความพึงพอใจ</div>
+  <h1>แบบประเมินความพึงพอใจ<br/>ด้านอาหารและการบริการ</h1>
+  <div class="subhead">ความคิดเห็นของท่านมีส่วนสำคัญในการพัฒนาคุณภาพอาหารและการบริการให้ดียิ่งขึ้น</div>
+  <div id="viewForm"></div>
+</div>
+
+<script>
+// ============================================================
+// ⚠️ CONFIG — fill in before deploying to Vercel
+// ============================================================
+const SUPABASE_URL = 'https://uhefxwccuqagnbrbidbh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVoZWZ4d2NjdXFhZ25icmJpZGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDI1NDYsImV4cCI6MjEwMTU3ODU0Nn0.EE5QWPVjSkZpUTU37hgiz4LsGMAfq87dxFOkt9OYynY';
+const TABLE = 'food_survey_responses';
+
+if (SUPABASE_URL.includes('YOUR_') || SUPABASE_ANON_KEY.includes('YOUR_')) {
+  document.getElementById('viewForm').innerHTML =
+    '<div class="card"><div class="error">ยังไม่ได้ตั้งค่า Supabase — กรุณาใส่ค่า SUPABASE_URL และ SUPABASE_ANON_KEY จริง ในไฟล์นี้ (บรรทัดบนสุดของ &lt;script&gt;) แล้วอัปโหลดใหม่</div></div>';
+  throw new Error('Supabase config not set — replace SUPABASE_URL / SUPABASE_ANON_KEY placeholders.');
+}
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
+
+// ============================================================
+// Data — matches the 15-item paper form
+// ============================================================
+const UNITS = [
+  'อาคารเรียน-รู้-เรื่องโขน',
+  'แผนกนักเรียนศิลปาชีพ',
+  'พิพิธภัณฑ์ศิลป์แผ่นดิน',
+  'โครงการก่อสร้างศิลปาชีพ ตำบลเกาะเกิด',
+  'อาคารศิลปาชีพ ตำบลช้างใหญ่',
+  'อาคารเก็บผลิตภัณฑ์ศิลปาชีพ',
+];
+const UNITS_SHORT = {
+  'อาคารเรียน-รู้-เรื่องโขน': 'อาคารเรียน-รู้-เรื่องโขน',
+  'แผนกนักเรียนศิลปาชีพ': 'แผนกนักเรียนศิลปาชีพ',
+  'พิพิธภัณฑ์ศิลป์แผ่นดิน': 'พิพิธภัณฑ์ศิลป์แผ่นดิน',
+  'โครงการก่อสร้างศิลปาชีพ ตำบลเกาะเกิด': 'โครงการก่อสร้างศิลปาชีพ ตำบลเกาะเกิด',
+  'อาคารศิลปาชีพ ตำบลช้างใหญ่': 'อาคารศิลปาชีพ ตำบลช้างใหญ่',
+  'อาคารเก็บผลิตภัณฑ์ศิลปาชีพ': 'อาคารเก็บผลิตภัณฑ์ศิลปาชีพ',
+};
+
+// ข้อ 1-5 ด้านอาหาร
+const FOOD_CATS = [
+  { key:'taste', label:'1. รสชาติของอาหารโดยรวม' },
+  { key:'freshness', label:'2. ความสด สะอาด และคุณภาพของวัตถุดิบ' },
+  { key:'variety', label:'3. ความหลากหลายของรายการอาหาร' },
+  { key:'presentation', label:'4. ความน่ารับประทานและการจัดตกแต่งอาหาร' },
+  { key:'quantity', label:'5. ปริมาณอาหารมีความเหมาะสม' },
+];
+// ข้อ 6-10 ด้านการบริการ
+const SERVICE_CATS = [
+  { key:'politeness', label:'6. ความสุภาพและมีมารยาทของผู้ให้บริการ' },
+  { key:'speed', label:'7. ความรวดเร็วและความคล่องตัวในการให้บริการ' },
+  { key:'cleanliness', label:'8. ความสะอาดของภาชนะ โต๊ะ และบริเวณรับประทานอาหาร' },
+  { key:'attentiveness', label:'9. การเอาใจใส่และความพร้อมในการให้บริการ' },
+  { key:'overall', label:'10. ความพึงพอใจโดยรวมต่ออาหารและการบริการ' },
+];
+const ALL_CATS = [...FOOD_CATS, ...SERVICE_CATS];
+const LEVELS = [
+  { v:5, label:'มากที่สุด', color:'var(--l5)' },
+  { v:4, label:'มาก', color:'var(--l4)' },
+  { v:3, label:'ปานกลาง', color:'var(--l3)' },
+  { v:2, label:'น้อย', color:'var(--l2)' },
+  { v:1, label:'น้อยที่สุด', color:'var(--l1)' },
+];
+
+let state = {
+  unit:'', ratings:{},
+  savory:'', dessert:'', snack:'', otherMenu:'', additionalComments:'',
+  submitting:false, submitted:false, error:'',
+};
+ALL_CATS.forEach(c => state.ratings[c.key] = 0);
+
+function perf(side){ return `<div class="perf ${side}">${'<div class="dot"></div>'.repeat(9)}</div>`; }
+
+function ratingRowHtml(cat){
+  const opts = LEVELS.map(lv => {
+    const active = state.ratings[cat.key] === lv.v;
+    return `
+    <button type="button" class="rating-opt" data-active="${active}"
+      style="${active ? `background:${lv.color};` : ''}"
+      onclick="setRating('${cat.key}',${lv.v})">
+      <div class="num">${lv.v}</div>${lv.label}
+    </button>`;
+  }).join('');
+  return `<div class="rating-row"><div class="rating-label">${cat.label}</div><div class="rating-opts">${opts}</div></div>`;
+}
+
+function legendHtml(){
+  return `<div class="legend">${LEVELS.map(lv => `<span><span class="sw" style="background:${lv.color}"></span>${lv.v}=${lv.label}</span>`).join('')}</div>`;
+}
+
+function renderForm(){
+  const el = document.getElementById('viewForm');
+  if(state.submitted){
+    el.innerHTML = `
+      <div class="card">${perf('left')}${perf('right')}
+        <div class="success">
+          <div class="emoji">✅</div>
+          <h2>ขอบคุณสำหรับความคิดเห็น</h2>
+          <p>บันทึกแบบฟอร์มจาก ${UNITS_SHORT[state.unit]} เรียบร้อยแล้ว</p>
+          <button class="btn-outline" onclick="resetForm()">ส่งอีกฉบับ</button>
+        </div>
+      </div>`;
+    return;
+  }
+  const unitButtons = UNITS.map(u => `
+    <button type="button" class="unit-btn ${state.unit===u?'active':''}" onclick="setUnit('${u.replace(/'/g,"\\'")}')">${UNITS_SHORT[u]}</button>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="card">${perf('left')}${perf('right')}
+      <div class="field-label">เลือกหน่วยงานของท่าน</div>
+      <div class="unit-grid">${unitButtons}</div>
+    </div>
+
+    <div class="card">${perf('left')}${perf('right')}
+      <div class="section-title">🍽️ ระดับความพึงพอใจ</div>
+      <div class="section-sub">กรุณาให้คะแนนแต่ละหัวข้อ</div>
+      ${legendHtml()}
+      <div class="section-title" style="margin-top:6px;">ด้านอาหาร</div>
+      ${FOOD_CATS.map(ratingRowHtml).join('')}
+      <div class="divider"></div>
+      <div class="section-title">ด้านการบริการ</div>
+      ${SERVICE_CATS.map(ratingRowHtml).join('')}
+    </div>
+
+    <div class="card">${perf('left')}${perf('right')}
+      <div class="section-title">🍜 ข้อเสนอแนะเกี่ยวกับเมนูอาหาร</div>
+      <div class="field-block">
+        <div class="field-label">11. อาหารคาวที่ท่านอยากให้มีเพิ่มเติม</div>
+        <div class="field-hint">เช่น อาหารไทย อาหารนานาชาติ หรืออาหารเพื่อสุขภาพ</div>
+        <textarea id="savoryInput" rows="2">${state.savory}</textarea>
+      </div>
+      <div class="field-block">
+        <div class="field-label">12. อาหารหวาน/ของหวาน ที่ท่านอยากให้มีเพิ่มเติม</div>
+        <textarea id="dessertInput" rows="2">${state.dessert}</textarea>
+      </div>
+      <div class="field-block">
+        <div class="field-label">13. ของทานเล่นหรือขนม ที่ท่านอยากให้มีเพิ่มเติม</div>
+        <textarea id="snackInput" rows="2">${state.snack}</textarea>
+      </div>
+      <div class="field-block">
+        <div class="field-label">14. เมนูอาหารอื่น ๆ ที่ท่านอยากแนะนำ</div>
+        <textarea id="otherMenuInput" rows="2">${state.otherMenu}</textarea>
+      </div>
+      <div class="field-block" style="margin-bottom:0;">
+        <div class="field-label">15. ข้อเสนอแนะเพิ่มเติมเกี่ยวกับอาหารและการบริการ</div>
+        <textarea id="additionalInput" rows="3">${state.additionalComments}</textarea>
+      </div>
+    </div>
+
+    ${state.error ? `<div class="error">${state.error}</div>` : ''}
+    <button class="submit-btn" id="submitBtn" ${state.submitting?'disabled':''} onclick="handleSubmit()">
+      ${state.submitting ? 'กำลังส่ง…' : 'ส่งแบบประเมิน'}
+    </button>
+    <div class="note">ทุกความคิดเห็นของท่าน เราจะนำไปปรับปรุงและพัฒนาให้ดียิ่งขึ้น</div>
+  `;
+
+  document.getElementById('savoryInput').oninput = e => state.savory = e.target.value;
+  document.getElementById('dessertInput').oninput = e => state.dessert = e.target.value;
+  document.getElementById('snackInput').oninput = e => state.snack = e.target.value;
+  document.getElementById('otherMenuInput').oninput = e => state.otherMenu = e.target.value;
+  document.getElementById('additionalInput').oninput = e => state.additionalComments = e.target.value;
+}
+
+function setUnit(u){ state.unit = u; renderForm(); }
+function setRating(key, v){ state.ratings[key] = v; renderForm(); }
+function resetForm(){
+  state = { unit:'', ratings:{}, savory:'', dessert:'', snack:'', otherMenu:'', additionalComments:'', submitting:false, submitted:false, error:'' };
+  ALL_CATS.forEach(c => state.ratings[c.key] = 0);
+  renderForm();
+}
+
+async function handleSubmit(){
+  const allFilled = state.unit && ALL_CATS.every(c => state.ratings[c.key] > 0);
+  if(!allFilled){
+    state.error = 'กรุณาเลือกหน่วยงานและให้คะแนนครบทุกหัวข้อ (ข้อ 1-10) ก่อนส่งแบบประเมิน';
+    renderForm();
+    return;
+  }
+  state.error = ''; state.submitting = true; renderForm();
+  try{
+    const { error } = await sb.from(TABLE).insert({
+      unit: state.unit,
+      ratings: state.ratings,
+      savory_suggestions: state.savory.trim(),
+      dessert_suggestions: state.dessert.trim(),
+      snack_suggestions: state.snack.trim(),
+      other_menu_suggestions: state.otherMenu.trim(),
+      additional_comments: state.additionalComments.trim(),
+    });
+    if(error) throw error;
+    state.submitted = true;
+  }catch(e){
+    console.error(e);
+    const detail = e?.message || e?.error_description || e?.hint || (typeof e === 'string' ? e : '');
+    state.error = 'ส่งแบบประเมินไม่สำเร็จ: ' + (detail || 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ');
+  }finally{
+    state.submitting = false;
+    renderForm();
+  }
+}
+
+renderForm();
+</script>
+</body>
+</html>
