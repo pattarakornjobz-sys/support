@@ -368,7 +368,7 @@ function printBarRow(label, valueLabel, pct, color, sub){
 
 function printPageShell(bodyHtml, pageNum, totalPages){
   const div = document.createElement('div');
-  div.style.cssText = 'position:absolute; left:-9999px; top:0; width:794px; height:1123px; background:#FBF6EA; font-family:"Noto Sans Thai",sans-serif; color:#2B2620; box-sizing:border-box; padding:50px 50px 36px; display:flex; flex-direction:column;';
+  div.style.cssText = 'position:absolute; left:-9999px; top:0; width:794px; min-height:1123px; background:#FBF6EA; font-family:"Noto Sans Thai",sans-serif; color:#2B2620; box-sizing:border-box; padding:50px 50px 36px; display:flex; flex-direction:column;';
   div.innerHTML = `
     <div style="flex:1;">${bodyHtml}</div>
     <div style="margin-top:20px; padding-top:14px; border-top:1px solid rgba(43,38,32,0.15); display:flex; justify-content:space-between; font-size:10.5px; color:#8a7c66;">
@@ -472,14 +472,26 @@ async function exportPDF(){
   shells.forEach(s => document.body.appendChild(s));
 
   try{
-    const canvases = await Promise.all(shells.map(el => html2canvas(el, { scale: 2, backgroundColor: '#FBF6EA' })));
+    const canvases = await Promise.all(shells.map(el => html2canvas(el, { scale: 2, backgroundColor: '#FBF6EA', windowWidth: el.scrollWidth, windowHeight: el.scrollHeight })));
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
-    canvases.forEach((canvas, i) => {
-      if(i > 0) pdf.addPage();
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageW, pageH);
+    let firstPage = true;
+    canvases.forEach((canvas) => {
+      const imgData = canvas.toDataURL('image/png');
+      const imgH = canvas.height * pageW / canvas.width;
+      if(!firstPage) pdf.addPage();
+      firstPage = false;
+      let position = 0;
+      pdf.addImage(imgData, 'PNG', 0, position, pageW, imgH);
+      let heightLeft = imgH - pageH;
+      while(heightLeft > 0){
+        pdf.addPage();
+        position = heightLeft - imgH;
+        pdf.addImage(imgData, 'PNG', 0, position, pageW, imgH);
+        heightLeft -= pageH;
+      }
     });
     pdf.save(`สรุปผลความพึงพอใจ_${new Date().toISOString().slice(0,10)}.pdf`);
   }catch(e){
