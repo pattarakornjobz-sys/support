@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;700;900&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <style>
   :root{
     --bg:#1C1210; --bg-2:#2A1B17;
@@ -38,6 +41,7 @@
     background:linear-gradient(180deg,var(--gold-light),var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   .rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 6px;}
+  .vendor-note{text-align:center; font-size:12.5px; color:var(--gold-light); margin:0 auto 16px; line-height:1.6; max-width:440px; padding:9px 14px; border:1px solid rgba(201,162,39,0.3); border-radius:8px; background:rgba(201,162,39,0.06);}
   .updated{text-align:center; font-size:12.5px; color:rgba(251,246,234,0.65); margin-bottom:20px;}
   .card{
     position:relative; background:var(--ivory); border-radius:10px; overflow:hidden;
@@ -106,12 +110,25 @@
   .comment-item .who{font-weight:700; color:var(--service-text); margin-bottom:3px; font-size:13px;}
   .comment-item .quote{color:var(--gold); font-family:Georgia,serif; font-size:22px; line-height:0; vertical-align:-6px; margin-right:3px;}
 
+  .adequate-bar{display:flex; height:34px; border-radius:8px; overflow:hidden; margin:6px 0 10px;}
+  .adequate-bar .yes{background:var(--l5); display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:700;}
+  .adequate-bar .no{background:var(--l1); display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:700;}
+  .adequate-legend{display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-soft);}
+
   .date-filter{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px;}
   .date-pill{padding:7px 13px; border-radius:20px; border:1px solid rgba(43,38,32,0.18); background:transparent; font-size:13px; cursor:pointer; font-family:inherit; color:var(--ink); font-weight:600;}
   .date-pill.active{background:var(--ink); border-color:var(--ink); color:var(--ivory);}
   .date-custom{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; font-size:13px;}
   .date-custom input{padding:8px 10px; border-radius:6px; border:1.5px solid rgba(43,38,32,0.18); background:rgba(255,255,255,0.6); font-family:inherit; font-size:13px; color:var(--ink);}
   .date-range-note{font-size:12.5px; color:var(--ink-soft); margin-bottom:14px;}
+
+  .export-row{display:flex; gap:10px;}
+  .export-btn{flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; border-radius:8px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; transition:background .15s;}
+  .export-btn:hover{background:rgba(43,38,32,0.06);}
+  .export-btn:disabled{opacity:0.5; cursor:default;}
+  .export-btn svg{width:17px; height:17px; flex-shrink:0;}
+  .export-btn.pdf{background:var(--ink); color:var(--ivory);}
+  .export-btn.pdf:hover{background:#3a2b25;}
 </style>
 </head>
 <body>
@@ -122,6 +139,7 @@
   </div>
   <h1>สรุปผลความพึงพอใจ<br/>ด้านอาหารและการบริการ</h1>
   <div class="rule"></div>
+  <div class="vendor-note">อาหารจากร้าน Rus Hotel ผู้ดำเนินการครัวกลาง สวัสดิการเจ้าหน้าที่ เริ่มตั้งแต่ 9 สิงหาคม 2568</div>
   <div id="updatedAt" class="updated"></div>
   <div id="viewDashboard"></div>
 </div></div>
@@ -147,8 +165,13 @@ const UNITS = [
   'โครงการก่อสร้างศิลปาชีพ ตำบลเกาะเกิด',
   'อาคารศิลปาชีพ ตำบลช้างใหญ่',
   'อาคารเก็บผลิตภัณฑ์ศิลปาชีพ',
+  'หน่วยงานอื่นๆ (โปรดระบุ)',
 ];
+const OTHER_UNIT = 'หน่วยงานอื่นๆ (โปรดระบุ)';
 const UNITS_SHORT = Object.fromEntries(UNITS.map(u => [u, u]));
+function displayUnit(r){
+  return r.unit === OTHER_UNIT ? `อื่นๆ: ${r.other_unit_name || '-'}` : (UNITS_SHORT[r.unit] || r.unit);
+}
 const FOOD_CATS = [
   { key:'taste', label:'รสชาติของอาหารโดยรวม' },
   { key:'freshness', label:'ความสด สะอาด และคุณภาพของวัตถุดิบ' },
@@ -180,6 +203,8 @@ const ICONS = {
   star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8Z"/></svg>',
   chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>',
   crown: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 8l4 3 5-6 5 6 4-3-2 10H5L3 8Z"/></svg>',
+  sheet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 9h18M9 9v11"/></svg>',
+  doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h6"/></svg>',
 };
 
 let dash = { loading:false, error:'', responses:[], wishFilter:'all', dateFilter:'all', customFrom:'', customTo:'' };
@@ -239,8 +264,16 @@ function computeStats(responses){
     const list = responses.filter(r => r.unit === u);
     let s=0, cnt=0;
     list.forEach(r => ALL_CATS.forEach(c => { const v=r.ratings?.[c.key]; if(v>0){s+=v;cnt+=1;} }));
-    return { unit:u, short:UNITS_SHORT[u], count:list.length, avg: cnt ? s/cnt : 0 };
+    const otherNames = u === OTHER_UNIT
+      ? [...new Set(list.map(r => r.other_unit_name).filter(Boolean))]
+      : [];
+    return { unit:u, short:UNITS_SHORT[u], count:list.length, avg: cnt ? s/cnt : 0, otherNames };
   });
+
+  const adequateYes = responses.filter(r => r.meal_adequate === true).length;
+  const adequateNo = responses.filter(r => r.meal_adequate === false).length;
+  const adequateTotal = adequateYes + adequateNo;
+  const adequatePct = adequateTotal ? Math.round((adequateYes/adequateTotal)*100) : 0;
 
   function tally(fieldKeys){
     const freq = {};
@@ -268,7 +301,7 @@ function computeStats(responses){
   const recentComments = responses.filter(r => r.additional_comments).slice(0,6);
   const bestUnit = unitStats.filter(u=>u.count>0).sort((a,b)=>b.avg-a.avg)[0];
 
-  return { total, overallAvg, categoryAverages, unitStats, wishlists, recentComments, bestUnit };
+  return { total, overallAvg, categoryAverages, unitStats, wishlists, recentComments, bestUnit, adequateYes, adequateNo, adequatePct };
 }
 
 function stampLabel(s){
@@ -283,6 +316,99 @@ function setCustomDate(which, val){
   if(which==='from') dash.customFrom = val; else dash.customTo = val;
   dash.dateFilter = 'custom';
   renderDashboard();
+}
+
+function dateRangeLabel(){
+  if(dash.dateFilter==='today') return 'วันนี้';
+  if(dash.dateFilter==='7d') return '7 วันล่าสุด';
+  if(dash.dateFilter==='30d') return '30 วันล่าสุด';
+  if(dash.dateFilter==='custom') return `${dash.customFrom || '…'} ถึง ${dash.customTo || '…'}`;
+  return 'ทั้งหมด';
+}
+
+function exportExcel(){
+  const filtered = getFilteredResponses();
+  if(!filtered.length){ alert('ไม่มีข้อมูลในช่วงเวลาที่เลือก'); return; }
+  const rows = filtered.map(r => {
+    const row = {
+      'วันที่ส่ง': new Date(r.created_at).toLocaleString('th-TH'),
+      'ชื่อ-นามสกุล': r.respondent_name || '',
+      'เบอร์ติดต่อ': r.respondent_phone || '',
+      'หน่วยงาน': displayUnit(r),
+    };
+    ALL_CATS.forEach(c => { row[c.label] = r.ratings?.[c.key] ?? ''; });
+    row['อาหารต่อมื้อเพียงพอ'] = r.meal_adequate === true ? 'เพียงพอ' : r.meal_adequate === false ? 'ไม่เพียงพอ' : '';
+    row['11. อาหารคาวที่อยากเพิ่ม'] = r.savory_suggestions || '';
+    row['12. ของหวานที่อยากเพิ่ม'] = r.dessert_suggestions || '';
+    row['13. ของทานเล่นที่อยากเพิ่ม'] = r.snack_suggestions || '';
+    row['14. เมนูอื่นๆที่แนะนำ'] = r.other_menu_suggestions || '';
+    row['15. ข้อเสนอแนะเพิ่มเติม'] = r.additional_comments || '';
+    return row;
+  });
+  try{
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = Object.keys(rows[0]).map(k => ({ wch: Math.min(Math.max(k.length, 14), 40) }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'แบบประเมิน');
+    XLSX.writeFile(wb, `แบบประเมินความพึงพอใจ_${new Date().toISOString().slice(0,10)}.xlsx`);
+  }catch(e){
+    console.error(e);
+    alert('สร้างไฟล์ Excel ไม่สำเร็จ: ' + (e?.message || e));
+  }
+}
+
+async function exportPDF(){
+  const filtered = getFilteredResponses();
+  if(!filtered.length){ alert('ไม่มีข้อมูลในช่วงเวลาที่เลือก'); return; }
+  const btn = document.getElementById('pdfBtn');
+  const originalLabel = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = 'กำลังสร้าง PDF…';
+  const header = document.createElement('div');
+  header.style.cssText = 'position:absolute; left:-9999px; top:0; width:648px; background:#FBF6EA; padding:28px 24px; font-family:"Noto Sans Thai",sans-serif;';
+  header.innerHTML = `
+    <div style="border-top:4px solid #C9A227; margin-bottom:18px;"></div>
+    <div style="text-align:center; color:#C9A227; font-size:12px; letter-spacing:2px; font-weight:700; margin-bottom:6px;">รายงานสำหรับผู้บริหาร</div>
+    <div style="text-align:center; font-family:'Noto Serif Thai',serif; font-weight:900; font-size:22px; color:#2B2620; margin-bottom:6px;">สรุปผลความพึงพอใจ ด้านอาหารและการบริการ</div>
+    <div style="text-align:center; font-size:13px; color:#6B5D48; margin-bottom:14px;">อาหารจากร้าน Rus Hotel ผู้ดำเนินการครัวกลาง — สวัสดิการเจ้าหน้าที่</div>
+    <div style="display:flex; justify-content:center; gap:24px; font-size:13px; color:#2B2620; font-weight:600;">
+      <span>ช่วงเวลา: ${dateRangeLabel()}</span>
+      <span>สร้างเมื่อ: ${new Date().toLocaleString('th-TH')}</span>
+    </div>
+  `;
+  document.body.appendChild(header);
+  try{
+    const target = document.getElementById('reportContent');
+    const [headerCanvas, contentCanvas] = await Promise.all([
+      html2canvas(header, { scale: 2, backgroundColor: '#FBF6EA' }),
+      html2canvas(target, { scale: 2, backgroundColor: '#1C1210' }),
+    ]);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+
+    const headerImgH = headerCanvas.height * pageW / headerCanvas.width;
+    pdf.addImage(headerCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageW, headerImgH);
+
+    const contentImgH = contentCanvas.height * pageW / contentCanvas.width;
+    const contentData = contentCanvas.toDataURL('image/png');
+    let position = headerImgH;
+    pdf.addImage(contentData, 'PNG', 0, position, pageW, contentImgH);
+    let heightLeft = contentImgH - (pageH - position);
+    while(heightLeft > 0){
+      pdf.addPage();
+      position = heightLeft - contentImgH;
+      pdf.addImage(contentData, 'PNG', 0, position, pageW, contentImgH);
+      heightLeft -= pageH;
+    }
+    pdf.save(`สรุปผลความพึงพอใจ_${new Date().toISOString().slice(0,10)}.pdf`);
+  }catch(e){
+    console.error(e);
+    alert('สร้าง PDF ไม่สำเร็จ: ' + (e?.message || e));
+  }finally{
+    document.body.removeChild(header);
+    btn.disabled = false; btn.innerHTML = originalLabel;
+  }
 }
 
 function renderDashboard(){
@@ -333,6 +459,7 @@ function renderDashboard(){
         <span class="val">${u.count?u.avg.toFixed(1):'-'}</span>
       </div>
       <div class="unit-track"><div class="unit-fill" style="width:${u.count?(u.avg/5*100):2}%; background:${u.count?catColor(u.avg):'var(--ivory-dim)'}"></div></div>
+      ${u.otherNames && u.otherNames.length ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:4px;">ระบุ: ${u.otherNames.join(', ')}</div>` : ''}
     </div>`).join('');
 
   function catBarsFor(cats){
@@ -368,12 +495,19 @@ function renderDashboard(){
       </div>
       ${s.recentComments.map(r => `
         <div class="comment-item">
-          <div class="who">${UNITS_SHORT[r.unit] || r.unit}</div>
+          <div class="who">${displayUnit(r)}</div>
           <div><span class="quote">“</span>${r.additional_comments}</div>
         </div>`).join('')}
     </div>`;
 
   el.innerHTML = dateFilterHtml + `
+    <div class="card">
+      <div class="export-row">
+        <button class="export-btn" id="excelBtn" onclick="exportExcel()">${ICONS.sheet} Excel รายชื่อผู้ประเมิน</button>
+        <button class="export-btn pdf" id="pdfBtn" onclick="exportPDF()">${ICONS.doc} PDF รายงานสรุป</button>
+      </div>
+    </div>
+    <div id="reportContent">
     <div class="card">
       <div class="seal-wrap">
         <div class="seal"><div class="score">${s.overallAvg.toFixed(1)}</div><div class="label">${stampLabel(s.overallAvg)}</div></div>
@@ -394,6 +528,19 @@ function renderDashboard(){
       </div>
       ${unitRows}
     </div>
+
+    ${s.adequateYes + s.adequateNo > 0 ? `
+    <div class="card">
+      <div class="sec-head">
+        <div class="sec-icon" style="background:var(--food-bg); color:var(--food-text);">${ICONS.bowl}</div>
+        <div><div class="sec-title">อาหารต่อมื้อเพียงพอหรือไม่</div></div>
+      </div>
+      <div class="adequate-bar">
+        ${s.adequatePct > 0 ? `<div class="yes" style="width:${s.adequatePct}%">${s.adequatePct}%</div>` : ''}
+        ${s.adequatePct < 100 ? `<div class="no" style="width:${100-s.adequatePct}%">${100-s.adequatePct}%</div>` : ''}
+      </div>
+      <div class="adequate-legend"><span>เพียงพอ (${s.adequateYes} ฉบับ)</span><span>ไม่เพียงพอ (${s.adequateNo} ฉบับ)</span></div>
+    </div>` : ''}
 
     <div class="card">
       <div class="sec-head">
@@ -420,6 +567,7 @@ function renderDashboard(){
     </div>
 
     ${commentsHtml}
+    </div>
   `;
 }
 

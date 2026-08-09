@@ -38,7 +38,8 @@
     background:linear-gradient(180deg,var(--gold-light),var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   .rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 14px;}
-  .subhead{text-align:center; font-size:14.5px; color:rgba(251,246,234,0.82); margin:0 0 22px; line-height:1.6; max-width:440px; margin-left:auto; margin-right:auto;}
+  .subhead{text-align:center; font-size:14.5px; color:rgba(251,246,234,0.82); margin:0 0 10px; line-height:1.6; max-width:440px; margin-left:auto; margin-right:auto;}
+  .vendor-note{text-align:center; font-size:13px; color:var(--gold-light); margin:0 0 22px; line-height:1.6; max-width:440px; margin-left:auto; margin-right:auto; padding:10px 14px; border:1px solid rgba(201,162,39,0.3); border-radius:8px; background:rgba(201,162,39,0.06);}
   .card{
     position:relative; background:var(--ivory); border-radius:10px; overflow:hidden;
     box-shadow:0 14px 34px rgba(0,0,0,0.38), 0 2px 8px rgba(0,0,0,0.2);
@@ -66,6 +67,14 @@
   .unit-row-btn.active{background:var(--ink); border-color:var(--gold);}
   .unit-row-btn.active .label{color:var(--ivory);}
   .unit-row-btn.active .icon{background:var(--gold); color:var(--ink);}
+  .other-unit-input{width:100%; padding:12px 14px; border-radius:8px; border:1.5px solid var(--gold); background:rgba(255,255,255,0.6); font-family:inherit; font-size:14.5px; color:var(--ink); margin-top:-2px; margin-bottom:9px;}
+  .other-unit-input:focus{outline:none; box-shadow:0 0 0 3px rgba(201,162,39,0.2);}
+  .yn-block{margin-top:6px; padding-top:16px; border-top:1px solid rgba(43,38,32,0.12);}
+  .yn-label{font-size:15px; font-weight:700; margin-bottom:10px; line-height:1.5;}
+  .yn-row{display:flex; gap:10px;}
+  .yn-btn{flex:1; padding:13px; border-radius:8px; border:1.5px solid rgba(43,38,32,0.16); background:rgba(255,255,255,0.5); color:var(--ink); font-weight:700; font-size:14.5px; cursor:pointer; font-family:inherit; transition:transform .15s, box-shadow .15s;}
+  .yn-btn:hover{transform:translateY(-2px);}
+  .yn-btn[data-active="true"]{color:#fff; border-color:transparent; box-shadow:0 5px 14px rgba(0,0,0,0.2);}
   .rating-row{margin-bottom:20px;}
   .rating-label{display:flex; align-items:flex-start; gap:9px; font-size:15px; font-weight:700; margin-bottom:9px; line-height:1.5;}
   .num-badge{display:flex; align-items:center; justify-content:center; width:23px; height:23px; border-radius:50%; color:#fff; font-family:'Noto Sans Thai',sans-serif; font-weight:700; font-size:14px; flex-shrink:0; margin-top:1px;}
@@ -107,6 +116,7 @@
   <h1>แบบประเมินความพึงพอใจ<br/>ด้านอาหารและการบริการ</h1>
   <div class="rule"></div>
   <div class="subhead">ความคิดเห็นของท่านมีส่วนสำคัญในการพัฒนาคุณภาพอาหารและการบริการให้ดียิ่งขึ้น</div>
+  <div class="vendor-note">แบบประเมินนี้สำหรับอาหารจากร้าน Rus Hotel ผู้ดำเนินการครัวกลาง ซึ่งเป็นสวัสดิการที่มูลนิธิจัดให้แก่เจ้าหน้าที่ เริ่มตั้งแต่วันที่ 9 สิงหาคม 2568 เป็นต้นไป</div>
   <div id="viewForm"></div>
 </div></div>
 
@@ -131,7 +141,9 @@ const UNITS = [
   'โครงการก่อสร้างศิลปาชีพ ตำบลเกาะเกิด',
   'อาคารศิลปาชีพ ตำบลช้างใหญ่',
   'อาคารเก็บผลิตภัณฑ์ศิลปาชีพ',
+  'หน่วยงานอื่นๆ (โปรดระบุ)',
 ];
+const OTHER_UNIT = 'หน่วยงานอื่นๆ (โปรดระบุ)';
 const UNITS_SHORT = Object.fromEntries(UNITS.map(u => [u, u]));
 
 const FOOD_CATS = [
@@ -163,10 +175,12 @@ const ICONS = {
   bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16c2-1 3-3 3-6a5 5 0 0 1 10 0c0 3 1 5 3 6Z"/><path d="M2 16h20"/><circle cx="12" cy="19.2" r="1.3"/></svg>',
   quill: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10.5 20.5h3"/><path d="M12 3a6 6 0 0 0-4 10.5c.6.6 1 1.4 1 2.5h6c0-1.1.4-1.9 1-2.5A6 6 0 0 0 12 3Z"/></svg>',
   check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c1-4 4-6 7.5-6s6.5 2 7.5 6"/></svg>',
 };
 
 let state = {
-  unit:'', ratings:{},
+  respondentName:'', respondentPhone:'',
+  unit:'', otherUnitName:'', ratings:{}, mealAdequate:null,
   savory:'', dessert:'', snack:'', otherMenu:'', additionalComments:'',
   submitting:false, submitted:false, error:'',
 };
@@ -207,7 +221,7 @@ function renderForm(){
         <div class="success">
           <div class="seal">${ICONS.check}</div>
           <h2>ขอบคุณสำหรับความคิดเห็น</h2>
-          <p>บันทึกแบบฟอร์มจาก ${UNITS_SHORT[state.unit]} เรียบร้อยแล้ว</p>
+          <p>บันทึกแบบฟอร์มจาก ${state.unit === OTHER_UNIT ? state.otherUnitName : UNITS_SHORT[state.unit]} เรียบร้อยแล้ว</p>
           <button class="btn-outline" onclick="resetForm()">ส่งอีกฉบับ</button>
         </div>
       </div>`;
@@ -219,14 +233,42 @@ function renderForm(){
       <span class="label">${UNITS_SHORT[u]}</span>
     </button>
   `).join('');
+  const otherUnitField = state.unit === OTHER_UNIT
+    ? `<input type="text" class="other-unit-input" placeholder="โปรดระบุชื่อหน่วยงาน" value="${state.otherUnitName}" id="otherUnitInput">`
+    : '';
+
+  const ynOpts = [
+    { v:true, label:'เพียงพอ', color:'var(--l5)' },
+    { v:false, label:'ไม่เพียงพอ', color:'var(--l1)' },
+  ].map(o => `
+    <button type="button" class="yn-btn" data-active="${state.mealAdequate===o.v}"
+      style="${state.mealAdequate===o.v ? `background:${o.color};` : ''}"
+      onclick="setMealAdequate(${o.v})">${o.label}</button>
+  `).join('');
 
   el.innerHTML = `
+    <div class="card">
+      <div class="sec-head">
+        <div class="sec-icon" style="background:var(--ivory-dim); color:var(--ink-soft);">${ICONS.user}</div>
+        <div><div class="sec-title">ข้อมูลผู้ประเมิน</div></div>
+      </div>
+      <div class="field-block" style="border-left-color:var(--gold);">
+        <div class="field-label">ชื่อ-นามสกุล</div>
+        <input type="text" class="other-unit-input" id="respondentNameInput" placeholder="กรอกชื่อ-นามสกุล" value="${state.respondentName}">
+      </div>
+      <div class="field-block" style="border-left-color:var(--gold); margin-bottom:6px;">
+        <div class="field-label">เบอร์ติดต่อ</div>
+        <input type="tel" class="other-unit-input" id="respondentPhoneInput" placeholder="กรอกเบอร์โทรศัพท์" value="${state.respondentPhone}">
+      </div>
+    </div>
+
     <div class="card">
       <div class="sec-head">
         <div class="sec-icon" style="background:var(--ivory-dim); color:var(--ink-soft);">${ICONS.building}</div>
         <div><div class="sec-title">เลือกหน่วยงานของท่าน</div></div>
       </div>
       ${unitButtons}
+      ${otherUnitField}
     </div>
 
     <div class="card">
@@ -236,6 +278,10 @@ function renderForm(){
       </div>
       ${legendHtml()}
       ${FOOD_CATS.map(c => ratingRowHtml(c, 'var(--food)')).join('')}
+      <div class="yn-block">
+        <div class="yn-label">อาหารต่อมื้อเพียงพอ หรือเหมาะสมกับการรับประทานหรือไม่</div>
+        <div class="yn-row">${ynOpts}</div>
+      </div>
     </div>
 
     <div class="card">
@@ -270,28 +316,42 @@ function renderForm(){
   document.getElementById('snackInput').oninput = e => state.snack = e.target.value;
   document.getElementById('otherMenuInput').oninput = e => state.otherMenu = e.target.value;
   document.getElementById('additionalInput').oninput = e => state.additionalComments = e.target.value;
+  const otherUnitEl = document.getElementById('otherUnitInput');
+  if(otherUnitEl) otherUnitEl.oninput = e => state.otherUnitName = e.target.value;
+  document.getElementById('respondentNameInput').oninput = e => state.respondentName = e.target.value;
+  document.getElementById('respondentPhoneInput').oninput = e => state.respondentPhone = e.target.value;
 }
 
-function setUnit(u){ state.unit = u; renderForm(); }
+function setMealAdequate(v){ state.mealAdequate = v; renderForm(); }
+
+function setUnit(u){ state.unit = u; if(u !== OTHER_UNIT) state.otherUnitName=''; renderForm(); }
 function setRating(key, v){ state.ratings[key] = v; renderForm(); }
 function resetForm(){
-  state = { unit:'', ratings:{}, savory:'', dessert:'', snack:'', otherMenu:'', additionalComments:'', submitting:false, submitted:false, error:'' };
+  state = { respondentName:'', respondentPhone:'', unit:'', otherUnitName:'', ratings:{}, mealAdequate:null, savory:'', dessert:'', snack:'', otherMenu:'', additionalComments:'', submitting:false, submitted:false, error:'' };
   ALL_CATS.forEach(c => state.ratings[c.key] = 0);
   renderForm();
 }
 
 async function handleSubmit(){
-  const allFilled = state.unit && ALL_CATS.every(c => state.ratings[c.key] > 0);
+  const unitOk = state.unit && (state.unit !== OTHER_UNIT || state.otherUnitName.trim());
+  const personOk = state.respondentName.trim() && state.respondentPhone.trim();
+  const allFilled = personOk && unitOk && ALL_CATS.every(c => state.ratings[c.key] > 0) && state.mealAdequate !== null;
   if(!allFilled){
-    state.error = 'กรุณาเลือกหน่วยงานและให้คะแนนครบทุกหัวข้อ (ข้อ 1-10) ก่อนส่งแบบประเมิน';
+    if(!personOk) state.error = 'กรุณากรอกชื่อ-นามสกุล และเบอร์ติดต่อ';
+    else if(state.unit === OTHER_UNIT && !state.otherUnitName.trim()) state.error = 'กรุณาระบุชื่อหน่วยงานของท่าน';
+    else state.error = 'กรุณาเลือกหน่วยงาน ให้คะแนนครบทุกหัวข้อ (ข้อ 1-10) และตอบคำถามเรื่องความเพียงพอของอาหารก่อนส่งแบบประเมิน';
     renderForm();
     return;
   }
   state.error = ''; state.submitting = true; renderForm();
   try{
     const { error } = await sb.from(TABLE).insert({
+      respondent_name: state.respondentName.trim(),
+      respondent_phone: state.respondentPhone.trim(),
       unit: state.unit,
+      other_unit_name: state.unit === OTHER_UNIT ? state.otherUnitName.trim() : '',
       ratings: state.ratings,
+      meal_adequate: state.mealAdequate,
       savory_suggestions: state.savory.trim(),
       dessert_suggestions: state.dessert.trim(),
       snack_suggestions: state.snack.trim(),
