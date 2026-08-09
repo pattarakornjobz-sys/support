@@ -4,94 +4,130 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>แบบประเมินความพึงพอใจ ด้านอาหารและการบริการ</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;700;900&family=Noto+Sans+Thai:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;700;900&family=Noto+Sans+Thai:wght@400;500;600;700&family=Cormorant+Garamond:wght@600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 <style>
   :root{
-    --ink:#2B2620; --paper:#EAE0C8; --paper-dark:#D8CBA8;
-    --oxblood:#8B2E3C; --gold:#C99A2E; --teal:#1F4B4C; --jade:#4F7965;
-    --l5:#4F7965; --l4:#8FAE7B; --l3:#C99A2E; --l2:#C97B3D; --l1:#8B2E3C;
+    --bg:#1C1210; --bg-2:#2A1B17;
+    --gold:#C9A227; --gold-light:#E6C767; --gold-dim: rgba(201,162,39,0.35);
+    --ivory:#FBF6EA; --ivory-dim:#F0E7CE;
+    --ink:#2B2620; --ink-soft:#6B5D48;
+    --food:#1F5C4B; --food-bg:#E4F0EA; --food-text:#164A3C;
+    --service:#2C3E63; --service-bg:#E7ECF5; --service-text:#22314E;
+    --l5:#2F6F5E; --l4:#6B9E82; --l3:#C9A227; --l2:#C97B3D; --l1:#8B2E3C;
+    --savory:#B9612E; --dessert:#B8557A; --snack:#C99A2E; --othermenu:#4F7965; --comments:#8B2E3C;
   }
   *{box-sizing:border-box;}
+  @media (prefers-reduced-motion: no-preference){
+    @keyframes riseIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+    .card{animation:riseIn .5s ease both;}
+  }
   body{
     margin:0; font-family:'Noto Sans Thai',sans-serif; color:var(--ink);
-    background:var(--teal);
+    background:var(--bg);
     background-image:
-      radial-gradient(circle at 15% 10%, rgba(201,154,46,0.10), transparent 45%),
-      radial-gradient(circle at 85% 90%, rgba(139,46,60,0.14), transparent 45%);
-    padding:28px 14px 60px;
+      radial-gradient(circle at 20% 0%, rgba(201,162,39,0.12), transparent 45%),
+      radial-gradient(circle at 90% 90%, rgba(139,46,60,0.18), transparent 50%);
+    padding:30px 12px 60px;
     font-size:16px; line-height:1.6;
   }
-  .wrap{max-width:640px; margin:0 auto;}
-  .eyebrow{color:var(--gold); font-size:13px; letter-spacing:2px; font-weight:700; text-align:center; margin-bottom:6px;}
-  h1{font-family:'Noto Serif Thai',serif; color:var(--paper); font-size:24px; font-weight:900; margin:0 0 8px; text-align:center; line-height:1.4;}
-  .subhead{text-align:center; font-size:14.5px; color:rgba(234,224,200,0.9); margin:0 0 20px; line-height:1.5;}
-  .card{
-    position:relative; background:var(--paper); border:1px solid var(--paper-dark); border-radius:4px;
-    box-shadow:0 6px 0 rgba(43,38,32,0.06), 0 12px 24px rgba(43,38,32,0.12);
-    background-image:repeating-linear-gradient(0deg, rgba(43,38,32,0.015) 0px, rgba(43,38,32,0.015) 1px, transparent 1px, transparent 3px);
-    padding:24px 22px; margin-bottom:16px;
+  .frame{max-width:648px; margin:0 auto; border:1px solid var(--gold-dim); border-radius:8px; padding:4px; position:relative;}
+  .frame::before{content:''; position:absolute; inset:7px; border:1px solid rgba(201,162,39,0.22); border-radius:5px; pointer-events:none;}
+  .wrap{padding:26px 16px 30px;}
+  .eyebrow{display:flex; align-items:center; justify-content:center; gap:8px; color:var(--gold-light); font-size:13px; letter-spacing:3px; font-weight:700; text-align:center; margin-bottom:10px;}
+  .eyebrow svg{width:16px; height:16px;}
+  h1{
+    font-family:'Noto Serif Thai',serif; font-size:25px; font-weight:900; margin:0 0 4px; text-align:center; line-height:1.45;
+    background:linear-gradient(180deg,var(--gold-light),var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent;
   }
-  .perf{position:absolute; top:0; bottom:0; width:18px; display:flex; flex-direction:column; justify-content:space-around; align-items:center; pointer-events:none;}
-  .perf.left{left:-9px;} .perf.right{right:-9px;}
-  .dot{width:14px; height:14px; border-radius:50%; background:#f5f1e6; box-shadow:inset 0 1px 2px rgba(0,0,0,0.25);}
-  .section-title{font-family:'Noto Serif Thai',serif; font-weight:700; color:var(--oxblood); font-size:18px; margin:0 0 6px; display:flex; align-items:center; gap:6px;}
-  .section-sub{font-size:13.5px; color:#54493a; margin-bottom:14px;}
-  .divider{border-top:2px dashed var(--paper-dark); margin:18px 0;}
-  .legend{display:flex; flex-wrap:wrap; gap:10px; font-size:13px; font-weight:600; margin-bottom:18px; justify-content:center;}
+  .rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 14px;}
+  .subhead{text-align:center; font-size:14.5px; color:rgba(251,246,234,0.82); margin:0 0 22px; line-height:1.6; max-width:440px; margin-left:auto; margin-right:auto;}
+  .card{
+    position:relative; background:var(--ivory); border-radius:10px; overflow:hidden;
+    box-shadow:0 14px 34px rgba(0,0,0,0.38), 0 2px 8px rgba(0,0,0,0.2);
+    padding:26px 22px; margin-bottom:18px;
+  }
+  .card::before{content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--gold-light),var(--gold));}
+  .sec-head{display:flex; align-items:center; gap:12px; margin-bottom:16px;}
+  .sec-icon{width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .sec-icon svg{width:21px; height:21px;}
+  .sec-title{font-family:'Noto Serif Thai',serif; font-weight:700; font-size:18px; line-height:1.3;}
+  .sec-sub{font-size:12.5px; color:var(--ink-soft); margin-top:1px;}
+  .divider{border-top:1px solid rgba(43,38,32,0.12); margin:20px 0;}
+  .legend{display:flex; flex-wrap:wrap; gap:10px 14px; font-size:12.5px; font-weight:600; margin-bottom:18px; justify-content:center; padding:10px 8px; background:var(--ivory-dim); border-radius:8px;}
   .legend span{display:flex; align-items:center; gap:5px;}
-  .legend .sw{width:12px; height:12px; border-radius:50%; display:inline-block; flex-shrink:0;}
-  .unit-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
-  .unit-btn{text-align:left; padding:12px 10px; border-radius:3px; border:1.5px solid var(--paper-dark); background:rgba(255,255,255,0.35); color:var(--ink); font-size:14.5px; font-weight:600; cursor:pointer; line-height:1.4; font-family:inherit;}
-  .unit-btn.active{background:var(--teal); border-color:var(--teal); color:var(--paper); font-weight:700;}
+  .legend .sw{width:11px; height:11px; border-radius:50%; display:inline-block; flex-shrink:0; box-shadow:0 0 0 1px rgba(0,0,0,0.08);}
+  .unit-row-btn{
+    display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:13px 14px; border-radius:8px;
+    border:1.5px solid rgba(43,38,32,0.14); background:rgba(255,255,255,0.5); cursor:pointer; font-family:inherit;
+    margin-bottom:9px; transition:transform .15s, box-shadow .15s, background .15s, border-color .15s;
+  }
+  .unit-row-btn:hover{transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+  .unit-row-btn .icon{width:32px; height:32px; border-radius:50%; background:var(--ivory-dim); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--ink-soft);}
+  .unit-row-btn .icon svg{width:17px; height:17px;}
+  .unit-row-btn .label{font-size:14.5px; font-weight:600; line-height:1.4;}
+  .unit-row-btn.active{background:var(--ink); border-color:var(--gold);}
+  .unit-row-btn.active .label{color:var(--ivory);}
+  .unit-row-btn.active .icon{background:var(--gold); color:var(--ink);}
   .rating-row{margin-bottom:20px;}
-  .rating-label{font-size:15.5px; font-weight:700; margin-bottom:8px; line-height:1.5;}
+  .rating-label{display:flex; align-items:flex-start; gap:9px; font-size:15px; font-weight:700; margin-bottom:9px; line-height:1.5;}
+  .num-badge{display:flex; align-items:center; justify-content:center; width:23px; height:23px; border-radius:50%; color:#fff; font-family:'Cormorant Garamond',serif; font-weight:700; font-size:13px; flex-shrink:0; margin-top:1px;}
   .rating-opts{display:flex; gap:8px;}
-  .rating-opt{flex:1 1 0; aspect-ratio:1; min-height:44px; border-radius:8px; border:1.5px solid var(--paper-dark); background:rgba(255,255,255,0.4); color:var(--ink); font-family:'Space Mono',monospace; font-size:19px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center;}
-  .rating-opt[data-active="true"]{color:var(--paper); border-color:transparent;}
-  textarea{width:100%; padding:12px; border-radius:3px; border:1.5px solid var(--paper-dark); background:rgba(255,255,255,0.5); font-family:inherit; font-size:15.5px; color:var(--ink); resize:vertical; line-height:1.5;}
-  .field-label{font-size:15px; font-weight:700; margin-bottom:4px; line-height:1.4;}
-  .field-hint{font-size:13px; color:#54493a; margin-bottom:8px;}
-  .field-block{margin-bottom:18px;}
-  .submit-btn{width:100%; padding:15px; border-radius:4px; border:none; background:var(--oxblood); color:var(--paper); font-weight:700; font-size:16.5px; cursor:pointer; letter-spacing:1px; font-family:inherit;}
-  .submit-btn:disabled{background:var(--paper-dark); cursor:default;}
-  .note{text-align:center; font-size:13px; color:#54493a; margin-top:10px;}
-  .error{color:var(--oxblood); font-size:14.5px; font-weight:600; margin-bottom:12px;}
-  .success{text-align:center; padding:20px 0;}
-  .success .emoji{font-size:44px; margin-bottom:8px;}
-  .success h2{font-family:'Noto Serif Thai',serif; font-weight:700; font-size:21px; color:var(--teal); margin:0 0 8px;}
-  .success p{font-size:15px; margin:0 0 20px;}
-  .btn-outline{padding:12px 20px; border-radius:4px; border:1.5px solid var(--teal); background:transparent; color:var(--teal); font-weight:700; font-size:15px; cursor:pointer; font-family:inherit;}
+  .rating-opt{flex:1 1 0; aspect-ratio:1; min-height:44px; border-radius:9px; border:1.5px solid rgba(43,38,32,0.16); background:rgba(255,255,255,0.5); color:var(--ink); font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .15s, box-shadow .15s;}
+  .rating-opt:hover{transform:translateY(-2px);}
+  .rating-opt[data-active="true"]{color:#fff; border-color:transparent; box-shadow:0 5px 14px rgba(0,0,0,0.25); transform:translateY(-1px);}
+  .field-block{border-left:3px solid var(--accent, var(--gold)); padding-left:14px; margin-bottom:20px;}
+  .field-label{display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; margin-bottom:4px; line-height:1.4;}
+  .field-badge{display:flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:var(--accent, var(--gold)); color:#fff; font-family:'Cormorant Garamond',serif; font-weight:700; font-size:12px; flex-shrink:0;}
+  .field-hint{font-size:12.5px; color:var(--ink-soft); margin-bottom:8px;}
+  textarea{width:100%; padding:11px 12px; border-radius:6px; border:1.5px solid rgba(43,38,32,0.16); background:rgba(255,255,255,0.55); font-family:inherit; font-size:15px; color:var(--ink); resize:vertical; line-height:1.5;}
+  textarea:focus{outline:none; border-color:var(--accent, var(--gold));}
+  .submit-btn{
+    width:100%; padding:16px; border-radius:8px; border:1px solid var(--gold-dim);
+    background:linear-gradient(180deg,#9c3548,#7a2534); color:var(--ivory); font-weight:700; font-size:16.5px;
+    cursor:pointer; letter-spacing:1px; font-family:inherit; box-shadow:0 10px 24px rgba(139,46,60,0.4);
+    transition:transform .15s, box-shadow .15s;
+  }
+  .submit-btn:hover{transform:translateY(-2px); box-shadow:0 14px 30px rgba(139,46,60,0.48);}
+  .submit-btn:disabled{background:#9a9086; box-shadow:none; cursor:default; transform:none;}
+  .note{text-align:center; font-size:12.5px; color:var(--ink-soft); margin-top:12px;}
+  .error{display:flex; align-items:center; gap:8px; color:#7a2534; background:#FBE9EC; border:1px solid #F0C3CB; padding:10px 12px; border-radius:6px; font-size:14px; font-weight:600; margin-bottom:14px;}
+  .success{text-align:center; padding:12px 0;}
+  .success .seal{width:74px; height:74px; border-radius:50%; border:2px solid var(--gold); background:var(--ivory-dim); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; box-shadow:0 0 0 5px rgba(201,162,39,0.12);}
+  .success .seal svg{width:34px; height:34px; color:var(--food);}
+  .success h2{font-family:'Noto Serif Thai',serif; font-weight:700; font-size:21px; color:var(--ink); margin:0 0 8px;}
+  .success p{font-size:15px; margin:0 0 22px; color:var(--ink-soft);}
+  .btn-outline{padding:12px 22px; border-radius:8px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-weight:700; font-size:15px; cursor:pointer; font-family:inherit; transition:background .15s;}
+  .btn-outline:hover{background:rgba(43,38,32,0.06);}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="eyebrow">แบบสำรวจความพึงพอใจ</div>
+<div class="frame"><div class="wrap">
+  <div class="eyebrow">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c2 3 1 4-.5 5.5C10 9 9 10.5 9 12.5A3 3 0 0 0 12 15.5 3 3 0 0 0 15 12.5c0-1-1-1.8-1.5-2.8"/><path d="M12 15.5c-.5 2-2 3-4 3.5M12 15.5c.5 2 2 3 4 3.5"/></svg>
+    แบบสำรวจความพึงพอใจ
+  </div>
   <h1>แบบประเมินความพึงพอใจ<br/>ด้านอาหารและการบริการ</h1>
+  <div class="rule"></div>
   <div class="subhead">ความคิดเห็นของท่านมีส่วนสำคัญในการพัฒนาคุณภาพอาหารและการบริการให้ดียิ่งขึ้น</div>
   <div id="viewForm"></div>
-</div>
+</div></div>
 
 <script>
-// ============================================================
-// ⚠️ CONFIG — fill in before deploying to Vercel
-// ============================================================
 const SUPABASE_URL = 'https://uhefxwccuqagnbrbidbh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVoZWZ4d2NjdXFhZ25icmJpZGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDI1NDYsImV4cCI6MjEwMTU3ODU0Nn0.EE5QWPVjSkZpUTU37hgiz4LsGMAfq87dxFOkt9OYynY';
 const TABLE = 'food_survey_responses';
 
 if (SUPABASE_URL.includes('YOUR_') || SUPABASE_ANON_KEY.includes('YOUR_')) {
   document.getElementById('viewForm').innerHTML =
-    '<div class="card"><div class="error">ยังไม่ได้ตั้งค่า Supabase — กรุณาใส่ค่า SUPABASE_URL และ SUPABASE_ANON_KEY จริง ในไฟล์นี้ (บรรทัดบนสุดของ &lt;script&gt;) แล้วอัปโหลดใหม่</div></div>';
-  throw new Error('Supabase config not set — replace SUPABASE_URL / SUPABASE_ANON_KEY placeholders.');
+    '<div class="card"><div class="error">ยังไม่ได้ตั้งค่า Supabase — กรุณาใส่ค่า SUPABASE_URL และ SUPABASE_ANON_KEY จริง ในไฟล์นี้ แล้วอัปโหลดใหม่</div></div>';
+  throw new Error('Supabase config not set.');
 }
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
 });
 
-// ============================================================
-// Data — matches the 15-item paper form
-// ============================================================
 const UNITS = [
   'อาคารเรียน-รู้-เรื่องโขน',
   'แผนกนักเรียนศิลปาชีพ',
@@ -100,30 +136,21 @@ const UNITS = [
   'อาคารศิลปาชีพ ตำบลช้างใหญ่',
   'อาคารเก็บผลิตภัณฑ์ศิลปาชีพ',
 ];
-const UNITS_SHORT = {
-  'อาคารเรียน-รู้-เรื่องโขน': 'อาคารเรียน-รู้-เรื่องโขน',
-  'แผนกนักเรียนศิลปาชีพ': 'แผนกนักเรียนศิลปาชีพ',
-  'พิพิธภัณฑ์ศิลป์แผ่นดิน': 'พิพิธภัณฑ์ศิลป์แผ่นดิน',
-  'โครงการก่อสร้างศิลปาชีพ ตำบลเกาะเกิด': 'โครงการก่อสร้างศิลปาชีพ ตำบลเกาะเกิด',
-  'อาคารศิลปาชีพ ตำบลช้างใหญ่': 'อาคารศิลปาชีพ ตำบลช้างใหญ่',
-  'อาคารเก็บผลิตภัณฑ์ศิลปาชีพ': 'อาคารเก็บผลิตภัณฑ์ศิลปาชีพ',
-};
+const UNITS_SHORT = Object.fromEntries(UNITS.map(u => [u, u]));
 
-// ข้อ 1-5 ด้านอาหาร
 const FOOD_CATS = [
-  { key:'taste', label:'1. รสชาติของอาหารโดยรวม' },
-  { key:'freshness', label:'2. ความสด สะอาด และคุณภาพของวัตถุดิบ' },
-  { key:'variety', label:'3. ความหลากหลายของรายการอาหาร' },
-  { key:'presentation', label:'4. ความน่ารับประทานและการจัดตกแต่งอาหาร' },
-  { key:'quantity', label:'5. ปริมาณอาหารมีความเหมาะสม' },
+  { key:'taste', num:1, label:'รสชาติของอาหารโดยรวม' },
+  { key:'freshness', num:2, label:'ความสด สะอาด และคุณภาพของวัตถุดิบ' },
+  { key:'variety', num:3, label:'ความหลากหลายของรายการอาหาร' },
+  { key:'presentation', num:4, label:'ความน่ารับประทานและการจัดตกแต่งอาหาร' },
+  { key:'quantity', num:5, label:'ปริมาณอาหารมีความเหมาะสม' },
 ];
-// ข้อ 6-10 ด้านการบริการ
 const SERVICE_CATS = [
-  { key:'politeness', label:'6. ความสุภาพและมีมารยาทของผู้ให้บริการ' },
-  { key:'speed', label:'7. ความรวดเร็วและความคล่องตัวในการให้บริการ' },
-  { key:'cleanliness', label:'8. ความสะอาดของภาชนะ โต๊ะ และบริเวณรับประทานอาหาร' },
-  { key:'attentiveness', label:'9. การเอาใจใส่และความพร้อมในการให้บริการ' },
-  { key:'overall', label:'10. ความพึงพอใจโดยรวมต่ออาหารและการบริการ' },
+  { key:'politeness', num:6, label:'ความสุภาพและมีมารยาทของผู้ให้บริการ' },
+  { key:'speed', num:7, label:'ความรวดเร็วและความคล่องตัวในการให้บริการ' },
+  { key:'cleanliness', num:8, label:'ความสะอาดของภาชนะ โต๊ะ และบริเวณรับประทานอาหาร' },
+  { key:'attentiveness', num:9, label:'การเอาใจใส่และความพร้อมในการให้บริการ' },
+  { key:'overall', num:10, label:'ความพึงพอใจโดยรวมต่ออาหารและการบริการ' },
 ];
 const ALL_CATS = [...FOOD_CATS, ...SERVICE_CATS];
 const LEVELS = [
@@ -134,6 +161,14 @@ const LEVELS = [
   { v:1, label:'น้อยที่สุด', color:'var(--l1)' },
 ];
 
+const ICONS = {
+  building: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4h6v4"/><path d="M8 7h1M11 7h1M14 7h1M8 11h1M11 11h1M14 11h1"/></svg>',
+  bowl: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18a9 6 0 0 1-18 0Z"/><path d="M12 3c-1 1-1 2 0 3M9 3.8c-.7 1-.7 1.6 0 2.6M15 3.8c.7 1 .7 1.6 0 2.6"/></svg>',
+  bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16c2-1 3-3 3-6a5 5 0 0 1 10 0c0 3 1 5 3 6Z"/><path d="M2 16h20"/><circle cx="12" cy="19.2" r="1.3"/></svg>',
+  quill: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10.5 20.5h3"/><path d="M12 3a6 6 0 0 0-4 10.5c.6.6 1 1.4 1 2.5h6c0-1.1.4-1.9 1-2.5A6 6 0 0 0 12 3Z"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+};
+
 let state = {
   unit:'', ratings:{},
   savory:'', dessert:'', snack:'', otherMenu:'', additionalComments:'',
@@ -141,9 +176,7 @@ let state = {
 };
 ALL_CATS.forEach(c => state.ratings[c.key] = 0);
 
-function perf(side){ return `<div class="perf ${side}">${'<div class="dot"></div>'.repeat(9)}</div>`; }
-
-function ratingRowHtml(cat){
+function ratingRowHtml(cat, badgeColor){
   const opts = LEVELS.map(lv => {
     const active = state.ratings[cat.key] === lv.v;
     return `
@@ -151,20 +184,32 @@ function ratingRowHtml(cat){
       style="${active ? `background:${lv.color};` : ''}"
       onclick="setRating('${cat.key}',${lv.v})" aria-label="${lv.label}">${lv.v}</button>`;
   }).join('');
-  return `<div class="rating-row"><div class="rating-label">${cat.label}</div><div class="rating-opts">${opts}</div></div>`;
+  return `<div class="rating-row">
+    <div class="rating-label"><span class="num-badge" style="background:${badgeColor}">${cat.num}</span>${cat.label}</div>
+    <div class="rating-opts">${opts}</div>
+  </div>`;
 }
 
 function legendHtml(){
-  return `<div class="legend">${LEVELS.map(lv => `<span><span class="sw" style="background:${lv.color}"></span>${lv.v}=${lv.label}</span>`).join('')}</div>`;
+  return `<div class="legend">${LEVELS.map(lv => `<span><span class="sw" style="background:${lv.color}"></span>${lv.v} = ${lv.label}</span>`).join('')}</div>`;
+}
+
+function fieldBlock(id, accentVar, num, title, hint, value){
+  return `
+  <div class="field-block" style="--accent:var(${accentVar})">
+    <div class="field-label"><span class="field-badge">${num}</span>${title}</div>
+    ${hint ? `<div class="field-hint">${hint}</div>` : ''}
+    <textarea id="${id}" rows="2">${value}</textarea>
+  </div>`;
 }
 
 function renderForm(){
   const el = document.getElementById('viewForm');
   if(state.submitted){
     el.innerHTML = `
-      <div class="card">${perf('left')}${perf('right')}
+      <div class="card">
         <div class="success">
-          <div class="emoji">✅</div>
+          <div class="seal">${ICONS.check}</div>
           <h2>ขอบคุณสำหรับความคิดเห็น</h2>
           <p>บันทึกแบบฟอร์มจาก ${UNITS_SHORT[state.unit]} เรียบร้อยแล้ว</p>
           <button class="btn-outline" onclick="resetForm()">ส่งอีกฉบับ</button>
@@ -173,49 +218,48 @@ function renderForm(){
     return;
   }
   const unitButtons = UNITS.map(u => `
-    <button type="button" class="unit-btn ${state.unit===u?'active':''}" onclick="setUnit('${u.replace(/'/g,"\\'")}')">${UNITS_SHORT[u]}</button>
+    <button type="button" class="unit-row-btn ${state.unit===u?'active':''}" onclick="setUnit('${u.replace(/'/g,"\\'")}')">
+      <span class="icon">${ICONS.building}</span>
+      <span class="label">${UNITS_SHORT[u]}</span>
+    </button>
   `).join('');
 
   el.innerHTML = `
-    <div class="card">${perf('left')}${perf('right')}
-      <div class="field-label">เลือกหน่วยงานของท่าน</div>
-      <div class="unit-grid">${unitButtons}</div>
+    <div class="card">
+      <div class="sec-head">
+        <div class="sec-icon" style="background:var(--ivory-dim); color:var(--ink-soft);">${ICONS.building}</div>
+        <div><div class="sec-title">เลือกหน่วยงานของท่าน</div></div>
+      </div>
+      ${unitButtons}
     </div>
 
-    <div class="card">${perf('left')}${perf('right')}
-      <div class="section-title">🍽️ ระดับความพึงพอใจ</div>
-      <div class="section-sub">กรุณาให้คะแนนแต่ละหัวข้อ</div>
+    <div class="card">
+      <div class="sec-head">
+        <div class="sec-icon" style="background:var(--food-bg); color:var(--food-text);">${ICONS.bowl}</div>
+        <div><div class="sec-title">ด้านอาหาร</div><div class="sec-sub">ระดับความพึงพอใจ ข้อ 1–5</div></div>
+      </div>
       ${legendHtml()}
-      <div class="section-title" style="margin-top:6px;">ด้านอาหาร</div>
-      ${FOOD_CATS.map(ratingRowHtml).join('')}
-      <div class="divider"></div>
-      <div class="section-title">ด้านการบริการ</div>
-      ${SERVICE_CATS.map(ratingRowHtml).join('')}
+      ${FOOD_CATS.map(c => ratingRowHtml(c, 'var(--food)')).join('')}
     </div>
 
-    <div class="card">${perf('left')}${perf('right')}
-      <div class="section-title">🍜 ข้อเสนอแนะเกี่ยวกับเมนูอาหาร</div>
-      <div class="field-block">
-        <div class="field-label">11. อาหารคาวที่ท่านอยากให้มีเพิ่มเติม</div>
-        <div class="field-hint">เช่น อาหารไทย อาหารนานาชาติ หรืออาหารเพื่อสุขภาพ</div>
-        <textarea id="savoryInput" rows="2">${state.savory}</textarea>
+    <div class="card">
+      <div class="sec-head">
+        <div class="sec-icon" style="background:var(--service-bg); color:var(--service-text);">${ICONS.bell}</div>
+        <div><div class="sec-title">ด้านการบริการ</div><div class="sec-sub">ระดับความพึงพอใจ ข้อ 6–10</div></div>
       </div>
-      <div class="field-block">
-        <div class="field-label">12. อาหารหวาน/ของหวาน ที่ท่านอยากให้มีเพิ่มเติม</div>
-        <textarea id="dessertInput" rows="2">${state.dessert}</textarea>
+      ${SERVICE_CATS.map(c => ratingRowHtml(c, 'var(--service)')).join('')}
+    </div>
+
+    <div class="card">
+      <div class="sec-head">
+        <div class="sec-icon" style="background:#FAEEDA; color:#7A4E0B;">${ICONS.quill}</div>
+        <div><div class="sec-title">ข้อเสนอแนะเกี่ยวกับเมนูอาหาร</div><div class="sec-sub">ข้อ 11–15</div></div>
       </div>
-      <div class="field-block">
-        <div class="field-label">13. ของทานเล่นหรือขนม ที่ท่านอยากให้มีเพิ่มเติม</div>
-        <textarea id="snackInput" rows="2">${state.snack}</textarea>
-      </div>
-      <div class="field-block">
-        <div class="field-label">14. เมนูอาหารอื่น ๆ ที่ท่านอยากแนะนำ</div>
-        <textarea id="otherMenuInput" rows="2">${state.otherMenu}</textarea>
-      </div>
-      <div class="field-block" style="margin-bottom:0;">
-        <div class="field-label">15. ข้อเสนอแนะเพิ่มเติมเกี่ยวกับอาหารและการบริการ</div>
-        <textarea id="additionalInput" rows="3">${state.additionalComments}</textarea>
-      </div>
+      ${fieldBlock('savoryInput','--savory',11,'อาหารคาวที่ท่านอยากให้มีเพิ่มเติม','เช่น อาหารไทย อาหารนานาชาติ หรืออาหารเพื่อสุขภาพ',state.savory)}
+      ${fieldBlock('dessertInput','--dessert',12,'อาหารหวาน/ของหวาน ที่ท่านอยากให้มีเพิ่มเติม','',state.dessert)}
+      ${fieldBlock('snackInput','--snack',13,'ของทานเล่นหรือขนม ที่ท่านอยากให้มีเพิ่มเติม','',state.snack)}
+      ${fieldBlock('otherMenuInput','--othermenu',14,'เมนูอาหารอื่น ๆ ที่ท่านอยากแนะนำ','',state.otherMenu)}
+      ${fieldBlock('additionalInput','--comments',15,'ข้อเสนอแนะเพิ่มเติมเกี่ยวกับอาหารและการบริการ','',state.additionalComments)}
     </div>
 
     ${state.error ? `<div class="error">${state.error}</div>` : ''}
