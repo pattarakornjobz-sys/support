@@ -69,12 +69,6 @@
   .unit-row-btn.active .icon{background:var(--gold); color:var(--ink);}
   .other-unit-input{width:100%; padding:12px 14px; border-radius:8px; border:1.5px solid var(--gold); background:rgba(255,255,255,0.6); font-family:inherit; font-size:14.5px; color:var(--ink); margin-top:-2px; margin-bottom:9px;}
   .other-unit-input:focus{outline:none; box-shadow:0 0 0 3px rgba(201,162,39,0.2);}
-  .yn-block{margin-top:6px; padding-top:16px; border-top:1px solid rgba(43,38,32,0.12);}
-  .yn-label{font-size:15px; font-weight:700; margin-bottom:10px; line-height:1.5;}
-  .yn-row{display:flex; gap:10px;}
-  .yn-btn{flex:1; padding:13px; border-radius:8px; border:1.5px solid rgba(43,38,32,0.16); background:rgba(255,255,255,0.5); color:var(--ink); font-weight:700; font-size:14.5px; cursor:pointer; font-family:inherit; transition:transform .15s, box-shadow .15s;}
-  .yn-btn:hover{transform:translateY(-2px);}
-  .yn-btn[data-active="true"]{color:#fff; border-color:transparent; box-shadow:0 5px 14px rgba(0,0,0,0.2);}
   .rating-row{margin-bottom:20px;}
   .rating-label{display:flex; align-items:flex-start; gap:9px; font-size:15px; font-weight:700; margin-bottom:9px; line-height:1.5;}
   .num-badge{display:flex; align-items:center; justify-content:center; width:23px; height:23px; border-radius:50%; color:#fff; font-family:'Noto Sans Thai',sans-serif; font-weight:700; font-size:14px; flex-shrink:0; margin-top:1px;}
@@ -146,7 +140,7 @@ const FOOD_CATS = [
   { key:'freshness', num:2, label:'ความสด สะอาด และคุณภาพของวัตถุดิบ' },
   { key:'variety', num:3, label:'ความหลากหลายของรายการอาหาร' },
   { key:'presentation', num:4, label:'ความน่ารับประทานและการจัดตกแต่งอาหาร' },
-  { key:'quantity', num:5, label:'ปริมาณอาหารมีความเหมาะสม' },
+  { key:'quantity', num:5, label:'ปริมาณอาหารมีความเหมาะสม และเพียงพอต่อมื้อรับประทาน' },
 ];
 const SERVICE_CATS = [
   { key:'politeness', num:6, label:'ความสุภาพและมีมารยาทของผู้ให้บริการ' },
@@ -175,7 +169,7 @@ const ICONS = {
 
 let state = {
   respondentName:'', respondentPhone:'',
-  unit:'', otherUnitName:'', ratings:{}, mealAdequate:null,
+  unit:'', otherUnitName:'', ratings:{},
   savory:'', dessert:'', snack:'', otherMenu:'', additionalComments:'',
   submitting:false, submitted:false, error:'',
 };
@@ -232,15 +226,6 @@ function renderForm(){
     ? `<input type="text" class="other-unit-input" placeholder="โปรดระบุชื่อหน่วยงาน" value="${state.otherUnitName}" id="otherUnitInput">`
     : '';
 
-  const ynOpts = [
-    { v:true, label:'เพียงพอ', color:'var(--l5)' },
-    { v:false, label:'ไม่เพียงพอ', color:'var(--l1)' },
-  ].map(o => `
-    <button type="button" class="yn-btn" data-active="${state.mealAdequate===o.v}"
-      style="${state.mealAdequate===o.v ? `background:${o.color};` : ''}"
-      onclick="setMealAdequate(${o.v})">${o.label}</button>
-  `).join('');
-
   el.innerHTML = `
     <div class="card">
       <div class="sec-head">
@@ -273,10 +258,6 @@ function renderForm(){
       </div>
       ${legendHtml()}
       ${FOOD_CATS.map(c => ratingRowHtml(c, 'var(--food)')).join('')}
-      <div class="yn-block">
-        <div class="yn-label">อาหารต่อมื้อเพียงพอ หรือเหมาะสมกับการรับประทานหรือไม่</div>
-        <div class="yn-row">${ynOpts}</div>
-      </div>
     </div>
 
     <div class="card">
@@ -317,12 +298,11 @@ function renderForm(){
   document.getElementById('respondentPhoneInput').oninput = e => state.respondentPhone = e.target.value;
 }
 
-function setMealAdequate(v){ state.mealAdequate = v; renderForm(); }
 
 function setUnit(u){ state.unit = u; if(u !== OTHER_UNIT) state.otherUnitName=''; renderForm(); }
 function setRating(key, v){ state.ratings[key] = v; renderForm(); }
 function resetForm(){
-  state = { respondentName:'', respondentPhone:'', unit:'', otherUnitName:'', ratings:{}, mealAdequate:null, savory:'', dessert:'', snack:'', otherMenu:'', additionalComments:'', submitting:false, submitted:false, error:'' };
+  state = { respondentName:'', respondentPhone:'', unit:'', otherUnitName:'', ratings:{}, savory:'', dessert:'', snack:'', otherMenu:'', additionalComments:'', submitting:false, submitted:false, error:'' };
   ALL_CATS.forEach(c => state.ratings[c.key] = 0);
   renderForm();
 }
@@ -330,11 +310,11 @@ function resetForm(){
 async function handleSubmit(){
   const unitOk = state.unit && (state.unit !== OTHER_UNIT || state.otherUnitName.trim());
   const personOk = state.respondentName.trim() && state.respondentPhone.trim();
-  const allFilled = personOk && unitOk && ALL_CATS.every(c => state.ratings[c.key] > 0) && state.mealAdequate !== null;
+  const allFilled = personOk && unitOk && ALL_CATS.every(c => state.ratings[c.key] > 0);
   if(!allFilled){
     if(!personOk) state.error = 'กรุณากรอกชื่อ-นามสกุล และเบอร์ติดต่อ';
     else if(state.unit === OTHER_UNIT && !state.otherUnitName.trim()) state.error = 'กรุณาระบุชื่อหน่วยงานของท่าน';
-    else state.error = 'กรุณาเลือกหน่วยงาน ให้คะแนนครบทุกหัวข้อ (ข้อ 1-10) และตอบคำถามเรื่องความเพียงพอของอาหารก่อนส่งแบบประเมิน';
+    else state.error = 'กรุณาเลือกหน่วยงาน และให้คะแนนครบทุกหัวข้อ (ข้อ 1-10) ก่อนส่งแบบประเมิน';
     renderForm();
     return;
   }
@@ -346,7 +326,6 @@ async function handleSubmit(){
       unit: state.unit,
       other_unit_name: state.unit === OTHER_UNIT ? state.otherUnitName.trim() : '',
       ratings: state.ratings,
-      meal_adequate: state.mealAdequate,
       savory_suggestions: state.savory.trim(),
       dessert_suggestions: state.dessert.trim(),
       snack_suggestions: state.snack.trim(),
