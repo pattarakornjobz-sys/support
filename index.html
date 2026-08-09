@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>แบบประเมินความพึงพอใจ ด้านอาหารและการบริการ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;700;900&family=Noto+Sans+Thai:wght@400;500;600;700&family=Cormorant+Garamond:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;700;900&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 <style>
   :root{
@@ -19,10 +19,6 @@
     --savory:#B9612E; --dessert:#B8557A; --snack:#C99A2E; --othermenu:#4F7965; --comments:#8B2E3C;
   }
   *{box-sizing:border-box;}
-  @media (prefers-reduced-motion: no-preference){
-    @keyframes riseIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
-    .card{animation:riseIn .5s ease both;}
-  }
   body{
     margin:0; font-family:'Noto Sans Thai',sans-serif; color:var(--ink);
     background:var(--bg);
@@ -72,14 +68,14 @@
   .unit-row-btn.active .icon{background:var(--gold); color:var(--ink);}
   .rating-row{margin-bottom:20px;}
   .rating-label{display:flex; align-items:flex-start; gap:9px; font-size:15px; font-weight:700; margin-bottom:9px; line-height:1.5;}
-  .num-badge{display:flex; align-items:center; justify-content:center; width:23px; height:23px; border-radius:50%; color:#fff; font-family:'Cormorant Garamond',serif; font-weight:700; font-size:13px; flex-shrink:0; margin-top:1px;}
+  .num-badge{display:flex; align-items:center; justify-content:center; width:23px; height:23px; border-radius:50%; color:#fff; font-family:'Noto Sans Thai',sans-serif; font-weight:700; font-size:14px; flex-shrink:0; margin-top:1px;}
   .rating-opts{display:flex; gap:8px;}
-  .rating-opt{flex:1 1 0; aspect-ratio:1; min-height:44px; border-radius:9px; border:1.5px solid rgba(43,38,32,0.16); background:rgba(255,255,255,0.5); color:var(--ink); font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .15s, box-shadow .15s;}
+  .rating-opt{flex:1 1 0; aspect-ratio:1; min-height:44px; border-radius:9px; border:1.5px solid rgba(43,38,32,0.16); background:rgba(255,255,255,0.5); color:var(--ink); font-family:'Noto Sans Thai',sans-serif; font-size:19px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .15s, box-shadow .15s;}
   .rating-opt:hover{transform:translateY(-2px);}
   .rating-opt[data-active="true"]{color:#fff; border-color:transparent; box-shadow:0 5px 14px rgba(0,0,0,0.25); transform:translateY(-1px);}
   .field-block{border-left:3px solid var(--accent, var(--gold)); padding-left:14px; margin-bottom:20px;}
   .field-label{display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; margin-bottom:4px; line-height:1.4;}
-  .field-badge{display:flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:var(--accent, var(--gold)); color:#fff; font-family:'Cormorant Garamond',serif; font-weight:700; font-size:12px; flex-shrink:0;}
+  .field-badge{display:flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:var(--accent, var(--gold)); color:#fff; font-family:'Noto Sans Thai',sans-serif; font-weight:700; font-size:13px; flex-shrink:0;}
   .field-hint{font-size:12.5px; color:var(--ink-soft); margin-bottom:8px;}
   textarea{width:100%; padding:11px 12px; border-radius:6px; border:1.5px solid rgba(43,38,32,0.16); background:rgba(255,255,255,0.55); font-family:inherit; font-size:15px; color:var(--ink); resize:vertical; line-height:1.5;}
   textarea:focus{outline:none; border-color:var(--accent, var(--gold));}
