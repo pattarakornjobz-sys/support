@@ -484,7 +484,7 @@ async function exportPDF(){
       let position = 0;
       pdf.addImage(imgData, 'PNG', 0, position, pageW, imgH);
       let heightLeft = imgH - pageH;
-      while(heightLeft > 0){
+      while(heightLeft > 2){
         pdf.addPage();
         position = heightLeft - imgH;
         pdf.addImage(imgData, 'PNG', 0, position, pageW, imgH);
