@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>บันทึกข้อมูลประจำวัน — ระบบรายงานผลการประกอบเลี้ยง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg:#EAF4FB; --bg-2:#DCEEFC;
+    --gold:#3B9AE1; --gold-light:#8FD3F4; --gold-dim: rgba(59,154,225,0.35);
+    --ivory:#FFFFFF; --ivory-dim:#EAF4FB;
+    --ink:#1F2D3D; --ink-soft:#5B6B85;
+    --food:#1E9E93; --food-bg:#DFF7F3; --food-text:#0F766E;
+    --service:#5B6FE0; --service-bg:#E9ECFC; --service-text:#4451C7;
+    --cost:#FF9F68; --cost-bg:#FFF1E7; --cost-text:#B85C1E;
+    --stock:#FF6FA5; --stock-bg:#FFE9F2; --stock-text:#C23D72;
+    --menu:#FFC857; --menu-bg:#FFF6E0; --menu-text:#8A6200;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Kanit',sans-serif; color:var(--ink);
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(143,211,244,0.55), transparent 45%),
+      radial-gradient(circle at 90% 90%, rgba(219,240,255,0.7), transparent 50%);
+    padding:30px 12px 60px;
+    font-size:16px; line-height:1.6;
+  }
+  .wrap{max-width:648px; margin:0 auto;}
+  h1{
+    font-family:'Prompt',sans-serif; font-size:23px; font-weight:900; margin:0 0 4px; text-align:center; line-height:1.4;
+    background:linear-gradient(180deg,#3B9AE1,#1F5FA8); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 14px;}
+  .vendor-note{text-align:center; font-size:13px; color:#2E6FA8; margin:0 0 22px; line-height:1.6; max-width:440px; margin-left:auto; margin-right:auto; padding:10px 14px; border:1px solid rgba(59,154,225,0.3); border-radius:8px; background:rgba(59,154,225,0.06);}
+  .navlinks{display:flex; gap:8px; justify-content:center; margin-bottom:20px;}
+  .navlink{padding:8px 14px; border-radius:20px; background:rgba(255,255,255,0.7); color:var(--ink); font-size:12.5px; font-weight:600; text-decoration:none;}
+  .card{
+    position:relative; background:var(--ivory); border-radius:20px; overflow:hidden;
+    box-shadow:0 10px 28px rgba(59,154,225,0.14), 0 2px 8px rgba(31,45,61,0.06);
+    padding:24px 22px; margin-bottom:18px;
+  }
+  .card::before{content:''; position:absolute; top:0; left:0; right:0; height:5px; background:linear-gradient(90deg,var(--gold-light),var(--gold));}
+  .sec-head{display:flex; align-items:center; gap:12px; margin-bottom:16px;}
+  .sec-icon{width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .sec-icon svg{width:19px; height:19px;}
+  .sec-title{font-family:'Prompt',sans-serif; font-weight:700; font-size:16.5px; line-height:1.3;}
+  .sec-sub{font-size:12px; color:var(--ink-soft); margin-top:1px;}
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+  .field-row.single{grid-template-columns:1fr;}
+  .field{display:flex; flex-direction:column;}
+  .field label{font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+  .field input, .field textarea{
+    padding:11px 12px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16);
+    background:rgba(255,255,255,0.6); font-family:inherit; font-size:15px; color:var(--ink);
+  }
+  .field input:focus, .field textarea:focus{outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(59,154,225,0.15);}
+  .yn-row{display:flex; gap:10px; margin-bottom:6px;}
+  .yn-btn{flex:1; padding:13px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.5); color:var(--ink); font-weight:700; font-size:14.5px; cursor:pointer; font-family:inherit; transition:transform .15s, box-shadow .15s;}
+  .yn-btn:hover{transform:translateY(-2px);}
+  .yn-btn[data-active="true"]{color:#fff; border-color:transparent; box-shadow:0 5px 14px rgba(0,0,0,0.15);}
+  .submit-btn{
+    width:100%; padding:16px; border-radius:8px; border:1px solid var(--gold-dim);
+    background:linear-gradient(180deg,#4FA8DE,#2E86D6); color:var(--ivory); font-weight:700; font-size:16.5px;
+    cursor:pointer; letter-spacing:1px; font-family:inherit; box-shadow:0 10px 24px rgba(59,154,225,0.35);
+    transition:transform .15s, box-shadow .15s;
+  }
+  .submit-btn:hover{transform:translateY(-2px); box-shadow:0 14px 30px rgba(59,154,225,0.45);}
+  .submit-btn:disabled{background:#B9C6D4; box-shadow:none; cursor:default; transform:none;}
+  .note{text-align:center; font-size:12.5px; color:var(--ink-soft); margin-top:12px;}
+  .error{display:flex; align-items:center; gap:8px; color:#D64550; background:#FFE8E8; border:1px solid #FFC9C9; padding:10px 12px; border-radius:6px; font-size:14px; font-weight:600; margin-bottom:14px;}
+  .success{text-align:center; padding:12px 0;}
+  .success .seal{width:74px; height:74px; border-radius:50%; border:2px solid var(--gold); background:var(--ivory-dim); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; box-shadow:0 0 0 5px rgba(59,154,225,0.12);}
+  .success .seal svg{width:34px; height:34px; color:var(--food);}
+  .success h2{font-family:'Prompt',sans-serif; font-weight:700; font-size:21px; color:var(--ink); margin:0 0 8px;}
+  .success p{font-size:15px; margin:0 0 22px; color:var(--ink-soft);}
+  .btn-outline{padding:12px 22px; border-radius:8px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-weight:700; font-size:15px; cursor:pointer; font-family:inherit; transition:background .15s; margin:0 5px;}
+  .btn-outline:hover{background:rgba(31,45,61,0.06);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>บันทึกข้อมูลประจำวัน</h1>
+  <div class="rule"></div>
+  <div class="vendor-note">ระบบรายงานผลการประกอบเลี้ยงประจำวัน — ร้าน Rus Hotel ครัวกลาง สำหรับเจ้าหน้าที่ผู้ควบคุม</div>
+  <div class="navlinks">
+    <a class="navlink" href="mess_kpi.html">📊 ดู KPI</a>
+    <a class="navlink" href="mess_report.html">📄 รายงาน 1 หน้า</a>
+  </div>
+  <div id="viewForm"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://uhefxwccuqagnbrbidbh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVoZWZ4d2NjdXFhZ25icmJpZGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDI1NDYsImV4cCI6MjEwMTU3ODU0Nn0.EE5QWPVjSkZpUTU37hgiz4LsGMAfq87dxFOkt9OYynY';
+const TABLE = 'mess_daily_reports';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
+
+const ICONS = {
+  cost: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1.4 1.1-2 2.5-2s2.5.7 2.5 2c0 2.5-5 1.5-5 4 0 1.3 1.1 2 2.5 2s2.5-.6 2.5-2"/></svg>',
+  waste: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
+  scale: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l-2 5a3 3 0 0 0 6 0Zm14 0l-2 5a3 3 0 0 0 6 0Z"/><path d="M5 8h14M8 21h8"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l2.5 2.5L16 8"/><circle cx="12" cy="12" r="9"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-9.5-9A5 5 0 0 1 12 6a5 5 0 0 1 9.5 5c-2.5 4.6-9.5 9-9.5 9Z"/></svg>',
+  cart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/><path d="M3 4h2l2.4 12h9.2L19 8H6"/></svg>',
+  box: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5-9 5-9-5Z"/><path d="M3 8v9l9 5 9-5V8"/><path d="M12 13v9"/></svg>',
+  menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17h.01"/></svg>',
+};
+
+let state = {
+  report_date: new Date().toISOString().slice(0,10),
+  meal_complete: null,
+  meals_planned:'', meals_served:'', total_food_cost:'',
+  food_prepared_kg:'', food_waste_kg:'',
+  raw_ingredient_kg:'', usable_ingredient_kg:'',
+  portions_checked:'', portions_accurate:'',
+  nutrition_criteria_total:'', nutrition_criteria_met:'',
+  procurement_budget:'', procurement_actual:'',
+  stock_value_total:'', stock_loss_value:'',
+  menu_items_week_total:'', menu_items_week_repeated:'',
+  issues_today:'', notes:'',
+  submitting:false, submitted:false, error:'',
+};
+
+function fieldHtml(id, label, type='number'){
+  return `<div class="field"><label>${label}</label><input type="${type}" ${type==='number'?'step="any"':''} id="${id}" value="${state[id]}"></div>`;
+}
+
+function sec(iconName, bg, color, title, sub){
+  return `<div class="sec-head">
+    <div class="sec-icon" style="background:${bg}; color:${color};">${ICONS[iconName]}</div>
+    <div><div class="sec-title">${title}</div>${sub?`<div class="sec-sub">${sub}</div>`:''}</div>
+  </div>`;
+}
+
+function renderForm(){
+  const el = document.getElementById('viewForm');
+  if(state.submitted){
+    el.innerHTML = `
+      <div class="card">
+        <div class="success">
+          <div class="seal">${ICONS.check}</div>
+          <h2>บันทึกข้อมูลเรียบร้อย</h2>
+          <p>ข้อมูลวันที่ ${state.report_date} ถูกบันทึกแล้ว</p>
+          <button class="btn-outline" onclick="resetForm()">บันทึกวันอื่นเพิ่ม</button>
+          <a class="btn-outline" href="mess_kpi.html" style="text-decoration:none; display:inline-block;">ดู KPI</a>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const ynOpts = [
+    { v:true, label:'เลี้ยงครบ', color:'#22C55E' },
+    { v:false, label:'ไม่ครบ', color:'#FF6B6B' },
+  ].map(o => `
+    <button type="button" class="yn-btn" data-active="${state.meal_complete===o.v}"
+      style="${state.meal_complete===o.v ? `background:${o.color};` : ''}"
+      onclick="setComplete(${o.v})">${o.label}</button>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="card">
+      ${sec('check','var(--service-bg)','var(--service-text)','วันที่และสถานะการเลี้ยง')}
+      <div class="field-row single">
+        <div class="field"><label>วันที่</label><input type="date" id="report_date" value="${state.report_date}"></div>
+      </div>
+      <label style="font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px; display:block;">วันนี้เลี้ยงครบทุกมื้อหรือไม่</label>
+      <div class="yn-row">${ynOpts}</div>
+    </div>
+
+    <div class="card">
+      ${sec('cost','var(--cost-bg)','var(--cost-text)','1. การเลี้ยงและต้นทุน','Food Cost/Person, Meal Sufficiency %')}
+      <div class="field-row">
+        ${fieldHtml('meals_planned','จำนวนมื้อที่วางแผน (คน)')}
+        ${fieldHtml('meals_served','จำนวนมื้อที่เลี้ยงจริง (คน)')}
+      </div>
+      <div class="field-row single">
+        ${fieldHtml('total_food_cost','ต้นทุนอาหารรวมวันนี้ (บาท)')}
+      </div>
+    </div>
+
+    <div class="card">
+      ${sec('waste','var(--food-bg)','var(--food-text)','2-3. ของเสียและวัตถุดิบ','Food Waste %, Ingredient Yield %')}
+      <div class="field-row">
+        ${fieldHtml('food_prepared_kg','อาหารที่เตรียมทั้งหมด (กก.)')}
+        ${fieldHtml('food_waste_kg','อาหารเหลือ/ของเสีย (กก.)')}
+      </div>
+      <div class="field-row">
+        ${fieldHtml('raw_ingredient_kg','วัตถุดิบที่รับเข้า (กก.)')}
+        ${fieldHtml('usable_ingredient_kg','วัตถุดิบที่ใช้ได้จริง (กก.)')}
+      </div>
+    </div>
+
+    <div class="card">
+      ${sec('scale','var(--service-bg)','var(--service-text)','4, 6. คุณภาพและมาตรฐาน','Portion Accuracy %, Nutrition Compliance %')}
+      <div class="field-row">
+        ${fieldHtml('portions_checked','จำนวนจานที่สุ่มตรวจ')}
+        ${fieldHtml('portions_accurate','จำนวนจานที่ได้มาตรฐาน')}
+      </div>
+      <div class="field-row">
+        ${fieldHtml('nutrition_criteria_total','เกณฑ์โภชนาการทั้งหมด (ข้อ)')}
+        ${fieldHtml('nutrition_criteria_met','เกณฑ์ที่ผ่าน (ข้อ)')}
+      </div>
+    </div>
+
+    <div class="card">
+      ${sec('cart','var(--cost-bg)','var(--cost-text)','8. การจัดซื้อ','Procurement Saving %')}
+      <div class="field-row">
+        ${fieldHtml('procurement_budget','งบจัดซื้อที่ตั้งไว้ (บาท)')}
+        ${fieldHtml('procurement_actual','ยอดจัดซื้อจริง (บาท)')}
+      </div>
+    </div>
+
+    <div class="card">
+      ${sec('box','var(--stock-bg)','var(--stock-text)','9. สต๊อกวัตถุดิบ','Stock Loss %')}
+      <div class="field-row">
+        ${fieldHtml('stock_value_total','มูลค่าสต๊อกทั้งหมด (บาท)')}
+        ${fieldHtml('stock_loss_value','มูลค่าสต๊อกสูญหาย/เสีย (บาท)')}
+      </div>
+    </div>
+
+    <div class="card">
+      ${sec('menu','var(--menu-bg)','var(--menu-text)','10. ความหลากหลายเมนู','Menu Repetition Rate (นับรอบสัปดาห์)')}
+      <div class="field-row">
+        ${fieldHtml('menu_items_week_total','เมนูทั้งหมดที่เสิร์ฟสัปดาห์นี้')}
+        ${fieldHtml('menu_items_week_repeated','เมนูที่ซ้ำในสัปดาห์นี้')}
+      </div>
+    </div>
+
+    <div class="card">
+      ${sec('warn','#FFE9F2','#C23D72','ปัญหาที่ต้องสั่งการ')}
+      <div class="field-row single">
+        <div class="field"><label>ปัญหาวันนี้ (ถ้ามี)</label><textarea id="issues_today" rows="2">${state.issues_today}</textarea></div>
+      </div>
+      <div class="field-row single">
+        <div class="field"><label>หมายเหตุเพิ่มเติม</label><textarea id="notes" rows="2">${state.notes}</textarea></div>
+      </div>
+    </div>
+
+    ${state.error ? `<div class="error">${state.error}</div>` : ''}
+    <button class="submit-btn" id="submitBtn" ${state.submitting?'disabled':''} onclick="handleSubmit()">
+      ${state.submitting ? 'กำลังบันทึก…' : 'บันทึกข้อมูลวันนี้'}
+    </button>
+    <div class="note">ถ้าเคยบันทึกวันที่นี้แล้ว ระบบจะอัปเดตทับข้อมูลเดิมให้อัตโนมัติ</div>
+  `;
+
+  Object.keys(state).forEach(key => {
+    const elInput = document.getElementById(key);
+    if(elInput) elInput.oninput = e => state[key] = e.target.value;
+  });
+}
+
+function setComplete(v){ state.meal_complete = v; renderForm(); }
+function resetForm(){
+  state = {
+    report_date: new Date().toISOString().slice(0,10),
+    meal_complete: null,
+    meals_planned:'', meals_served:'', total_food_cost:'',
+    food_prepared_kg:'', food_waste_kg:'',
+    raw_ingredient_kg:'', usable_ingredient_kg:'',
+    portions_checked:'', portions_accurate:'',
+    nutrition_criteria_total:'', nutrition_criteria_met:'',
+    procurement_budget:'', procurement_actual:'',
+    stock_value_total:'', stock_loss_value:'',
+    menu_items_week_total:'', menu_items_week_repeated:'',
+    issues_today:'', notes:'',
+    submitting:false, submitted:false, error:'',
+  };
+  renderForm();
+}
+
+function num(v){ return v === '' || v === null || v === undefined ? null : Number(v); }
+
+async function handleSubmit(){
+  if(!state.report_date || state.meal_complete === null){
+    state.error = 'กรุณาเลือกวันที่ และตอบว่าวันนี้เลี้ยงครบหรือไม่';
+    renderForm();
+    return;
+  }
+  state.error = ''; state.submitting = true; renderForm();
+  try{
+    const payload = {
+      report_date: state.report_date,
+      meal_complete: state.meal_complete,
+      meals_planned: num(state.meals_planned),
+      meals_served: num(state.meals_served),
+      total_food_cost: num(state.total_food_cost),
+      food_prepared_kg: num(state.food_prepared_kg),
+      food_waste_kg: num(state.food_waste_kg),
+      raw_ingredient_kg: num(state.raw_ingredient_kg),
+      usable_ingredient_kg: num(state.usable_ingredient_kg),
+      portions_checked: num(state.portions_checked),
+      portions_accurate: num(state.portions_accurate),
+      nutrition_criteria_total: num(state.nutrition_criteria_total),
+      nutrition_criteria_met: num(state.nutrition_criteria_met),
+      procurement_budget: num(state.procurement_budget),
+      procurement_actual: num(state.procurement_actual),
+      stock_value_total: num(state.stock_value_total),
+      stock_loss_value: num(state.stock_loss_value),
+      menu_items_week_total: num(state.menu_items_week_total),
+      menu_items_week_repeated: num(state.menu_items_week_repeated),
+      issues_today: state.issues_today.trim(),
+      notes: state.notes.trim(),
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await sb.from(TABLE).upsert(payload, { onConflict: 'report_date' });
+    if(error) throw error;
+    state.submitted = true;
+  }catch(e){
+    console.error(e);
+    const detail = e?.message || e?.error_description || e?.hint || (typeof e === 'string' ? e : '');
+    state.error = 'บันทึกไม่สำเร็จ: ' + (detail || 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ');
+  }finally{
+    state.submitting = false;
+    renderForm();
+  }
+}
+
+renderForm();
+</script>
+</body>
+</html>

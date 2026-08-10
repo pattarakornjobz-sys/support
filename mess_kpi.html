@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KPI ผลการประกอบเลี้ยงประจำวัน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg:#EAF4FB; --bg-2:#DCEEFC;
+    --gold:#3B9AE1; --gold-light:#8FD3F4; --gold-dim: rgba(59,154,225,0.35);
+    --ivory:#FFFFFF; --ivory-dim:#EAF4FB;
+    --ink:#1F2D3D; --ink-soft:#5B6B85;
+    --good:#22C55E; --good-bg:#E7F9EE;
+    --warn:#FFC857; --warn-bg:#FFF6E0;
+    --bad:#FF6B6B; --bad-bg:#FFE8E8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Kanit',sans-serif; color:var(--ink);
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(143,211,244,0.55), transparent 45%),
+      radial-gradient(circle at 90% 90%, rgba(219,240,255,0.7), transparent 50%);
+    padding:30px 12px 60px;
+    font-size:16px; line-height:1.6;
+  }
+  .wrap{max-width:648px; margin:0 auto;}
+  h1{
+    font-family:'Prompt',sans-serif; font-size:23px; font-weight:900; margin:0 0 4px; text-align:center; line-height:1.4;
+    background:linear-gradient(180deg,#3B9AE1,#1F5FA8); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 14px;}
+  .vendor-note{text-align:center; font-size:13px; color:#2E6FA8; margin:0 0 20px; line-height:1.6; max-width:440px; margin-left:auto; margin-right:auto; padding:10px 14px; border:1px solid rgba(59,154,225,0.3); border-radius:8px; background:rgba(59,154,225,0.06);}
+  .navlinks{display:flex; gap:8px; justify-content:center; margin-bottom:20px;}
+  .navlink{padding:8px 14px; border-radius:20px; background:rgba(255,255,255,0.7); color:var(--ink); font-size:12.5px; font-weight:600; text-decoration:none;}
+  .card{
+    position:relative; background:var(--ivory); border-radius:20px; overflow:hidden;
+    box-shadow:0 10px 28px rgba(59,154,225,0.14), 0 2px 8px rgba(31,45,61,0.06);
+    padding:22px; margin-bottom:16px;
+  }
+  .card::before{content:''; position:absolute; top:0; left:0; right:0; height:5px; background:linear-gradient(90deg,var(--gold-light),var(--gold));}
+  .date-picker{display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:6px;}
+  .date-picker input{padding:10px 14px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.6); font-family:inherit; font-size:15px; color:var(--ink);}
+  .status-banner{display:flex; align-items:center; gap:12px; padding:16px; border-radius:14px; margin-bottom:6px;}
+  .status-banner .dot{width:14px; height:14px; border-radius:50%; flex-shrink:0;}
+  .status-banner .txt{font-weight:700; font-size:15px;}
+  .kpi-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .kpi-card{border-radius:14px; padding:14px; background:var(--ivory-dim);}
+  .kpi-card .lbl{font-size:11.5px; color:var(--ink-soft); font-weight:600; margin-bottom:6px; line-height:1.3; min-height:28px;}
+  .kpi-card .val{font-family:'Prompt',sans-serif; font-weight:800; font-size:22px; line-height:1;}
+  .kpi-card .val small{font-size:12px; font-weight:600;}
+  .kpi-card .target{font-size:10.5px; color:var(--ink-soft); margin-top:4px;}
+  .kpi-card .pill{display:inline-block; margin-top:8px; padding:3px 9px; border-radius:12px; font-size:10.5px; font-weight:700;}
+  .empty-state{text-align:center; font-size:15px; padding:30px 10px; color:var(--ink-soft);}
+  .loading{text-align:center; color:var(--ink-soft); padding:30px; font-size:15px;}
+  .issues-box{background:var(--bad-bg); border-radius:12px; padding:14px; margin-top:6px;}
+  .issues-box .t{font-weight:700; font-size:13.5px; color:#B4322F; margin-bottom:6px;}
+  .issues-box .li{font-size:13.5px; margin-bottom:4px; padding-left:14px; position:relative;}
+  .issues-box .li::before{content:'•'; position:absolute; left:0;}
+  .refresh-btn{margin-top:14px; padding:9px 16px; border-radius:8px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; display:block; margin-left:auto; margin-right:auto;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>KPI ผลการประกอบเลี้ยง</h1>
+  <div class="rule"></div>
+  <div class="vendor-note">สำหรับเจ้าหน้าที่ผู้ควบคุม — ร้าน Rus Hotel ครัวกลาง</div>
+  <div class="navlinks">
+    <a class="navlink" href="mess_input.html">✏️ บันทึกข้อมูล</a>
+    <a class="navlink" href="mess_report.html">📄 รายงาน 1 หน้า</a>
+  </div>
+
+  <div class="card">
+    <div class="date-picker">
+      <span style="font-size:13px; color:var(--ink-soft); font-weight:600;">เลือกวันที่</span>
+      <input type="date" id="datePicker">
+    </div>
+  </div>
+
+  <div id="content"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://uhefxwccuqagnbrbidbh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVoZWZ4d2NjdXFhZ25icmJpZGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDI1NDYsImV4cCI6MjEwMTU3ODU0Nn0.EE5QWPVjSkZpUTU37hgiz4LsGMAfq87dxFOkt9OYynY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
+
+// ============================================================
+// KPI definitions — compute(row, satisfactionPct) => number|null
+// direction: 'higher' = higher is better, 'lower' = lower is better
+// ============================================================
+const KPIS = [
+  { key:'cost', label:'Food Cost / Person', unit:'บาท/คน', target:60, direction:'lower',
+    compute:r => safeDiv(r.total_food_cost, r.meals_served) },
+  { key:'waste', label:'Food Waste %', unit:'%', target:5, direction:'lower',
+    compute:r => pct(r.food_waste_kg, r.food_prepared_kg) },
+  { key:'yield', label:'Ingredient Yield %', unit:'%', target:85, direction:'higher',
+    compute:r => pct(r.usable_ingredient_kg, r.raw_ingredient_kg) },
+  { key:'portion', label:'Portion Accuracy %', unit:'%', target:95, direction:'higher',
+    compute:r => pct(r.portions_accurate, r.portions_checked) },
+  { key:'sufficiency', label:'Meal Sufficiency %', unit:'%', target:100, direction:'higher',
+    compute:r => pct(r.meals_served, r.meals_planned) },
+  { key:'nutrition', label:'Nutrition Compliance %', unit:'%', target:90, direction:'higher',
+    compute:r => pct(r.nutrition_criteria_met, r.nutrition_criteria_total) },
+  { key:'satisfaction', label:'Menu Satisfaction %', unit:'%', target:80, direction:'higher',
+    compute:(r, s) => s },
+  { key:'saving', label:'Procurement Saving %', unit:'%', target:0, direction:'higher',
+    compute:r => (r.procurement_budget && r.procurement_actual !== null)
+      ? ((r.procurement_budget - r.procurement_actual) / r.procurement_budget) * 100 : null },
+  { key:'stockloss', label:'Stock Loss %', unit:'%', target:2, direction:'lower',
+    compute:r => pct(r.stock_loss_value, r.stock_value_total) },
+  { key:'repetition', label:'Menu Repetition Rate', unit:'%', target:20, direction:'lower',
+    compute:r => pct(r.menu_items_week_repeated, r.menu_items_week_total) },
+];
+
+function safeDiv(a,b){ return (a!==null && a!==undefined && b) ? a/b : null; }
+function pct(a,b){ return (a!==null && a!==undefined && b) ? (a/b)*100 : null; }
+
+function statusOf(kpi, value){
+  if(value === null || value === undefined || isNaN(value)) return 'none';
+  if(kpi.direction === 'lower'){
+    if(value <= kpi.target) return 'good';
+    if(value <= kpi.target * 1.5) return 'warn';
+    return 'bad';
+  }else{
+    if(value >= kpi.target) return 'good';
+    if(value >= kpi.target * 0.85) return 'warn';
+    return 'bad';
+  }
+}
+const STATUS_COLOR = { good:'var(--good)', warn:'var(--warn)', bad:'var(--bad)', none:'#C7D2DE' };
+const STATUS_BG = { good:'var(--good-bg)', warn:'var(--warn-bg)', bad:'var(--bad-bg)', none:'var(--ivory-dim)' };
+const STATUS_LABEL = { good:'ปกติ', warn:'เฝ้าระวัง', bad:'ต้องแก้ไข', none:'ไม่มีข้อมูล' };
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+async function loadDay(dateStr){
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="loading">กำลังโหลดข้อมูล…</div>';
+  try{
+    const { data, error } = await sb.from('mess_daily_reports').select('*').eq('report_date', dateStr).maybeSingle();
+    if(error) throw error;
+
+    const { data: surveyRows, error: surveyErr } = await sb
+      .from('food_survey_responses').select('ratings')
+      .gte('created_at', dateStr + 'T00:00:00')
+      .lte('created_at', dateStr + 'T23:59:59');
+    let satisfactionPct = null;
+    if(!surveyErr && surveyRows && surveyRows.length){
+      let sum=0, n=0;
+      surveyRows.forEach(row => Object.values(row.ratings||{}).forEach(v => { if(v>0){sum+=v;n+=1;} }));
+      if(n) satisfactionPct = (sum/n/5)*100;
+    }
+
+    render(dateStr, data, satisfactionPct);
+  }catch(e){
+    console.error(e);
+    content.innerHTML = `<div class="card"><div class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${e?.message || e}</div>
+      <button class="refresh-btn" onclick="loadDay(document.getElementById('datePicker').value)">ลองใหม่</button></div>`;
+  }
+}
+
+function render(dateStr, row, satisfactionPct){
+  const content = document.getElementById('content');
+  if(!row){
+    content.innerHTML = `<div class="card"><div class="empty-state">ยังไม่มีข้อมูลของวันที่ ${dateStr}<br><a href="mess_input.html" style="color:var(--gold);font-weight:700;">→ ไปบันทึกข้อมูล</a></div></div>`;
+    return;
+  }
+
+  const results = KPIS.map(k => {
+    const value = k.compute(row, satisfactionPct);
+    return { ...k, value, status: statusOf(k, value) };
+  });
+
+  const overallStatus = results.some(r=>r.status==='bad') ? 'bad' : results.some(r=>r.status==='warn') ? 'warn' : 'good';
+  const badgeText = row.meal_complete === true ? 'เลี้ยงครบวันนี้' : row.meal_complete === false ? 'เลี้ยงไม่ครบวันนี้' : 'ยังไม่ระบุ';
+
+  const kpiCardsHtml = results.map(r => `
+    <div class="kpi-card">
+      <div class="lbl">${r.label}</div>
+      <div class="val" style="color:${STATUS_COLOR[r.status]}">${r.value===null?'-':r.value.toFixed(1)}<small> ${r.unit}</small></div>
+      <div class="target">เป้าหมาย ${r.direction==='lower'?'≤':'≥'} ${r.target}${r.unit==='%'?'%':' '+r.unit}</div>
+      <div class="pill" style="background:${STATUS_BG[r.status]}; color:${STATUS_COLOR[r.status]}">${STATUS_LABEL[r.status]}</div>
+    </div>`).join('');
+
+  const problemKpis = results.filter(r => r.status==='bad' || r.status==='warn');
+  const issuesHtml = (problemKpis.length || row.issues_today) ? `
+    <div class="issues-box">
+      <div class="t">⚠ ประเด็นที่ควรติดตาม</div>
+      ${problemKpis.map(r => `<div class="li">${r.label}: ${r.value===null?'-':r.value.toFixed(1)}${r.unit} (เป้าหมาย ${r.direction==='lower'?'≤':'≥'}${r.target})</div>`).join('')}
+      ${row.issues_today ? `<div class="li">${row.issues_today}</div>` : ''}
+    </div>` : '';
+
+  content.innerHTML = `
+    <div class="card">
+      <div class="status-banner" style="background:${STATUS_BG[overallStatus]}">
+        <div class="dot" style="background:${STATUS_COLOR[overallStatus]}"></div>
+        <div class="txt">${badgeText} · สถานะโดยรวม: ${STATUS_LABEL[overallStatus]}</div>
+      </div>
+      ${issuesHtml}
+    </div>
+    <div class="card">
+      <div class="kpi-grid">${kpiCardsHtml}</div>
+    </div>
+  `;
+}
+
+const picker = document.getElementById('datePicker');
+picker.value = todayStr();
+picker.onchange = () => loadDay(picker.value);
+loadDay(picker.value);
+</script>
+</body>
+</html>

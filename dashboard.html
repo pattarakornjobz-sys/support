@@ -5,88 +5,86 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>สรุปผลความพึงพอใจ ด้านอาหารและการบริการ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;700;900&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <style>
   :root{
-    --bg:#1C1210; --bg-2:#2A1B17;
-    --gold:#C9A227; --gold-light:#E6C767; --gold-dim: rgba(201,162,39,0.35);
-    --ivory:#FBF6EA; --ivory-dim:#F0E7CE;
-    --ink:#2B2620; --ink-soft:#6B5D48;
-    --food:#1F5C4B; --food-bg:#E4F0EA; --food-text:#164A3C;
-    --service:#2C3E63; --service-bg:#E7ECF5; --service-text:#22314E;
-    --l5:#2F6F5E; --l4:#6B9E82; --l3:#C9A227; --l2:#C97B3D; --l1:#8B2E3C;
+    --bg:#EAF4FB; --bg-2:#DCEEFC;
+    --gold:#3B9AE1; --gold-light:#8FD3F4; --gold-dim: rgba(59,154,225,0.35);
+    --ivory:#FFFFFF; --ivory-dim:#EAF4FB;
+    --ink:#1F2D3D; --ink-soft:#5B6B85;
+    --food:#1E9E93; --food-bg:#DFF7F3; --food-text:#0F766E;
+    --service:#5B6FE0; --service-bg:#E9ECFC; --service-text:#4451C7;
+    --l5:#22C55E; --l4:#86D99C; --l3:#FFC857; --l2:#FF9F68; --l1:#FF6B6B;
     --silver:#B7B6AA; --bronze:#B5732E;
   }
   *{box-sizing:border-box;}
   body{
-    margin:0; font-family:'Noto Sans Thai',sans-serif; color:var(--ink);
+    margin:0; font-family:'Kanit',sans-serif; color:var(--ink);
     background:var(--bg);
     background-image:
-      radial-gradient(circle at 20% 0%, rgba(201,162,39,0.12), transparent 45%),
-      radial-gradient(circle at 90% 90%, rgba(139,46,60,0.18), transparent 50%);
+      radial-gradient(circle at 20% 0%, rgba(143,211,244,0.55), transparent 45%),
+      radial-gradient(circle at 90% 90%, rgba(219,240,255,0.7), transparent 50%);
     padding:30px 12px 60px;
     font-size:16px; line-height:1.6;
   }
-  .frame{max-width:648px; margin:0 auto; border:1px solid var(--gold-dim); border-radius:8px; padding:4px; position:relative;}
-  .frame::before{content:''; position:absolute; inset:7px; border:1px solid rgba(201,162,39,0.22); border-radius:5px; pointer-events:none;}
-  .wrap{padding:26px 16px 30px;}
-  .eyebrow{display:flex; align-items:center; justify-content:center; gap:8px; color:var(--gold-light); font-size:13px; letter-spacing:3px; font-weight:700; text-align:center; margin-bottom:10px;}
+  .wrap{max-width:648px; margin:0 auto; padding:26px 16px 30px;}
+  .eyebrow{display:flex; align-items:center; justify-content:center; gap:8px; color:#2E6FA8; font-size:13px; letter-spacing:3px; font-weight:700; text-align:center; margin-bottom:10px;}
   .eyebrow svg{width:16px; height:16px;}
   h1{
-    font-family:'Noto Serif Thai',serif; font-size:24px; font-weight:900; margin:0 0 4px; text-align:center; line-height:1.45;
-    background:linear-gradient(180deg,var(--gold-light),var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent;
+    font-family:'Prompt',sans-serif; font-size:24px; font-weight:900; margin:0 0 4px; text-align:center; line-height:1.45;
+    background:linear-gradient(180deg,#3B9AE1,#1F5FA8); -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   .rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 6px;}
-  .vendor-note{text-align:center; font-size:12.5px; color:var(--gold-light); margin:0 auto 16px; line-height:1.6; max-width:440px; padding:9px 14px; border:1px solid rgba(201,162,39,0.3); border-radius:8px; background:rgba(201,162,39,0.06);}
+  .vendor-note{text-align:center; font-size:12.5px; color:#2E6FA8; margin:0 auto 16px; line-height:1.6; max-width:440px; padding:9px 14px; border:1px solid rgba(59,154,225,0.3); border-radius:8px; background:rgba(59,154,225,0.06);}
   .updated{text-align:center; font-size:12.5px; color:rgba(251,246,234,0.65); margin-bottom:20px;}
   .card{
-    position:relative; background:var(--ivory); border-radius:10px; overflow:hidden;
-    box-shadow:0 14px 34px rgba(0,0,0,0.38), 0 2px 8px rgba(0,0,0,0.2);
+    position:relative; background:var(--ivory); border-radius:20px; overflow:hidden;
+    box-shadow:0 10px 28px rgba(59,154,225,0.14), 0 2px 8px rgba(31,45,61,0.06);
     padding:24px 22px; margin-bottom:18px;
   }
-  .card::before{content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--gold-light),var(--gold));}
+  .card::before{content:''; position:absolute; top:0; left:0; right:0; height:5px; background:linear-gradient(90deg,var(--gold-light),var(--gold));}
   .sec-head{display:flex; align-items:center; gap:12px; margin-bottom:16px;}
   .sec-icon{width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
   .sec-icon svg{width:19px; height:19px;}
-  .sec-title{font-family:'Noto Serif Thai',serif; font-weight:700; font-size:17px; line-height:1.3;}
-  .error{display:flex; align-items:center; gap:8px; color:#7a2534; background:#FBE9EC; border:1px solid #F0C3CB; padding:10px 12px; border-radius:6px; font-size:14px; font-weight:600; margin-bottom:14px;}
+  .sec-title{font-family:'Prompt',sans-serif; font-weight:700; font-size:17px; line-height:1.3;}
+  .error{display:flex; align-items:center; gap:8px; color:#D64550; background:#FFE8E8; border:1px solid #FFC9C9; padding:10px 12px; border-radius:6px; font-size:14px; font-weight:600; margin-bottom:14px;}
   .refresh-btn{margin-top:12px; padding:9px 16px; border-radius:8px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit;}
   .empty-state{text-align:center; font-size:15px; padding:30px 0; color:var(--ink-soft);}
-  .loading{text-align:center; color:var(--gold-light); padding:40px; font-size:15px;}
+  .loading{text-align:center; color:#2E6FA8; padding:40px; font-size:15px;}
 
   .seal-wrap{display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:6px;}
   .seal{
     width:132px; height:132px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;
     background:var(--ivory-dim); border:2px solid var(--gold);
-    box-shadow:0 0 0 5px rgba(201,162,39,0.14), 0 10px 26px rgba(0,0,0,0.15);
+    box-shadow:0 0 0 5px rgba(59,154,225,0.14), 0 10px 26px rgba(0,0,0,0.15);
   }
-  .seal .score{font-family:'Noto Sans Thai',sans-serif; font-weight:700; font-size:40px; color:var(--ink); line-height:1;}
+  .seal .score{font-family:'Kanit',sans-serif; font-weight:700; font-size:40px; color:var(--ink); line-height:1;}
   .seal .label{font-size:12px; font-weight:700; letter-spacing:1px; color:var(--gold); margin-top:4px; text-transform:uppercase;}
   .seal-sub{font-size:13.5px; color:var(--ink-soft); margin-top:12px;}
   .kpi-row{display:flex; gap:10px; margin-top:20px;}
   .kpi{flex:1; background:var(--ivory-dim); border-radius:9px; padding:14px 8px; text-align:center;}
   .kpi .icon{width:26px; height:26px; margin:0 auto 6px; color:var(--gold);}
-  .kpi .num{font-family:'Noto Sans Thai',sans-serif; font-weight:700; font-size:24px; color:var(--ink); line-height:1;}
+  .kpi .num{font-family:'Kanit',sans-serif; font-weight:700; font-size:24px; color:var(--ink); line-height:1;}
   .kpi .lbl{font-size:11.5px; color:var(--ink-soft); margin-top:4px; line-height:1.3;}
 
   .unit-row{margin-bottom:16px;}
   .unit-row .head{display:flex; justify-content:space-between; align-items:baseline; gap:10px; font-size:14.5px; margin-bottom:5px;}
   .unit-row .name{font-weight:700; line-height:1.4; display:flex; align-items:center; gap:6px; flex:1 1 auto; min-width:0; flex-wrap:wrap;}
   .unit-row .name .crown{width:15px; height:15px; color:var(--gold); flex-shrink:0;}
-  .unit-row .val{font-family:'Noto Sans Thai',sans-serif; font-weight:700; font-size:18px; flex:0 0 auto; white-space:nowrap;}
+  .unit-row .val{font-family:'Kanit',sans-serif; font-weight:700; font-size:18px; flex:0 0 auto; white-space:nowrap;}
   .unit-row .count{font-size:12px; color:var(--ink-soft); font-weight:400;}
-  .unit-track{height:10px; background:rgba(43,38,32,0.09); border-radius:5px; overflow:hidden;}
+  .unit-track{height:10px; background:rgba(31,45,61,0.09); border-radius:5px; overflow:hidden;}
   .unit-fill{height:100%; border-radius:5px;}
 
   .cat-row{margin-bottom:13px;}
   .cat-head{display:flex; justify-content:space-between; gap:10px; font-size:14.5px; margin-bottom:4px;}
   .cat-head .name{font-weight:600; flex:1 1 auto; min-width:0;}
-  .cat-head .val{font-family:'Noto Sans Thai',sans-serif; font-weight:700; font-size:16px; flex:0 0 auto; white-space:nowrap;}
-  .cat-track{height:8px; background:rgba(43,38,32,0.09); border-radius:4px; overflow:hidden;}
+  .cat-head .val{font-family:'Kanit',sans-serif; font-weight:700; font-size:16px; flex:0 0 auto; white-space:nowrap;}
+  .cat-track{height:8px; background:rgba(31,45,61,0.09); border-radius:4px; overflow:hidden;}
   .cat-fill{height:100%; border-radius:4px;}
   .cat-group{margin-bottom:20px;}
   .cat-group:last-child{margin-bottom:0;}
@@ -96,44 +94,44 @@
   .cat-group-head .lbl{font-size:13.5px; font-weight:700; color:var(--ink);}
 
   .wish-tabs{display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap;}
-  .wish-tab{padding:7px 13px; border-radius:20px; border:1px solid rgba(43,38,32,0.18); background:transparent; font-size:13px; cursor:pointer; font-family:inherit; color:var(--ink); font-weight:600;}
+  .wish-tab{padding:7px 13px; border-radius:20px; border:1px solid rgba(31,45,61,0.18); background:transparent; font-size:13px; cursor:pointer; font-family:inherit; color:var(--ink); font-weight:600;}
   .wish-tab.active{background:var(--ink); border-color:var(--ink); color:var(--ivory);}
   .wish-item{display:flex; align-items:center; gap:12px; margin-bottom:11px;}
-  .wish-rank{width:26px; height:26px; border-radius:50%; color:#fff; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-family:'Noto Sans Thai',sans-serif; background:var(--ink-soft);}
+  .wish-rank{width:26px; height:26px; border-radius:50%; color:#fff; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-family:'Kanit',sans-serif; background:var(--ink-soft);}
   .wish-rank.r1{background:var(--gold); color:var(--ink);}
   .wish-rank.r2{background:var(--silver); color:var(--ink);}
   .wish-rank.r3{background:var(--bronze); color:#fff;}
   .wish-name{flex:1 1 auto; min-width:0; font-size:15px; font-weight:600;}
-  .wish-count{font-family:'Noto Sans Thai',sans-serif; font-size:16px; color:var(--l1); font-weight:700; flex:0 0 auto;}
+  .wish-count{font-family:'Kanit',sans-serif; font-size:16px; color:var(--l1); font-weight:700; flex:0 0 auto;}
 
   .comment-item{border-left:3px solid var(--l1); padding:6px 0 6px 14px; margin-bottom:14px; font-size:14.5px; line-height:1.55;}
   .comment-item .who{font-weight:700; color:var(--service-text); margin-bottom:3px; font-size:13px;}
   .comment-item .quote{color:var(--gold); font-family:Georgia,serif; font-size:22px; line-height:0; vertical-align:-6px; margin-right:3px;}
 
   .date-filter{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px;}
-  .date-pill{padding:7px 13px; border-radius:20px; border:1px solid rgba(43,38,32,0.18); background:transparent; font-size:13px; cursor:pointer; font-family:inherit; color:var(--ink); font-weight:600;}
+  .date-pill{padding:7px 13px; border-radius:20px; border:1px solid rgba(31,45,61,0.18); background:transparent; font-size:13px; cursor:pointer; font-family:inherit; color:var(--ink); font-weight:600;}
   .date-pill.active{background:var(--ink); border-color:var(--ink); color:var(--ivory);}
   .date-custom{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; font-size:13px;}
-  .date-custom input{padding:8px 10px; border-radius:6px; border:1.5px solid rgba(43,38,32,0.18); background:rgba(255,255,255,0.6); font-family:inherit; font-size:13px; color:var(--ink);}
+  .date-custom input{padding:8px 10px; border-radius:6px; border:1.5px solid rgba(31,45,61,0.18); background:rgba(255,255,255,0.6); font-family:inherit; font-size:13px; color:var(--ink);}
   .date-range-note{font-size:12.5px; color:var(--ink-soft); margin-bottom:14px;}
 
   .export-row{display:flex; gap:10px;}
   .export-btn{flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; border-radius:8px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; transition:background .15s;}
-  .export-btn:hover{background:rgba(43,38,32,0.06);}
+  .export-btn:hover{background:rgba(31,45,61,0.06);}
   .export-btn:disabled{opacity:0.5; cursor:default;}
   .export-btn svg{width:17px; height:17px; flex-shrink:0;}
   .export-btn.pdf{background:var(--ink); color:var(--ivory);}
-  .export-btn.pdf:hover{background:#3a2b25;}
+  .export-btn.pdf:hover{background:#1F5FA8;}
 </style>
 </head>
 <body>
-<div class="frame"><div class="wrap">
+<div class="wrap">
   <h1>สรุปผลความพึงพอใจ<br/>ด้านอาหารและการบริการ</h1>
   <div class="rule"></div>
   <div class="vendor-note">อาหารจากร้าน Rus Hotel (ครัวกลาง) สวัสดิการเจ้าหน้าที่ เริ่ม 9 ส.ค. 2569 — รายงานสำหรับผู้บริหาร</div>
   <div id="updatedAt" class="updated"></div>
   <div id="viewDashboard"></div>
-</div></div>
+</div>
 
 <script>
 const SUPABASE_URL = 'https://uhefxwccuqagnbrbidbh.supabase.co';
@@ -349,29 +347,29 @@ function sizedIcon(name, size){
 function printSectionHead(iconName, bg, color, title, sub){
   return `<div style="display:flex; align-items:center; gap:12px; margin:0 0 16px;">
     <div style="width:36px;height:36px;border-radius:50%;background:${bg};color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">${sizedIcon(iconName,18)}</div>
-    <div><div style="font-family:'Noto Serif Thai',serif;font-weight:700;font-size:16px;color:#2B2620;">${title}</div>${sub?`<div style="font-size:11.5px;color:#6B5D48;margin-top:1px;">${sub}</div>`:''}</div>
+    <div><div style="font-family:'Prompt',sans-serif;font-weight:700;font-size:16px;color:#1F2D3D;">${title}</div>${sub?`<div style="font-size:11.5px;color:#5B6B85;margin-top:1px;">${sub}</div>`:''}</div>
   </div>`;
 }
 
 function printBarRow(label, valueLabel, pct, color, sub){
   return `<div style="margin-bottom:13px;">
     <div style="display:flex; justify-content:space-between; gap:10px; font-size:13px; margin-bottom:4px;">
-      <span style="font-weight:600; color:#2B2620;">${label}</span>
-      <span style="font-weight:700; color:#2B2620; flex-shrink:0;">${valueLabel}</span>
+      <span style="font-weight:600; color:#1F2D3D;">${label}</span>
+      <span style="font-weight:700; color:#1F2D3D; flex-shrink:0;">${valueLabel}</span>
     </div>
-    <div style="height:9px; background:rgba(43,38,32,0.08); border-radius:5px; overflow:hidden;">
+    <div style="height:9px; background:rgba(31,45,61,0.08); border-radius:5px; overflow:hidden;">
       <div style="height:100%; width:${pct}%; background:${color}; border-radius:5px;"></div>
     </div>
-    ${sub ? `<div style="font-size:11px;color:#6B5D48;margin-top:3px;">${sub}</div>` : ''}
+    ${sub ? `<div style="font-size:11px;color:#5B6B85;margin-top:3px;">${sub}</div>` : ''}
   </div>`;
 }
 
 function printPageShell(bodyHtml, pageNum, totalPages){
   const div = document.createElement('div');
-  div.style.cssText = 'position:absolute; left:-9999px; top:0; width:794px; min-height:1123px; background:#FBF6EA; font-family:"Noto Sans Thai",sans-serif; color:#2B2620; box-sizing:border-box; padding:50px 50px 36px; display:flex; flex-direction:column;';
+  div.style.cssText = 'position:absolute; left:-9999px; top:0; width:794px; min-height:1123px; background:#FFFFFF; font-family:"Kanit",sans-serif; color:#1F2D3D; box-sizing:border-box; padding:50px 50px 36px; display:flex; flex-direction:column;';
   div.innerHTML = `
     <div style="flex:1;">${bodyHtml}</div>
-    <div style="margin-top:20px; padding-top:14px; border-top:1px solid rgba(43,38,32,0.15); display:flex; justify-content:space-between; font-size:10.5px; color:#8a7c66;">
+    <div style="margin-top:20px; padding-top:14px; border-top:1px solid rgba(31,45,61,0.12); display:flex; justify-content:space-between; font-size:10.5px; color:#5B6B85;">
       <span>รายงานความพึงพอใจ ด้านอาหารและการบริการ — ร้าน Rus Hotel ครัวกลาง</span>
       <span>หน้า ${pageNum}/${totalPages}</span>
     </div>`;
@@ -380,11 +378,11 @@ function printPageShell(bodyHtml, pageNum, totalPages){
 
 function printReportHeader(s){
   return `
-    <div style="border-top:4px solid #C9A227; margin-bottom:22px;"></div>
-    <div style="text-align:center; color:#C9A227; font-size:12px; letter-spacing:2px; font-weight:700; margin-bottom:8px;">รายงานสำหรับผู้บริหาร</div>
-    <div style="text-align:center; font-family:'Noto Serif Thai',serif; font-weight:900; font-size:24px; margin-bottom:8px;">สรุปผลความพึงพอใจ ด้านอาหารและการบริการ</div>
-    <div style="text-align:center; font-size:12.5px; color:#6B5D48; margin-bottom:16px;">อาหารจากร้าน Rus Hotel ผู้ดำเนินการครัวกลาง — สวัสดิการเจ้าหน้าที่ เริ่ม 9 ส.ค. 2569</div>
-    <div style="display:flex; justify-content:center; gap:28px; font-size:12.5px; font-weight:600; margin-bottom:28px; padding-bottom:20px; border-bottom:1px solid rgba(43,38,32,0.12);">
+    <div style="border-top:4px solid #3B9AE1; margin-bottom:22px;"></div>
+    <div style="text-align:center; color:#3B9AE1; font-size:12px; letter-spacing:2px; font-weight:700; margin-bottom:8px;">รายงานสำหรับผู้บริหาร</div>
+    <div style="text-align:center; font-family:'Prompt',sans-serif; font-weight:900; font-size:24px; margin-bottom:8px;">สรุปผลความพึงพอใจ ด้านอาหารและการบริการ</div>
+    <div style="text-align:center; font-size:12.5px; color:#5B6B85; margin-bottom:16px;">อาหารจากร้าน Rus Hotel ผู้ดำเนินการครัวกลาง — สวัสดิการเจ้าหน้าที่ เริ่ม 9 ส.ค. 2569</div>
+    <div style="display:flex; justify-content:center; gap:28px; font-size:12.5px; font-weight:600; margin-bottom:28px; padding-bottom:20px; border-bottom:1px solid rgba(31,45,61,0.12);">
       <span>ช่วงเวลา: ${dateRangeLabel()}</span>
       <span>จำนวนแบบประเมิน: ${s.total} ฉบับ</span>
       <span>สร้างเมื่อ: ${new Date().toLocaleString('th-TH')}</span>
@@ -405,38 +403,38 @@ async function exportPDF(){
   const scoreColor = catColor(s.overallAvg);
   let p1 = printReportHeader(s);
   p1 += `<div style="display:flex; gap:28px; align-items:center; margin-bottom:32px;">
-    <div style="width:150px;height:150px;border-radius:50%;border:3px solid #C9A227;box-shadow:0 0 0 6px rgba(201,162,39,0.12); display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;">
+    <div style="width:150px;height:150px;border-radius:50%;border:3px solid #3B9AE1;box-shadow:0 0 0 6px rgba(59,154,225,0.12); display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;">
       <div style="font-size:48px; font-weight:700;">${s.overallAvg.toFixed(1)}</div>
-      <div style="font-size:12px; font-weight:700; letter-spacing:1px; color:#C9A227; text-transform:uppercase;">${stampLabel(s.overallAvg)}</div>
+      <div style="font-size:12px; font-weight:700; letter-spacing:1px; color:#3B9AE1; text-transform:uppercase;">${stampLabel(s.overallAvg)}</div>
     </div>
     <div style="flex:1;">
-      <div style="font-family:'Noto Serif Thai',serif; font-weight:700; font-size:17px; margin-bottom:10px;">คะแนนความพึงพอใจโดยรวม</div>
+      <div style="font-family:'Prompt',sans-serif; font-weight:700; font-size:17px; margin-bottom:10px;">คะแนนความพึงพอใจโดยรวม</div>
       ${s.bestUnit ? `<div style="font-size:13.5px; margin-bottom:6px;">หน่วยงานยอดเยี่ยม: <strong>${s.bestUnit.short}</strong> (${s.bestUnit.avg.toFixed(1)})</div>` : ''}
       <div style="display:flex; gap:14px; margin-top:14px;">
-        <div style="flex:1; background:#F0E7CE; border-radius:8px; padding:12px; text-align:center;"><div style="font-size:22px;font-weight:700;">${s.total}</div><div style="font-size:11px;color:#6B5D48;">แบบประเมิน</div></div>
-        <div style="flex:1; background:#F0E7CE; border-radius:8px; padding:12px; text-align:center;"><div style="font-size:22px;font-weight:700;">${s.overallAvg.toFixed(1)}</div><div style="font-size:11px;color:#6B5D48;">คะแนนเฉลี่ย</div></div>
-        <div style="flex:1; background:#F0E7CE; border-radius:8px; padding:12px; text-align:center;"><div style="font-size:22px;font-weight:700;">${s.unitStats.filter(u=>u.count>0).length}/${s.unitStats.length}</div><div style="font-size:11px;color:#6B5D48;">หน่วยงานตอบแล้ว</div></div>
+        <div style="flex:1; background:#EAF4FB; border-radius:8px; padding:12px; text-align:center;"><div style="font-size:22px;font-weight:700;">${s.total}</div><div style="font-size:11px;color:#5B6B85;">แบบประเมิน</div></div>
+        <div style="flex:1; background:#EAF4FB; border-radius:8px; padding:12px; text-align:center;"><div style="font-size:22px;font-weight:700;">${s.overallAvg.toFixed(1)}</div><div style="font-size:11px;color:#5B6B85;">คะแนนเฉลี่ย</div></div>
+        <div style="flex:1; background:#EAF4FB; border-radius:8px; padding:12px; text-align:center;"><div style="font-size:22px;font-weight:700;">${s.unitStats.filter(u=>u.count>0).length}/${s.unitStats.length}</div><div style="font-size:11px;color:#5B6B85;">หน่วยงานตอบแล้ว</div></div>
       </div>
     </div>
   </div>`;
-  p1 += printSectionHead('chart','#F0E7CE','#6B5D48','คะแนนเฉลี่ยแยกตามหน่วยงาน');
+  p1 += printSectionHead('chart','#EAF4FB','#5B6B85','คะแนนเฉลี่ยแยกตามหน่วยงาน');
   p1 += s.unitStats.map(u => printBarRow(
     (u.unit===s.bestUnit?.unit?'★ ':'') + u.short,
     u.count ? u.avg.toFixed(1) : '-',
     u.count ? (u.avg/5*100) : 1,
-    u.count ? catColor(u.avg) : '#D8CBA8',
+    u.count ? catColor(u.avg) : '#DCEEFC',
     u.count ? `${u.count} ฉบับ` : 'ยังไม่มีข้อมูล'
   )).join('');
   pages.push(p1);
 
   // ---------- Page 2: category breakdown ----------
-  let p2 = printSectionHead('bowl','#E4F0EA','#164A3C','คะแนนเฉลี่ยแยกตามหัวข้อ — ด้านอาหาร','ข้อ 1–5');
+  let p2 = printSectionHead('bowl','#DFF7F3','#0F766E','คะแนนเฉลี่ยแยกตามหัวข้อ — ด้านอาหาร','ข้อ 1–5');
   p2 += FOOD_CATS.map(c => {
     const cs = s.categoryAverages.find(x=>x.key===c.key);
     return printBarRow(c.label, cs.avg.toFixed(2), cs.avg/5*100, catColor(cs.avg));
   }).join('');
   p2 += `<div style="height:14px;"></div>`;
-  p2 += printSectionHead('bell','#E7ECF5','#22314E','คะแนนเฉลี่ยแยกตามหัวข้อ — ด้านการบริการ','ข้อ 6–10');
+  p2 += printSectionHead('bell','#E9ECFC','#4451C7','คะแนนเฉลี่ยแยกตามหัวข้อ — ด้านการบริการ','ข้อ 6–10');
   p2 += SERVICE_CATS.map(c => {
     const cs = s.categoryAverages.find(x=>x.key===c.key);
     return printBarRow(c.label, cs.avg.toFixed(2), cs.avg/5*100, catColor(cs.avg));
@@ -445,23 +443,23 @@ async function exportPDF(){
 
   // ---------- Page 3: wishlist + comments ----------
   const topWish = s.wishlists.all.slice(0,10);
-  const rankColors = ['#C9A227','#B7B6AA','#B5732E'];
+  const rankColors = ['#3B9AE1','#B7B6AA','#B5732E'];
   let p3 = '';
   if(topWish.length){
-    p3 += printSectionHead('quill','#FAEEDA','#7A4E0B','เมนูที่มีผู้เสนอมากที่สุด','ข้อ 11–14 รวมทุกหมวด');
+    p3 += printSectionHead('quill','#FFF3D6','#92600A','เมนูที่มีผู้เสนอมากที่สุด','ข้อ 11–14 รวมทุกหมวด');
     p3 += topWish.map((w,i) => `
       <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-        <div style="width:24px;height:24px;border-radius:50%;background:${rankColors[i]||'#6B5D48'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div>
+        <div style="width:24px;height:24px;border-radius:50%;background:${rankColors[i]||'#5B6B85'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div>
         <div style="flex:1; font-size:13.5px; font-weight:600;">${w.label}</div>
-        <div style="font-size:13.5px; font-weight:700; color:#8B2E3C;">×${w.count}</div>
+        <div style="font-size:13.5px; font-weight:700; color:#FF6B6B;">×${w.count}</div>
       </div>`).join('');
     p3 += `<div style="height:20px;"></div>`;
   }
   if(s.recentComments.length){
-    p3 += printSectionHead('quill','#FBE9EC','#8B2E3C','ข้อเสนอแนะเพิ่มเติมล่าสุด','ข้อ 15');
+    p3 += printSectionHead('quill','#FFE8E8','#FF6B6B','ข้อเสนอแนะเพิ่มเติมล่าสุด','ข้อ 15');
     p3 += s.recentComments.map(r => `
-      <div style="border-left:3px solid #8B2E3C; padding:2px 0 2px 14px; margin-bottom:14px;">
-        <div style="font-size:12px; font-weight:700; color:#22314E; margin-bottom:2px;">${displayUnit(r)}</div>
+      <div style="border-left:3px solid #FF6B6B; padding:2px 0 2px 14px; margin-bottom:14px;">
+        <div style="font-size:12px; font-weight:700; color:#4451C7; margin-bottom:2px;">${displayUnit(r)}</div>
         <div style="font-size:13px; line-height:1.5;">${r.additional_comments}</div>
       </div>`).join('');
   }
@@ -472,7 +470,7 @@ async function exportPDF(){
   shells.forEach(s => document.body.appendChild(s));
 
   try{
-    const canvases = await Promise.all(shells.map(el => html2canvas(el, { scale: 2, backgroundColor: '#FBF6EA', windowWidth: el.scrollWidth, windowHeight: el.scrollHeight })));
+    const canvases = await Promise.all(shells.map(el => html2canvas(el, { scale: 2, backgroundColor: '#FFFFFF', windowWidth: el.scrollWidth, windowHeight: el.scrollHeight })));
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pageW = pdf.internal.pageSize.getWidth();
@@ -582,7 +580,7 @@ function renderDashboard(){
   const commentsHtml = s.recentComments.length === 0 ? '' : `
     <div class="card">
       <div class="sec-head">
-        <div class="sec-icon" style="background:#FBE9EC; color:var(--l1);">${ICONS.quill}</div>
+        <div class="sec-icon" style="background:#FFE8E8; color:var(--l1);">${ICONS.quill}</div>
         <div><div class="sec-title">ข้อ 15 · ข้อเสนอแนะเพิ่มเติมล่าสุด</div></div>
       </div>
       ${s.recentComments.map(r => `
@@ -638,7 +636,7 @@ function renderDashboard(){
 
     <div class="card">
       <div class="sec-head">
-        <div class="sec-icon" style="background:#FAEEDA; color:#7A4E0B;">${ICONS.quill}</div>
+        <div class="sec-icon" style="background:#FFF3D6; color:#92600A;">${ICONS.quill}</div>
         <div><div class="sec-title">เมนูที่มีผู้เสนอมากที่สุด (ข้อ 11-14)</div></div>
       </div>
       <div class="wish-tabs">${wishTabs}</div>

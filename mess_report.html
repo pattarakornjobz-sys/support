@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>รายงานผลการประกอบเลี้ยงประจำวัน — 1 หน้า</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg:#EAF4FB; --bg-2:#DCEEFC;
+    --gold:#3B9AE1; --gold-light:#8FD3F4; --gold-dim: rgba(59,154,225,0.35);
+    --ivory:#FFFFFF; --ivory-dim:#EAF4FB;
+    --ink:#1F2D3D; --ink-soft:#5B6B85;
+    --good:#22C55E; --good-bg:#E7F9EE;
+    --warn:#FFC857; --warn-bg:#FFF6E0;
+    --bad:#FF6B6B; --bad-bg:#FFE8E8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Kanit',sans-serif; color:var(--ink);
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(143,211,244,0.55), transparent 45%),
+      radial-gradient(circle at 90% 90%, rgba(219,240,255,0.7), transparent 50%);
+    padding:30px 12px 60px;
+    font-size:16px; line-height:1.6;
+  }
+  .wrap{max-width:648px; margin:0 auto;}
+  h1{
+    font-family:'Prompt',sans-serif; font-size:22px; font-weight:900; margin:0 0 4px; text-align:center; line-height:1.4;
+    background:linear-gradient(180deg,#3B9AE1,#1F5FA8); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 14px;}
+  .navlinks{display:flex; gap:8px; justify-content:center; margin-bottom:16px;}
+  .navlink{padding:8px 14px; border-radius:20px; background:rgba(255,255,255,0.7); color:var(--ink); font-size:12.5px; font-weight:600; text-decoration:none;}
+  .date-picker{display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:18px;}
+  .date-picker input{padding:10px 14px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.7); font-family:inherit; font-size:15px; color:var(--ink);}
+  .export-btn{padding:10px 18px; border-radius:8px; border:none; background:var(--ink); color:var(--ivory); font-weight:700; font-size:13.5px; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:6px;}
+  .export-btn svg{width:16px;height:16px;}
+  .loading, .empty-state{text-align:center; color:var(--ink-soft); padding:30px; font-size:15px;}
+
+  #reportRoot{}
+  .rcard{
+    position:relative; background:var(--ivory); border-radius:20px; overflow:hidden;
+    box-shadow:0 10px 28px rgba(59,154,225,0.14), 0 2px 8px rgba(31,45,61,0.06);
+    padding:22px; margin-bottom:14px;
+  }
+  .rcard::before{content:''; position:absolute; top:0; left:0; right:0; height:5px; background:linear-gradient(90deg,var(--gold-light),var(--gold));}
+  .r-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+  .r-title{font-family:'Prompt',sans-serif; font-weight:800; font-size:17px;}
+  .r-date{font-size:12.5px; color:var(--ink-soft);}
+  .status-hero{display:flex; align-items:center; gap:14px; padding:16px; border-radius:16px; margin-bottom:16px;}
+  .status-hero .icon{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .status-hero .icon svg{width:24px;height:24px;}
+  .status-hero .big{font-family:'Prompt',sans-serif; font-weight:800; font-size:17px;}
+  .status-hero .sub{font-size:12.5px; color:var(--ink-soft);}
+  .quad{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .quad-item{background:var(--ivory-dim); border-radius:14px; padding:14px; text-align:center;}
+  .quad-item .num{font-family:'Prompt',sans-serif; font-weight:800; font-size:24px; line-height:1;}
+  .quad-item .lbl{font-size:11.5px; color:var(--ink-soft); margin-top:5px;}
+  .kpi-strip{display:flex; flex-wrap:wrap; gap:8px; margin-top:4px;}
+  .kpi-chip{display:flex; align-items:center; gap:6px; background:var(--ivory-dim); border-radius:20px; padding:6px 11px 6px 8px; font-size:11.5px; font-weight:600;}
+  .kpi-chip .d{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .issues-box{background:var(--bad-bg); border-radius:14px; padding:14px;}
+  .issues-box .t{font-weight:700; font-size:14px; color:#B4322F; margin-bottom:8px; display:flex; align-items:center; gap:6px;}
+  .issues-box .li{font-size:13.5px; margin-bottom:5px; padding-left:14px; position:relative; line-height:1.4;}
+  .issues-box .li::before{content:'•'; position:absolute; left:0;}
+  .no-issues{background:var(--good-bg); border-radius:14px; padding:14px; font-size:13.5px; font-weight:600; color:#1A7A45; text-align:center;}
+  .footer-note{text-align:center; font-size:11px; color:var(--ink-soft); margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>รายงานผลการประกอบเลี้ยงประจำวัน</h1>
+  <div class="rule"></div>
+  <div class="navlinks">
+    <a class="navlink" href="mess_input.html">✏️ บันทึกข้อมูล</a>
+    <a class="navlink" href="mess_kpi.html">📊 ดู KPI ทั้งหมด</a>
+  </div>
+  <div class="date-picker">
+    <span style="font-size:13px; color:var(--ink-soft); font-weight:600;">วันที่</span>
+    <input type="date" id="datePicker">
+    <button class="export-btn" id="pdfBtn" onclick="exportPDF()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h6"/></svg>
+      PDF
+    </button>
+  </div>
+  <div id="content"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://uhefxwccuqagnbrbidbh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVoZWZ4d2NjdXFhZ25icmJpZGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDI1NDYsImV4cCI6MjEwMTU3ODU0Nn0.EE5QWPVjSkZpUTU37hgiz4LsGMAfq87dxFOkt9OYynY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
+
+const KPIS = [
+  { key:'cost', label:'Food Cost/Person', unit:'บาท', target:60, direction:'lower', compute:r => safeDiv(r.total_food_cost, r.meals_served) },
+  { key:'waste', label:'Food Waste', unit:'%', target:5, direction:'lower', compute:r => pct(r.food_waste_kg, r.food_prepared_kg) },
+  { key:'yield', label:'Ingredient Yield', unit:'%', target:85, direction:'higher', compute:r => pct(r.usable_ingredient_kg, r.raw_ingredient_kg) },
+  { key:'portion', label:'Portion Accuracy', unit:'%', target:95, direction:'higher', compute:r => pct(r.portions_accurate, r.portions_checked) },
+  { key:'sufficiency', label:'Meal Sufficiency', unit:'%', target:100, direction:'higher', compute:r => pct(r.meals_served, r.meals_planned) },
+  { key:'nutrition', label:'Nutrition Compliance', unit:'%', target:90, direction:'higher', compute:r => pct(r.nutrition_criteria_met, r.nutrition_criteria_total) },
+  { key:'satisfaction', label:'Menu Satisfaction', unit:'%', target:80, direction:'higher', compute:(r,s) => s },
+  { key:'saving', label:'Procurement Saving', unit:'%', target:0, direction:'higher',
+    compute:r => (r.procurement_budget && r.procurement_actual !== null) ? ((r.procurement_budget - r.procurement_actual) / r.procurement_budget) * 100 : null },
+  { key:'stockloss', label:'Stock Loss', unit:'%', target:2, direction:'lower', compute:r => pct(r.stock_loss_value, r.stock_value_total) },
+  { key:'repetition', label:'Menu Repetition', unit:'%', target:20, direction:'lower', compute:r => pct(r.menu_items_week_repeated, r.menu_items_week_total) },
+];
+function safeDiv(a,b){ return (a!==null && a!==undefined && b) ? a/b : null; }
+function pct(a,b){ return (a!==null && a!==undefined && b) ? (a/b)*100 : null; }
+function statusOf(kpi, value){
+  if(value === null || value === undefined || isNaN(value)) return 'none';
+  if(kpi.direction === 'lower'){
+    if(value <= kpi.target) return 'good';
+    if(value <= kpi.target * 1.5) return 'warn';
+    return 'bad';
+  }else{
+    if(value >= kpi.target) return 'good';
+    if(value >= kpi.target * 0.85) return 'warn';
+    return 'bad';
+  }
+}
+const SCOLOR = { good:'#22C55E', warn:'#FFC857', bad:'#FF6B6B', none:'#C7D2DE' };
+const SBG = { good:'var(--good-bg)', warn:'var(--warn-bg)', bad:'var(--bad-bg)', none:'var(--ivory-dim)' };
+const SLABEL = { good:'ปกติ', warn:'เฝ้าระวัง', bad:'ต้องแก้ไข', none:'ไม่มีข้อมูล' };
+const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l2.5 2.5L16 8"/><circle cx="12" cy="12" r="9"/></svg>';
+const WARN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17h.01"/></svg>';
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+let currentData = null;
+
+async function loadDay(dateStr){
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="loading">กำลังโหลดข้อมูล…</div>';
+  try{
+    const { data, error } = await sb.from('mess_daily_reports').select('*').eq('report_date', dateStr).maybeSingle();
+    if(error) throw error;
+    const { data: surveyRows, error: surveyErr } = await sb
+      .from('food_survey_responses').select('ratings')
+      .gte('created_at', dateStr + 'T00:00:00')
+      .lte('created_at', dateStr + 'T23:59:59');
+    let satisfactionPct = null;
+    if(!surveyErr && surveyRows && surveyRows.length){
+      let sum=0, n=0;
+      surveyRows.forEach(row => Object.values(row.ratings||{}).forEach(v => { if(v>0){sum+=v;n+=1;} }));
+      if(n) satisfactionPct = (sum/n/5)*100;
+    }
+    currentData = { row: data, satisfactionPct, dateStr };
+    render();
+  }catch(e){
+    console.error(e);
+    content.innerHTML = `<div class="rcard"><div class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${e?.message || e}</div></div>`;
+  }
+}
+
+function render(){
+  const content = document.getElementById('content');
+  const { row, satisfactionPct, dateStr } = currentData;
+  if(!row){
+    content.innerHTML = `<div class="rcard"><div class="empty-state">ยังไม่มีข้อมูลของวันที่ ${dateStr}<br><a href="mess_input.html" style="color:var(--gold);font-weight:700;">→ ไปบันทึกข้อมูล</a></div></div>`;
+    return;
+  }
+
+  const results = KPIS.map(k => {
+    const value = k.compute(row, satisfactionPct);
+    return { ...k, value, status: statusOf(k, value) };
+  });
+  const costKpi = results.find(r=>r.key==='cost');
+  const wasteKpi = results.find(r=>r.key==='waste');
+  const satKpi = results.find(r=>r.key==='satisfaction');
+  const sufKpi = results.find(r=>r.key==='sufficiency');
+
+  const overallStatus = results.some(r=>r.status==='bad') ? 'bad' : results.some(r=>r.status==='warn') ? 'warn' : 'good';
+  const completeOk = row.meal_complete === true;
+
+  const problemKpis = results.filter(r => r.status==='bad' || r.status==='warn');
+  const issuesHtml = (problemKpis.length || row.issues_today) ? `
+    <div class="issues-box">
+      <div class="t">${WARN_ICON.replace('viewBox','width="16" height="16" viewBox')} ปัญหาที่ต้องสั่งการวันนี้</div>
+      ${problemKpis.map(r => `<div class="li"><strong>${r.label}</strong>: ${r.value===null?'-':r.value.toFixed(1)}${r.unit} (เป้าหมาย ${r.direction==='lower'?'≤':'≥'}${r.target}${r.unit})</div>`).join('')}
+      ${row.issues_today ? `<div class="li">${row.issues_today}</div>` : ''}
+    </div>` : `<div class="no-issues">✓ ไม่มีปัญหาที่ต้องสั่งการวันนี้</div>`;
+
+  const kpiStripHtml = results.map(r => `
+    <div class="kpi-chip"><span class="d" style="background:${SCOLOR[r.status]}"></span>${r.label}: ${r.value===null?'-':r.value.toFixed(1)}${r.unit}</div>
+  `).join('');
+
+  content.innerHTML = `
+    <div id="reportRoot">
+      <div class="rcard">
+        <div class="r-header">
+          <div class="r-title">สรุปภาพรวมวันนี้</div>
+          <div class="r-date">${new Date(dateStr).toLocaleDateString('th-TH', { day:'numeric', month:'long', year:'numeric' })}</div>
+        </div>
+        <div class="status-hero" style="background:${completeOk?'var(--good-bg)':'var(--bad-bg)'}">
+          <div class="icon" style="background:${completeOk?'#22C55E':'#FF6B6B'}; color:#fff;">${completeOk?CHECK_ICON:WARN_ICON}</div>
+          <div>
+            <div class="big" style="color:${completeOk?'#1A7A45':'#B4322F'}">${row.meal_complete===null?'ยังไม่ระบุสถานะ':completeOk?'วันนี้เลี้ยงครบทุกมื้อ':'วันนี้เลี้ยงไม่ครบ'}</div>
+            <div class="sub">สถานะ KPI โดยรวม: ${SLABEL[overallStatus]}</div>
+          </div>
+        </div>
+        <div class="quad">
+          <div class="quad-item"><div class="num" style="color:${SCOLOR[costKpi.status]}">${costKpi.value===null?'-':costKpi.value.toFixed(0)}</div><div class="lbl">บาท/คน (ต้นทุน)</div></div>
+          <div class="quad-item"><div class="num" style="color:${SCOLOR[wasteKpi.status]}">${wasteKpi.value===null?'-':wasteKpi.value.toFixed(1)+'%'}</div><div class="lbl">อาหารเหลือ/เสีย</div></div>
+          <div class="quad-item"><div class="num" style="color:${SCOLOR[satKpi.status]}">${satKpi.value===null?'-':satKpi.value.toFixed(0)+'%'}</div><div class="lbl">ความพึงพอใจเมนู</div></div>
+          <div class="quad-item"><div class="num" style="color:${SCOLOR[sufKpi.status]}">${sufKpi.value===null?'-':sufKpi.value.toFixed(0)+'%'}</div><div class="lbl">ความเพียงพอมื้ออาหาร</div></div>
+        </div>
+      </div>
+
+      <div class="rcard">
+        <div class="r-title" style="margin-bottom:12px;">${issuesHtml.includes('ไม่มีปัญหา') ? '' : ''}</div>
+        ${issuesHtml}
+      </div>
+
+      <div class="rcard">
+        <div class="r-title" style="margin-bottom:12px;">ตัวชี้วัดทั้งหมด (10 KPI)</div>
+        <div class="kpi-strip">${kpiStripHtml}</div>
+      </div>
+      <div class="footer-note">รายงานสร้างจากระบบ Daily Mess Performance Report — ร้าน Rus Hotel ครัวกลาง</div>
+    </div>
+  `;
+}
+
+async function exportPDF(){
+  if(!currentData || !currentData.row){ alert('ไม่มีข้อมูลของวันที่เลือก'); return; }
+  const btn = document.getElementById('pdfBtn');
+  const original = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = 'กำลังสร้าง PDF…';
+  try{
+    const target = document.getElementById('reportRoot');
+    const canvas = await html2canvas(target, { scale: 2, backgroundColor: '#EAF4FB' });
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgData = canvas.toDataURL('image/png');
+    const imgH = canvas.height * pageW / canvas.width;
+    let position = 0;
+    pdf.addImage(imgData, 'PNG', 0, position, pageW, imgH);
+    let heightLeft = imgH - pageH;
+    while(heightLeft > 0){
+      pdf.addPage();
+      position = heightLeft - imgH;
+      pdf.addImage(imgData, 'PNG', 0, position, pageW, imgH);
+      heightLeft -= pageH;
+    }
+    pdf.save(`รายงานประจำวัน_${currentData.dateStr}.pdf`);
+  }catch(e){
+    console.error(e);
+    alert('สร้าง PDF ไม่สำเร็จ: ' + (e?.message || e));
+  }finally{
+    btn.disabled = false; btn.innerHTML = original;
+  }
+}
+
+const picker = document.getElementById('datePicker');
+picker.value = todayStr();
+picker.onchange = () => loadDay(picker.value);
+loadDay(picker.value);
+</script>
+</body>
+</html>
