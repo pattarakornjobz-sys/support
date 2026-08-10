@@ -156,9 +156,9 @@ const UNITS = [
   'โครงการก่อสร้างศิลปาชีพ ตำบลเกาะเกิด',
   'อาคารศิลปาชีพ ตำบลช้างใหญ่',
   'อาคารเก็บผลิตภัณฑ์ศิลปาชีพ',
-  'หน่วยงานอื่นๆ (โปรดระบุ)',
+  'บุคคลอื่นๆ ที่มาใช้บริการ (โปรดระบุ)',
 ];
-const OTHER_UNIT = 'หน่วยงานอื่นๆ (โปรดระบุ)';
+const OTHER_UNIT = 'บุคคลอื่นๆ ที่มาใช้บริการ (โปรดระบุ)';
 const UNITS_SHORT = Object.fromEntries(UNITS.map(u => [u, u]));
 function displayUnit(r){
   return r.unit === OTHER_UNIT ? `อื่นๆ: ${r.other_unit_name || '-'}` : (UNITS_SHORT[r.unit] || r.unit);
