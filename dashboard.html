@@ -34,10 +34,8 @@
   .wrap{max-width:648px; margin:0 auto; padding:26px 16px 30px;}
   .eyebrow{display:flex; align-items:center; justify-content:center; gap:8px; color:#2E6FA8; font-size:13px; letter-spacing:3px; font-weight:700; text-align:center; margin-bottom:10px;}
   .eyebrow svg{width:16px; height:16px;}
-  h1{
-    font-family:'Prompt',sans-serif; font-size:24px; font-weight:900; margin:0 0 4px; text-align:center; line-height:1.45;
-    background:linear-gradient(180deg,#3B9AE1,#1F5FA8); -webkit-background-clip:text; background-clip:text; color:transparent;
-  }
+  .header-band{background:linear-gradient(135deg,#0D2C54,#1B4A73); border-radius:20px; padding:22px 18px 18px; margin-bottom:18px; box-shadow:0 12px 30px rgba(13,44,84,0.25);}
+  h1{font-family:'Prompt',sans-serif; font-size:clamp(19px, 6vw, 24px); font-weight:900; margin:0 0 4px; text-align:center; line-height:1.45; color:#FFFFFF; word-break:normal; overflow-wrap:break-word; padding:0 4px;}
   .rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 6px;}
   .vendor-note{text-align:center; font-size:12.5px; color:#2E6FA8; margin:0 auto 16px; line-height:1.6; max-width:440px; padding:9px 14px; border:1px solid rgba(59,154,225,0.3); border-radius:8px; background:rgba(59,154,225,0.06);}
   .updated{text-align:center; font-size:12.5px; color:rgba(251,246,234,0.65); margin-bottom:20px;}
@@ -126,8 +124,10 @@
 </head>
 <body>
 <div class="wrap">
+  <div class="header-band">
   <h1>สรุปผลความพึงพอใจ<br/>ด้านอาหารและการบริการ</h1>
   <div class="rule"></div>
+  </div>
   <div class="vendor-note">อาหารจากร้าน Rus Hotel (ครัวกลาง) สวัสดิการเจ้าหน้าที่ เริ่ม 9 ส.ค. 2569 — รายงานสำหรับผู้บริหาร</div>
   <div id="updatedAt" class="updated"></div>
   <div id="viewDashboard"></div>

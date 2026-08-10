@@ -30,11 +30,9 @@
     font-size:16px; line-height:1.6;
   }
   .wrap{max-width:648px; margin:0 auto;}
-  h1{
-    font-family:'Prompt',sans-serif; font-size:22px; font-weight:900; margin:0 0 4px; text-align:center; line-height:1.4;
-    background:linear-gradient(180deg,#3B9AE1,#1F5FA8); -webkit-background-clip:text; background-clip:text; color:transparent;
-  }
-  .rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 14px;}
+  .header-band{background:linear-gradient(135deg,#0D2C54,#1B4A73); border-radius:20px; padding:22px 18px 18px; margin-bottom:18px; box-shadow:0 12px 30px rgba(13,44,84,0.25);}
+  h1{font-family:'Prompt',sans-serif; font-size:clamp(17px, 6vw, 22px); font-weight:900; margin:0 0 4px; text-align:center; line-height:1.45; color:#FFFFFF; word-break:normal; overflow-wrap:break-word; padding:0 4px;}
+  .rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent); margin:10px auto 4px;}
   .navlinks{display:flex; gap:8px; justify-content:center; margin-bottom:16px;}
   .navlink{padding:8px 14px; border-radius:20px; background:rgba(255,255,255,0.7); color:var(--ink); font-size:12.5px; font-weight:600; text-decoration:none;}
   .date-picker{display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:18px;}
@@ -75,8 +73,10 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>รายงานผลการประกอบเลี้ยงประจำวัน</h1>
+  <div class="header-band">
+  <h1>รายงานผลการประกอบเลี้ยง<br/>ประจำวัน</h1>
   <div class="rule"></div>
+  </div>
   <div class="navlinks">
     <a class="navlink" href="mess_input.html">✏️ บันทึกข้อมูล</a>
     <a class="navlink" href="mess_kpi.html">📊 ดู KPI ทั้งหมด</a>
