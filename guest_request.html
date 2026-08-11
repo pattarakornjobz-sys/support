@@ -95,6 +95,51 @@ function tomorrowStr(){
   const d = new Date(); d.setDate(d.getDate()+1);
   return d.toISOString().slice(0,10);
 }
+state.visit_date = tomorrowStr();
+
+const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+function isoToDMY(iso){
+  const d = new Date(iso + 'T00:00:00');
+  return { day: d.getDate(), month: d.getMonth()+1, yearBE: d.getFullYear() + 543 };
+}
+function dmyToIso(day, month, yearBE){
+  const yearCE = yearBE - 543;
+  const mm = String(month).padStart(2,'0');
+  const dd = String(day).padStart(2,'0');
+  return yearCE + '-' + mm + '-' + dd;
+}
+
+function dateSelectsHtml(){
+  const dmy = isoToDMY(state.visit_date);
+  const nowBE = new Date().getFullYear() + 543;
+  let dayOpts = '';
+  for(let i=1;i<=31;i++) dayOpts += '<option value="'+i+'"'+(i===dmy.day?' selected':'')+'>'+i+'</option>';
+  let monthOpts = '';
+  THAI_MONTHS.forEach(function(name, idx){
+    const m = idx+1;
+    monthOpts += '<option value="'+m+'"'+(m===dmy.month?' selected':'')+'>'+name+'</option>';
+  });
+  let yearOpts = '';
+  for(let y=nowBE; y<=nowBE+2; y++) yearOpts += '<option value="'+y+'"'+(y===dmy.yearBE?' selected':'')+'>'+y+'</option>';
+  return '<div style="display:flex; gap:8px;">' +
+    '<select id="visitDay" style="flex:1; padding:11px 8px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.6); font-family:inherit; font-size:14px; color:var(--ink);">'+dayOpts+'</select>' +
+    '<select id="visitMonth" style="flex:1.6; padding:11px 8px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.6); font-family:inherit; font-size:14px; color:var(--ink);">'+monthOpts+'</select>' +
+    '<select id="visitYear" style="flex:1; padding:11px 8px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.6); font-family:inherit; font-size:14px; color:var(--ink);">'+yearOpts+'</select>' +
+  '</div>';
+}
+function attachDateSelectHandlers(){
+  function update(){
+    const d = document.getElementById('visitDay').value;
+    const m = document.getElementById('visitMonth').value;
+    const y = document.getElementById('visitYear').value;
+    state.visit_date = dmyToIso(d, m, y);
+  }
+  ['visitDay','visitMonth','visitYear'].forEach(function(id){
+    const elx = document.getElementById(id);
+    if(elx) elx.onchange = update;
+  });
+}
 
 function renderForm(){
   const el = document.getElementById('content');
@@ -125,8 +170,10 @@ function renderForm(){
       '<div class="field-row single">' +
         '<div class="field"><label>เบอร์ติดต่อผู้ประสานงาน</label><input type="tel" id="contact_phone" value="' + state.contact_phone + '"></div>' +
       '</div>' +
-      '<div class="field-row">' +
-        '<div class="field"><label>วันที่แขกมาเยือน</label><input type="date" id="visit_date" value="' + (state.visit_date || tomorrowStr()) + '"></div>' +
+      '<div class="field-row single">' +
+        '<div class="field"><label>วันที่แขกมาเยือน (พ.ศ.)</label>' + dateSelectsHtml() + '</div>' +
+      '</div>' +
+      '<div class="field-row single">' +
         '<div class="field"><label>จำนวนแขกโดยประมาณ (คน)</label><input type="number" min="1" id="guest_count_approved" value="' + state.guest_count_approved + '" placeholder="เช่น 30"></div>' +
       '</div>' +
       '<div class="field-row single">' +
@@ -136,14 +183,15 @@ function renderForm(){
       '<button class="submit-btn" id="submitBtn" ' + (state.submitting?'disabled':'') + ' onclick="handleSubmit()">' + (state.submitting?'กำลังบันทึก…':'สร้างรหัสสำหรับแขก') + '</button>' +
     '</div>';
 
-  ['request_unit','contact_person','contact_phone','visit_date','guest_count_approved','notes'].forEach(function(key){
+  ['request_unit','contact_person','contact_phone','guest_count_approved','notes'].forEach(function(key){
     const elInput = document.getElementById(key);
     if(elInput) elInput.oninput = function(e){ state[key] = e.target.value; };
   });
+  attachDateSelectHandlers();
 }
 
 function resetForm(){
-  state = { request_unit:'', contact_person:'', contact_phone:'', visit_date:'', guest_count_approved:'', notes:'', submitting:false, submitted:false, error:'', generatedCode:'' };
+  state = { request_unit:'', contact_person:'', contact_phone:'', visit_date:tomorrowStr(), guest_count_approved:'', notes:'', submitting:false, submitted:false, error:'', generatedCode:'' };
   renderForm();
 }
 
