@@ -91,7 +91,7 @@ const STORAGE_KEY = 'mess_checkin_phone';
 function mealPeriod(){
   const h = new Date().getHours();
   if(h < 10) return 'เช้า';
-  if(h < 15) return 'กลางวัน';
+  if(h < 14) return 'กลางวัน';
   return 'เย็น';
 }
 const period = mealPeriod();
@@ -204,7 +204,7 @@ async function checkAndConfirm(){
     '<div class="card">' +
       '<div class="person">' +
         '<div class="avatar">' + initials + '</div>' +
-        '<div class="name">' + currentStaff.first_name + ' ' + currentStaff.last_name + '</div>' +
+        '<div class="name">' + (currentStaff.title||'') + currentStaff.first_name + ' ' + currentStaff.last_name + '</div>' +
         '<div class="unit">' + (currentStaff.unit || '') + '</div>' +
       '</div>' +
       (blocked
@@ -248,7 +248,7 @@ async function confirmCheckin(existingCount){
       unit: currentStaff.unit || '',
       staff_id: currentStaff.id,
       phone_number: currentStaff.phone_number,
-      full_name: currentStaff.first_name + ' ' + currentStaff.last_name,
+      full_name: (currentStaff.title||'') + currentStaff.first_name + ' ' + currentStaff.last_name,
       sequence_number: recheck.length + 1,
     });
     if(error) throw error;
@@ -258,7 +258,7 @@ async function confirmCheckin(existingCount){
       '<div class="card"><div class="success">' +
         '<div class="seal">' + CHECK_ICON + '</div>' +
         '<h2>เช็คอินสำเร็จ</h2>' +
-        '<p>' + currentStaff.first_name + ' ' + currentStaff.last_name + '</p>' +
+        '<p>' + (currentStaff.title||'') + currentStaff.first_name + ' ' + currentStaff.last_name + '</p>' +
         '<div class="time">รับอาหารมื้อ' + period + ' เวลา ' + now + ' น. (ครั้งที่ ' + (recheck.length+1) + ')</div>' +
         '<button class="btn-outline" onclick="renderInput(\'\')">เช็คอินคนถัดไป</button>' +
       '</div></div>';
