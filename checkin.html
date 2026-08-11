@@ -99,15 +99,30 @@ document.getElementById('periodLabel').textContent = 'มื้อ' + period + '
 
 let currentStaff = null;
 let maxClaims = 1;
+let cooldownHours = 3;
 
 async function loadMaxClaims(){
   try{
-    const { data } = await sb.from('checkin_settings').select('value').eq('key','max_claims_per_meal').maybeSingle();
-    if(data && data.value) maxClaims = data.value;
-  }catch(e){ /* fall back to default 1 */ }
+    const { data } = await sb.from('checkin_settings').select('key,value').in('key', ['max_claims_per_meal','cooldown_hours']);
+    if(data){
+      data.forEach(row => {
+        if(row.key === 'max_claims_per_meal' && row.value) maxClaims = row.value;
+        if(row.key === 'cooldown_hours' && row.value !== null && row.value !== undefined) cooldownHours = row.value;
+      });
+    }
+  }catch(e){ /* fall back to defaults */ }
 }
 
-function renderInput(prefill){
+function formatRemaining(ms){
+  const totalMin = Math.ceil(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if(h > 0) return h + ' ชม. ' + m + ' นาที';
+  return m + ' นาที';
+}
+
+function renderInput(prefill, autoLookup){
+  if(autoLookup === undefined) autoLookup = true;
   const el = document.getElementById('content');
   el.innerHTML =
     '<div class="card">' +
@@ -125,7 +140,7 @@ function renderInput(prefill){
   };
   input.dispatchEvent(new Event('input'));
   input.focus();
-  if(prefill && prefill.length === 10){ lookup(); }
+  if(autoLookup && prefill && prefill.length === 10){ lookup(); }
 }
 
 async function lookup(){
@@ -136,7 +151,7 @@ async function lookup(){
     const { data, error } = await sb.from('staff_roster').select('*').eq('phone_number', idNum).maybeSingle();
     if(error) throw error;
     if(!data){
-      renderInput(idNum);
+      renderInput(idNum, false);
       document.getElementById('errArea').innerHTML = '<div class="error">ไม่พบเบอร์นี้ในระบบ กรุณาติดต่อเจ้าหน้าที่เพื่อเพิ่มข้อมูล</div>';
       return;
     }
@@ -144,25 +159,46 @@ async function lookup(){
     await checkAndConfirm();
   }catch(e){
     console.error(e);
-    renderInput(idNum);
+    renderInput(idNum, false);
     document.getElementById('errArea').innerHTML = '<div class="error">ค้นหาไม่สำเร็จ: ' + (e?.message||e) + '</div>';
   }
 }
+
+let confirming = false;
 
 async function checkAndConfirm(){
   const el = document.getElementById('content');
   el.innerHTML = '<div class="card"><div class="loading">กำลังตรวจสอบ…</div></div>';
   const today = new Date().toISOString().slice(0,10);
   let existingCount = 0;
+  let cooldownRemainingMs = 0;
   try{
     const { data, error } = await sb.from('meal_checkins').select('id')
       .eq('staff_id', currentStaff.id).eq('checkin_date', today).eq('meal_period', period);
     if(error) throw error;
     existingCount = data.length;
+
+    const { data: lastRow, error: lastErr } = await sb.from('meal_checkins').select('created_at')
+      .eq('staff_id', currentStaff.id).order('created_at', { ascending:false }).limit(1).maybeSingle();
+    if(lastErr) throw lastErr;
+    if(lastRow){
+      const elapsedMs = Date.now() - new Date(lastRow.created_at).getTime();
+      const cooldownMs = cooldownHours * 60 * 60 * 1000;
+      if(elapsedMs < cooldownMs) cooldownRemainingMs = cooldownMs - elapsedMs;
+    }
   }catch(e){ console.error(e); }
 
   const initials = (currentStaff.first_name||'?').charAt(0);
-  const willExceed = existingCount >= maxClaims;
+  const onCooldown = cooldownRemainingMs > 0;
+  const quotaBlocked = existingCount >= maxClaims;
+  const blocked = onCooldown || quotaBlocked;
+
+  let blockMsg = '';
+  if(onCooldown){
+    blockMsg = '🔒 ท่านเพิ่งเช็คอินรับอาหารไปเมื่อสักครู่ กรุณารออีก ' + formatRemaining(cooldownRemainingMs) + ' จึงจะเช็คอินได้อีกครั้ง (ล็อค ' + cooldownHours + ' ชม./ครั้ง)';
+  }else if(quotaBlocked){
+    blockMsg = '🔒 ท่านรับอาหารมื้อ' + period + 'ครบโควตาแล้ว (' + existingCount + '/' + maxClaims + ' ครั้ง) ไม่สามารถเช็คอินซ้ำได้ หากมีเหตุจำเป็นกรุณาติดต่อเจ้าหน้าที่ผู้ควบคุมโดยตรง';
+  }
 
   el.innerHTML =
     '<div class="card">' +
@@ -171,24 +207,49 @@ async function checkAndConfirm(){
         '<div class="name">' + currentStaff.first_name + ' ' + currentStaff.last_name + '</div>' +
         '<div class="unit">' + (currentStaff.unit || '') + '</div>' +
       '</div>' +
-      (willExceed ? ('<div class="warn-box">⚠ ท่านรับอาหารมื้อ' + period + 'ไปแล้ว ' + existingCount + ' ครั้ง (สูงสุด ' + maxClaims + ' ครั้ง/มื้อ) ระบบจะบันทึกเป็นครั้งที่ ' + (existingCount+1) + ' และแจ้งเตือนผู้ควบคุม</div>') : '') +
-      '<button class="confirm-btn ' + (willExceed?'warn':'') + '" onclick="confirmCheckin(' + existingCount + ')">' + (willExceed ? 'ยืนยันรับอีกครั้ง' : 'ยืนยันรับอาหาร มื้อ'+period) + '</button>' +
-      '<button class="link-btn" onclick="renderInput(\'\')">ไม่ใช่ฉัน / เปลี่ยนคน</button>' +
+      (blocked
+        ? ('<div class="warn-box" style="background:var(--bad-bg); color:#B4322F;">' + blockMsg + '</div>' +
+           '<button class="btn-outline" onclick="renderInput(\'\')" style="width:100%;">เปลี่ยนคน</button>')
+        : ('<button class="confirm-btn" id="confirmBtn" onclick="confirmCheckin(' + existingCount + ')">ยืนยันรับอาหาร มื้อ' + period + '</button>' +
+           '<button class="link-btn" onclick="renderInput(\'\')">ไม่ใช่ฉัน / เปลี่ยนคน</button>')
+      ) +
     '</div>';
 }
 
 async function confirmCheckin(existingCount){
+  if(confirming) return;
+  confirming = true;
+  const btn = document.getElementById('confirmBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'กำลังบันทึก…'; }
   const el = document.getElementById('content');
-  el.innerHTML = '<div class="card"><div class="loading">กำลังบันทึก…</div></div>';
   try{
+    // re-check right before insert to close the race window between two devices/taps
+    const today = new Date().toISOString().slice(0,10);
+    const { data: lastRow, error: lastErr } = await sb.from('meal_checkins').select('created_at')
+      .eq('staff_id', currentStaff.id).order('created_at', { ascending:false }).limit(1).maybeSingle();
+    if(lastErr) throw lastErr;
+    if(lastRow){
+      const elapsedMs = Date.now() - new Date(lastRow.created_at).getTime();
+      if(elapsedMs < cooldownHours * 60 * 60 * 1000){
+        await checkAndConfirm();
+        return;
+      }
+    }
+    const { data: recheck, error: recheckErr } = await sb.from('meal_checkins').select('id')
+      .eq('staff_id', currentStaff.id).eq('checkin_date', today).eq('meal_period', period);
+    if(recheckErr) throw recheckErr;
+    if(recheck.length >= maxClaims){
+      await checkAndConfirm();
+      return;
+    }
     const { error } = await sb.from('meal_checkins').insert({
-      checkin_date: new Date().toISOString().slice(0,10),
+      checkin_date: today,
       meal_period: period,
       unit: currentStaff.unit || '',
       staff_id: currentStaff.id,
       phone_number: currentStaff.phone_number,
       full_name: currentStaff.first_name + ' ' + currentStaff.last_name,
-      sequence_number: existingCount + 1,
+      sequence_number: recheck.length + 1,
     });
     if(error) throw error;
     localStorage.setItem(STORAGE_KEY, currentStaff.phone_number);
@@ -198,13 +259,15 @@ async function confirmCheckin(existingCount){
         '<div class="seal">' + CHECK_ICON + '</div>' +
         '<h2>เช็คอินสำเร็จ</h2>' +
         '<p>' + currentStaff.first_name + ' ' + currentStaff.last_name + '</p>' +
-        '<div class="time">รับอาหารมื้อ' + period + ' เวลา ' + now + ' น. (ครั้งที่ ' + (existingCount+1) + ')</div>' +
+        '<div class="time">รับอาหารมื้อ' + period + ' เวลา ' + now + ' น. (ครั้งที่ ' + (recheck.length+1) + ')</div>' +
         '<button class="btn-outline" onclick="renderInput(\'\')">เช็คอินคนถัดไป</button>' +
       '</div></div>';
   }catch(e){
     console.error(e);
     el.innerHTML = '<div class="card"><div class="error">บันทึกไม่สำเร็จ: ' + (e?.message||e) + '</div>' +
       '<button class="btn-outline" onclick="checkAndConfirm()" style="display:block;margin:14px auto 0;">ลองใหม่</button></div>';
+  }finally{
+    confirming = false;
   }
 }
 
