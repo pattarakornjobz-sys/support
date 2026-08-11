@@ -168,7 +168,7 @@ async function exportExcel(){
       return;
     }
     const rows = data.map(r => ({
-      'วันที่': r.checkin_date,
+      'วันที่': new Date(r.checkin_date + 'T00:00:00').toLocaleDateString('th-TH'),
       'มื้อ': r.meal_period,
       'ชื่อ-นามสกุล': r.full_name || '',
       'เบอร์โทรศัพท์': r.phone_number || '',
