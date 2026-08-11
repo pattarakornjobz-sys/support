@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>สรุปสถิติเช็คอินรับอาหาร (QR)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg:#0B2545; --bg-2:#12395E;
+    --gold:#D9A628; --gold-light:#F0CB6C; --gold-dim: rgba(217,166,40,0.35);
+    --ivory:#FFFFFF; --ivory-dim:#EEF3F8;
+    --ink:#1F2D3D; --ink-soft:#5B6B85;
+    --good:#22C55E; --good-bg:#E7F9EE;
+    --warn:#FFC857; --warn-bg:#FFF6E0;
+    --bad:#FF6B6B; --bad-bg:#FFE8E8;
+    --service:#5B6FE0; --service-bg:#E9ECFC; --service-text:#4451C7;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Kanit',sans-serif; color:var(--ink);
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(217,166,40,0.18), transparent 45%),
+      radial-gradient(circle at 90% 90%, rgba(255,255,255,0.06), transparent 50%);
+    padding:30px 12px 60px; font-size:16px; line-height:1.6;
+  }
+  .wrap{max-width:648px; margin:0 auto;}
+  h1{
+    font-family:'Prompt',sans-serif; font-size:clamp(18px, 6vw, 22px); font-weight:900; margin:0 0 4px; text-align:center; line-height:1.4;
+    word-break:normal; overflow-wrap:break-word; padding:0 4px;
+    background:linear-gradient(180deg,var(--gold-light),var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 6px;}
+  .vendor-note{text-align:center; font-size:13px; color:var(--gold-light); margin:0 0 20px; line-height:1.6; max-width:440px; margin-left:auto; margin-right:auto; padding:10px 14px; border:1px solid rgba(217,166,40,0.3); border-radius:8px; background:rgba(217,166,40,0.06);}
+  .navlinks{display:flex; gap:8px; justify-content:center; margin-bottom:20px; flex-wrap:wrap;}
+  .navlink{padding:8px 14px; border-radius:20px; background:rgba(255,255,255,0.15); color:var(--gold-light); font-size:12.5px; font-weight:600; text-decoration:none;}
+  .card{
+    position:relative; background:var(--ivory); border-radius:20px; overflow:hidden;
+    box-shadow:0 10px 28px rgba(217,166,40,0.14), 0 2px 8px rgba(31,45,61,0.06);
+    padding:22px; margin-bottom:16px;
+  }
+  .card::before{content:''; position:absolute; top:0; left:0; right:0; height:5px; background:linear-gradient(90deg,var(--gold-light),var(--gold));}
+  .sec-head{display:flex; align-items:center; gap:12px; margin-bottom:16px;}
+  .sec-icon{width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .sec-icon svg{width:19px; height:19px;}
+  .sec-title{font-family:'Prompt',sans-serif; font-weight:700; font-size:16.5px; line-height:1.3;}
+  .loading, .empty-state{text-align:center; color:var(--ink-soft); padding:30px; font-size:15px;}
+  .error{color:#D64550; background:#FFE8E8; border:1px solid #FFC9C9; padding:10px 12px; border-radius:8px; font-size:14px; font-weight:600;}
+
+  .date-filter{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;}
+  .date-pill{padding:7px 13px; border-radius:20px; border:1px solid rgba(31,45,61,0.18); background:transparent; font-size:13px; cursor:pointer; font-family:inherit; color:var(--ink); font-weight:600;}
+  .date-pill.active{background:var(--ink); border-color:var(--ink); color:var(--ivory);}
+  .date-custom{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; font-size:13px;}
+  .date-custom input{padding:8px 10px; border-radius:6px; border:1.5px solid rgba(31,45,61,0.18); background:rgba(255,255,255,0.6); font-family:inherit; font-size:13px; color:var(--ink);}
+
+  .export-row{display:flex; gap:10px;}
+  .export-btn{flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; border-radius:8px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-weight:700; font-size:14px; cursor:pointer; font-family:inherit;}
+  .export-btn.pdf{background:var(--ink); color:var(--ivory);}
+  .export-btn svg{width:17px;height:17px;}
+  .export-btn:disabled{opacity:0.5; cursor:default;}
+
+  .kpi-row{display:flex; gap:10px;}
+  .kpi{flex:1; background:var(--ivory-dim); border-radius:14px; padding:14px 8px; text-align:center;}
+  .kpi .num{font-family:'Kanit',sans-serif; font-weight:800; font-size:24px; color:var(--ink); line-height:1;}
+  .kpi .lbl{font-size:11px; color:var(--ink-soft); margin-top:4px; line-height:1.3;}
+
+  .meal-row{display:flex; gap:10px; margin-top:6px;}
+  .meal-chip{flex:1; text-align:center; border-radius:14px; padding:14px 8px;}
+  .meal-chip .num{font-family:'Kanit',sans-serif; font-weight:800; font-size:22px;}
+  .meal-chip .lbl{font-size:11.5px; margin-top:4px;}
+
+  .unit-row{margin-bottom:16px;}
+  .unit-row .head{display:flex; justify-content:space-between; align-items:baseline; gap:10px; font-size:14.5px; margin-bottom:5px;}
+  .unit-row .name{font-weight:700; line-height:1.4; flex:1 1 auto; min-width:0;}
+  .unit-row .val{font-family:'Kanit',sans-serif; font-weight:700; font-size:17px; flex:0 0 auto; white-space:nowrap;}
+  .unit-track{height:10px; background:rgba(31,45,61,0.09); border-radius:5px; overflow:hidden;}
+  .unit-fill{height:100%; border-radius:5px; background:var(--service);}
+
+  .trend-row{display:flex; align-items:flex-end; gap:5px; height:110px; margin-top:8px; overflow-x:auto; padding-bottom:4px;}
+  .trend-col{flex:0 0 auto; width:26px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;}
+  .trend-col .bar{width:16px; background:var(--service); border-radius:3px 3px 0 0; min-height:2px;}
+  .trend-col .val{font-size:9px; color:var(--ink-soft); margin-bottom:2px;}
+  .trend-col .lbl{font-size:8.5px; color:var(--ink-soft); margin-top:4px;}
+
+  .repeat-item{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 0; border-top:1px dashed rgba(31,45,61,0.12); font-size:13.5px;}
+  .repeat-item:first-child{border-top:none;}
+  .repeat-item .name{font-weight:600;}
+  .repeat-item .meta{font-size:11.5px; color:var(--ink-soft);}
+  .repeat-badge{background:var(--warn-bg); color:#8A6200; font-weight:700; font-size:12px; padding:3px 9px; border-radius:12px; flex-shrink:0;}
+
+  .no-repeat{background:var(--good-bg); color:#1A7A45; border-radius:12px; padding:14px; font-size:13.5px; font-weight:600; text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>สรุปสถิติเช็คอินรับอาหาร<br/>(QR Code)</h1>
+  <div class="rule"></div>
+  <div class="vendor-note">ร้าน Rus Hotel ครัวกลาง — รายงานสำหรับผู้บริหาร</div>
+  <div class="navlinks">
+    <a class="navlink" href="checkin_qr.html">🔳 QR / รายชื่อ</a>
+    <a class="navlink" href="staff_import.html">👥 นำเข้าเจ้าหน้าที่</a>
+  </div>
+  <div id="content"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://uhefxwccuqagnbrbidbh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVoZWZ4d2NjdXFhZ25icmJpZGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDI1NDYsImV4cCI6MjEwMTU3ODU0Nn0.EE5QWPVjSkZpUTU37hgiz4LsGMAfq87dxFOkt9OYynY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
+
+const ICONS = {
+  chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>',
+  building: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4h6v4"/><path d="M8 7h1M11 7h1M14 7h1M8 11h1M11 11h1M14 11h1"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17h.01"/></svg>',
+  sheet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 9h18M9 9v11"/></svg>',
+  doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h6"/></svg>',
+};
+
+let dash = { loading:false, error:'', rows:[], dateFilter:'7d', customFrom:'', customTo:'' };
+
+function getFilteredRange(){
+  const now = new Date();
+  let from = null, to = null;
+  if(dash.dateFilter === 'today'){
+    from = now.toISOString().slice(0,10); to = from;
+  }else if(dash.dateFilter === '7d'){
+    from = new Date(now.getTime() - 6*24*60*60*1000).toISOString().slice(0,10); to = now.toISOString().slice(0,10);
+  }else if(dash.dateFilter === '30d'){
+    from = new Date(now.getTime() - 29*24*60*60*1000).toISOString().slice(0,10); to = now.toISOString().slice(0,10);
+  }else if(dash.dateFilter === 'custom'){
+    from = dash.customFrom || null; to = dash.customTo || null;
+  }
+  return { from, to };
+}
+
+async function loadData(){
+  dash.loading = true; dash.error = ''; render();
+  try{
+    const { from, to } = getFilteredRange();
+    let q = sb.from('meal_checkins').select('*').order('created_at', { ascending:true });
+    if(from) q = q.gte('checkin_date', from);
+    if(to) q = q.lte('checkin_date', to);
+    const { data, error } = await q;
+    if(error) throw error;
+    dash.rows = data || [];
+  }catch(e){
+    console.error(e);
+    dash.error = 'โหลดข้อมูลไม่สำเร็จ: ' + (e?.message || e);
+  }finally{
+    dash.loading = false;
+    render();
+  }
+}
+
+function setDateFilter(key){ dash.dateFilter = key; loadData(); }
+function setCustomDate(which, val){
+  if(which==='from') dash.customFrom = val; else dash.customTo = val;
+  dash.dateFilter = 'custom';
+  loadData();
+}
+
+function computeStats(rows){
+  const total = rows.length;
+  const uniqueStaff = new Set(rows.map(r => r.staff_id || r.phone_number)).size;
+  const days = new Set(rows.map(r => r.checkin_date)).size;
+  const avgPerDay = days ? (total/days) : 0;
+
+  const byPeriod = { 'เช้า':0, 'กลางวัน':0, 'เย็น':0 };
+  rows.forEach(r => { if(byPeriod[r.meal_period] !== undefined) byPeriod[r.meal_period]++; });
+
+  const byUnit = {};
+  rows.forEach(r => {
+    const key = r.unit + (r.other_unit_name ? (': '+r.other_unit_name) : '');
+    byUnit[key] = (byUnit[key]||0) + 1;
+  });
+  const unitList = Object.entries(byUnit).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxUnitCount = unitList.length ? unitList[0][1] : 0;
+
+  const byDay = {};
+  rows.forEach(r => { byDay[r.checkin_date] = (byDay[r.checkin_date]||0) + 1; });
+  const dayList = Object.entries(byDay).sort((a,b)=> a[0]<b[0]?-1:1).slice(-14);
+  const maxDayCount = dayList.length ? Math.max(...dayList.map(d=>d[1])) : 0;
+
+  const repeats = rows.filter(r => (r.sequence_number||1) > 1)
+    .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+
+  return { total, uniqueStaff, days, avgPerDay, byPeriod, unitList, maxUnitCount, dayList, maxDayCount, repeats };
+}
+
+function dateRangeLabel(){
+  if(dash.dateFilter==='today') return 'วันนี้';
+  if(dash.dateFilter==='7d') return '7 วันล่าสุด';
+  if(dash.dateFilter==='30d') return '30 วันล่าสุด';
+  if(dash.dateFilter==='custom') return (dash.customFrom||'…') + ' ถึง ' + (dash.customTo||'…');
+  return 'ทั้งหมด';
+}
+
+function render(){
+  const el = document.getElementById('content');
+
+  const dateFilterHtml =
+    '<div class="card">' +
+      '<div class="sec-head">' +
+        '<div class="sec-icon" style="background:var(--ivory-dim); color:var(--ink-soft);">' + ICONS.clock + '</div>' +
+        '<div><div class="sec-title">ช่วงเวลาที่แสดงผล</div></div>' +
+      '</div>' +
+      '<div class="date-filter">' +
+        '<button class="date-pill ' + (dash.dateFilter==='today'?'active':'') + '" onclick="setDateFilter(\'today\')">วันนี้</button>' +
+        '<button class="date-pill ' + (dash.dateFilter==='7d'?'active':'') + '" onclick="setDateFilter(\'7d\')">7 วันล่าสุด</button>' +
+        '<button class="date-pill ' + (dash.dateFilter==='30d'?'active':'') + '" onclick="setDateFilter(\'30d\')">30 วันล่าสุด</button>' +
+        '<button class="date-pill ' + (dash.dateFilter==='all'?'active':'') + '" onclick="setDateFilter(\'all\')">ทั้งหมด</button>' +
+        '<button class="date-pill ' + (dash.dateFilter==='custom'?'active':'') + '" onclick="setDateFilter(\'custom\')">กำหนดเอง</button>' +
+      '</div>' +
+      (dash.dateFilter==='custom' ?
+        ('<div class="date-custom"><span>จาก</span><input type="date" value="' + dash.customFrom + '" onchange="setCustomDate(\'from\', this.value)">' +
+         '<span>ถึง</span><input type="date" value="' + dash.customTo + '" onchange="setCustomDate(\'to\', this.value)"></div>') : '') +
+    '</div>';
+
+  if(dash.loading){ el.innerHTML = dateFilterHtml + '<div class="card"><div class="loading">กำลังโหลดข้อมูล…</div></div>'; return; }
+  if(dash.error){ el.innerHTML = dateFilterHtml + '<div class="card"><div class="error">' + dash.error + '</div></div>'; return; }
+  if(dash.rows.length === 0){ el.innerHTML = dateFilterHtml + '<div class="card"><div class="empty-state">ไม่มีข้อมูลเช็คอินในช่วงเวลาที่เลือก</div></div>'; return; }
+
+  const s = computeStats(dash.rows);
+
+  const unitRows = s.unitList.map(function(entry){
+    const name = entry[0], count = entry[1];
+    return '<div class="unit-row"><div class="head"><span class="name">' + name + '</span><span class="val">' + count + '</span></div>' +
+      '<div class="unit-track"><div class="unit-fill" style="width:' + (s.maxUnitCount?(count/s.maxUnitCount*100):0) + '%"></div></div></div>';
+  }).join('');
+
+  const trendCols = s.dayList.map(function(entry){
+    const d = entry[0], c = entry[1];
+    const short = d.slice(5).replace('-','/');
+    return '<div class="trend-col"><div class="val">' + c + '</div><div class="bar" style="height:' + (s.maxDayCount?(c/s.maxDayCount*100):2) + '%"></div><div class="lbl">' + short + '</div></div>';
+  }).join('');
+
+  const repeatsHtml = s.repeats.length === 0
+    ? '<div class="no-repeat">✓ ไม่มีการเช็คอินซ้ำเกินโควตาในช่วงนี้</div>'
+    : s.repeats.slice(0,15).map(function(r){
+        return '<div class="repeat-item"><div><div class="name">' + (r.full_name || '-') + '</div>' +
+          '<div class="meta">' + (r.unit || '') + ' · ' + r.meal_period + ' · ' + new Date(r.created_at).toLocaleString('th-TH') + '</div></div>' +
+          '<div class="repeat-badge">ครั้งที่ ' + r.sequence_number + '</div></div>';
+      }).join('');
+
+  el.innerHTML = dateFilterHtml +
+    '<div class="card"><div class="export-row">' +
+      '<button class="export-btn" id="excelBtn" onclick="exportExcel()">' + ICONS.sheet + ' Excel</button>' +
+      '<button class="export-btn pdf" id="pdfBtn" onclick="exportPDF()">' + ICONS.doc + ' PDF รายงานสรุป</button>' +
+    '</div></div>' +
+
+    '<div id="reportContent">' +
+    '<div class="card">' +
+      '<div class="sec-head"><div class="sec-icon" style="background:var(--ivory-dim); color:var(--ink-soft);">' + ICONS.chart + '</div>' +
+        '<div><div class="sec-title">ภาพรวมการเช็คอิน</div></div></div>' +
+      '<div class="kpi-row">' +
+        '<div class="kpi"><div class="num">' + s.total + '</div><div class="lbl">เช็คอินทั้งหมด</div></div>' +
+        '<div class="kpi"><div class="num">' + s.uniqueStaff + '</div><div class="lbl">เจ้าหน้าที่ไม่ซ้ำคน</div></div>' +
+        '<div class="kpi"><div class="num">' + s.avgPerDay.toFixed(1) + '</div><div class="lbl">เฉลี่ย/วัน</div></div>' +
+      '</div>' +
+      '<div class="meal-row">' +
+        '<div class="meal-chip" style="background:var(--warn-bg);"><div class="num" style="color:#8A6200;">' + s.byPeriod['เช้า'] + '</div><div class="lbl" style="color:#8A6200;">มื้อเช้า</div></div>' +
+        '<div class="meal-chip" style="background:var(--good-bg);"><div class="num" style="color:#1A7A45;">' + s.byPeriod['กลางวัน'] + '</div><div class="lbl" style="color:#1A7A45;">มื้อกลางวัน</div></div>' +
+        '<div class="meal-chip" style="background:var(--service-bg);"><div class="num" style="color:var(--service-text);">' + s.byPeriod['เย็น'] + '</div><div class="lbl" style="color:var(--service-text);">มื้อเย็น</div></div>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<div class="sec-head"><div class="sec-icon" style="background:var(--service-bg); color:var(--service-text);">' + ICONS.chart + '</div>' +
+        '<div><div class="sec-title">แนวโน้มรายวัน</div></div></div>' +
+      '<div class="trend-row">' + trendCols + '</div>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<div class="sec-head"><div class="sec-icon" style="background:var(--ivory-dim); color:var(--ink-soft);">' + ICONS.building + '</div>' +
+        '<div><div class="sec-title">เช็คอินแยกตามหน่วยงาน</div></div></div>' +
+      unitRows +
+    '</div>' +
+
+    '<div class="card">' +
+      '<div class="sec-head"><div class="sec-icon" style="background:var(--warn-bg); color:#8A6200;">' + ICONS.warn + '</div>' +
+        '<div><div class="sec-title">การเช็คอินซ้ำ (เกินโควตา)</div></div></div>' +
+      repeatsHtml +
+    '</div>' +
+    '</div>';
+}
+
+function exportExcel(){
+  if(!dash.rows.length) return;
+  const rows = dash.rows.map(function(r){
+    return {
+      'วันที่': r.checkin_date,
+      'มื้อ': r.meal_period,
+      'ชื่อ-นามสกุล': r.full_name || '',
+      'เบอร์โทรศัพท์': r.phone_number || '',
+      'หน่วยงาน': r.unit + (r.other_unit_name ? (': '+r.other_unit_name) : ''),
+      'ครั้งที่': r.sequence_number || 1,
+      'เวลาเช็คอิน': new Date(r.created_at).toLocaleString('th-TH'),
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'เช็คอิน');
+  XLSX.writeFile(wb, 'สถิติเช็คอินรับอาหาร_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
+
+async function exportPDF(){
+  const btn = document.getElementById('pdfBtn');
+  const original = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = 'กำลังสร้าง PDF…';
+  const header = document.createElement('div');
+  header.style.cssText = 'position:absolute; left:-9999px; top:0; width:794px; background:#FFFFFF; padding:28px 24px; font-family:"Kanit",sans-serif;';
+  header.innerHTML =
+    '<div style="border-top:4px solid #D9A628; margin-bottom:18px;"></div>' +
+    '<div style="text-align:center; color:#D9A628; font-size:12px; letter-spacing:2px; font-weight:700; margin-bottom:6px;">รายงานสำหรับผู้บริหาร</div>' +
+    '<div style="text-align:center; font-family:\'Prompt\',sans-serif; font-weight:900; font-size:22px; color:#1F2D3D; margin-bottom:6px;">สรุปสถิติเช็คอินรับอาหาร (QR Code)</div>' +
+    '<div style="text-align:center; font-size:13px; color:#5B6B85; margin-bottom:14px;">ร้าน Rus Hotel ครัวกลาง</div>' +
+    '<div style="display:flex; justify-content:center; gap:24px; font-size:13px; color:#1F2D3D; font-weight:600;">' +
+      '<span>ช่วงเวลา: ' + dateRangeLabel() + '</span>' +
+      '<span>สร้างเมื่อ: ' + new Date().toLocaleString('th-TH') + '</span>' +
+    '</div>';
+  document.body.appendChild(header);
+  try{
+    const target = document.getElementById('reportContent');
+    const results = await Promise.all([
+      html2canvas(header, { scale: 2, backgroundColor: '#FFFFFF' }),
+      html2canvas(target, { scale: 2, backgroundColor: '#0B2545' }),
+    ]);
+    const headerCanvas = results[0], contentCanvas = results[1];
+    const jsPDFCtor = window.jspdf.jsPDF;
+    const pdf = new jsPDFCtor('p', 'mm', 'a4');
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const headerImgH = headerCanvas.height * pageW / headerCanvas.width;
+    pdf.addImage(headerCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageW, headerImgH);
+    const contentImgH = contentCanvas.height * pageW / contentCanvas.width;
+    const contentData = contentCanvas.toDataURL('image/png');
+    let position = headerImgH;
+    pdf.addImage(contentData, 'PNG', 0, position, pageW, contentImgH);
+    let heightLeft = contentImgH - (pageH - position);
+    while(heightLeft > 2){
+      pdf.addPage();
+      position = heightLeft - contentImgH;
+      pdf.addImage(contentData, 'PNG', 0, position, pageW, contentImgH);
+      heightLeft -= pageH;
+    }
+    pdf.save('สถิติเช็คอินรับอาหาร_' + new Date().toISOString().slice(0,10) + '.pdf');
+  }catch(e){
+    console.error(e);
+    alert('สร้าง PDF ไม่สำเร็จ: ' + (e?.message || e));
+  }finally{
+    document.body.removeChild(header);
+    btn.disabled = false; btn.innerHTML = original;
+  }
+}
+
+const todayStr = new Date().toISOString().slice(0,10);
+dash.customFrom = todayStr; dash.customTo = todayStr;
+loadData();
+</script>
+</body>
+</html>
