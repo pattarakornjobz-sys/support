@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>QR Code สำหรับแขกภายนอก</title>
+<title>QR ยืนยันรับอาหารกล่อง</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
 <style>
@@ -24,7 +24,7 @@
   }
   .wrap{max-width:520px; margin:0 auto;}
   h1{
-    font-family:'Prompt',sans-serif; font-size:clamp(19px, 6vw, 23px); font-weight:900; margin:0 0 4px; text-align:center; line-height:1.4;
+    font-family:'Prompt',sans-serif; font-size:clamp(18px, 6vw, 22px); font-weight:900; margin:0 0 4px; text-align:center; line-height:1.4;
     background:linear-gradient(180deg,var(--gold-light),var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   .rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 20px;}
@@ -52,26 +52,25 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>QR เช็คอิน<br/>สำหรับแขกภายนอก</h1>
+  <h1>QR ยืนยันรับ<br/>อาหารกล่อง</h1>
   <div class="rule"></div>
   <div class="navlinks">
-    <a class="navlink" href="guest_request.html">📝 แจ้งรับรองแขก</a>
-    <a class="navlink" href="kitchen_request.html">🍽️ ขอสนับสนุนครัวกลาง</a>
-    <a class="navlink" href="checkin_qr.html">🔳 QR พนักงาน</a>
+    <a class="navlink" href="kitchen_request.html">📝 ยื่นคำขอใหม่</a>
+    <a class="navlink" href="kitchen_requests_list.html">📋 ดูรายการที่จอง</a>
   </div>
 
   <div class="card">
-    <div class="qr-title">สแกนเพื่อกรอกรหัสรับอาหาร</div>
-    <div class="qr-sub">ร้าน Rus Hotel ครัวกลาง — สำหรับแขกภายนอกเท่านั้น</div>
+    <div class="qr-title">สแกนเพื่อยืนยันรับอาหารกล่อง</div>
+    <div class="qr-sub">ร้าน Rus Hotel ครัวกลาง — สำหรับผู้ประสานงานเท่านั้น</div>
     <img class="qr-img" id="qrImg" alt="QR Code">
     <div class="qr-url" id="urlText"></div>
-    <div class="note">แขกจะต้องกรอกรหัส 6 หลักที่หน่วยงานผู้เชิญแจ้งไว้ล่วงหน้า (ผ่านหน้า "แจ้งรับรองแขก") จึงจะเช็คอินรับอาหารได้</div>
+    <div class="note">ผู้ประสานงานสแกนแล้วกรอกเบอร์โทรที่ใช้ยื่นคำขอ ระบบจะแสดงรายการข้าวกล่องของวันนี้ให้ยืนยันรับครั้งเดียวต่อมื้อ</div>
     <button class="print-btn" onclick="window.print()">🖨️ พิมพ์ป้าย QR</button>
   </div>
 </div>
 
 <script>
-const targetUrl = new URL('guest_checkin.html', window.location.href).href;
+const targetUrl = new URL('kitchen_pickup.html', window.location.href).href;
 document.getElementById('urlText').textContent = targetUrl;
 document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=' + encodeURIComponent(targetUrl);
 </script>

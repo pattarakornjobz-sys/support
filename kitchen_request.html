@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ใบประสงค์ขอรับการสนับสนุนจากครัวกลาง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg:#0B2545; --bg-2:#12395E;
+    --gold:#D9A628; --gold-light:#F0CB6C; --gold-dim: rgba(217,166,40,0.35);
+    --ivory:#FFFFFF; --ivory-dim:#EEF3F8;
+    --ink:#1F2D3D; --ink-soft:#5B6B85;
+    --good:#22C55E; --good-bg:#E7F9EE;
+    --warn:#FFC857; --warn-bg:#FFF6E0;
+    --bad:#FF6B6B; --bad-bg:#FFE8E8;
+    --service:#5B6FE0; --service-bg:#E9ECFC; --service-text:#4451C7;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Kanit',sans-serif; color:var(--ink);
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(217,166,40,0.18), transparent 45%),
+      radial-gradient(circle at 90% 90%, rgba(255,255,255,0.06), transparent 50%);
+    padding:30px 12px 60px; font-size:16px; line-height:1.6;
+  }
+  .wrap{max-width:600px; margin:0 auto;}
+  h1{
+    font-family:'Prompt',sans-serif; font-size:clamp(17px, 5.5vw, 21px); font-weight:900; margin:0 0 4px; text-align:center; line-height:1.4;
+    word-break:normal; overflow-wrap:break-word;
+    background:linear-gradient(180deg,var(--gold-light),var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 8px;}
+  .vendor-note{text-align:center; font-size:13px; color:var(--gold-light); margin:0 0 20px; line-height:1.6; max-width:460px; margin-left:auto; margin-right:auto; padding:10px 14px; border:1px solid rgba(217,166,40,0.3); border-radius:8px; background:rgba(217,166,40,0.06);}
+  .navlinks{display:flex; gap:8px; justify-content:center; margin-bottom:20px; flex-wrap:wrap;}
+  .navlink{padding:8px 14px; border-radius:20px; background:rgba(255,255,255,0.15); color:var(--gold-light); font-size:12.5px; font-weight:600; text-decoration:none;}
+  .card{
+    position:relative; background:var(--ivory); border-radius:20px; overflow:hidden;
+    box-shadow:0 10px 28px rgba(217,166,40,0.14), 0 2px 8px rgba(31,45,61,0.06);
+    padding:24px 22px; margin-bottom:16px;
+  }
+  .card::before{content:''; position:absolute; top:0; left:0; right:0; height:5px; background:linear-gradient(90deg,var(--gold-light),var(--gold));}
+  .sec-title{font-family:'Prompt',sans-serif; font-weight:700; font-size:16px; margin-bottom:14px;}
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+  .field-row.single{grid-template-columns:1fr;}
+  .field{display:flex; flex-direction:column;}
+  .field label{font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+  .field{min-width:0;}
+  .field input, .field textarea, .field select{
+    width:100%; box-sizing:border-box; padding:11px 12px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16);
+    background:rgba(255,255,255,0.6); font-family:inherit; font-size:15px; color:var(--ink);
+  }
+  .field input:focus, .field textarea:focus, .field select:focus{outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(217,166,40,0.15);}
+  .date-selects{display:flex; gap:8px;}
+  .date-selects select{flex:1; min-width:0; padding:11px 6px; font-size:13.5px;}
+  .weekday-preview{font-size:13px; font-weight:700; color:var(--service-text); background:var(--service-bg); border-radius:8px; padding:8px 12px; margin-top:8px; text-align:center;}
+  .unit-select{width:100%;}
+  .meal-chips{display:flex; gap:8px;}
+  .meal-chip-btn{flex:1; padding:13px; border-radius:10px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.5); color:var(--ink); font-weight:700; font-size:14px; cursor:pointer; font-family:inherit;}
+  .meal-chip-btn[data-active="true"]{color:#fff; border-color:transparent;}
+  .pickup-note{background:var(--service-bg); color:var(--service-text); border-radius:10px; padding:12px 14px; font-size:13px; line-height:1.6; margin-bottom:12px;}
+  .box-menu-list{display:flex; flex-direction:column; gap:8px;}
+  .box-menu-row{display:flex; gap:8px; align-items:center;}
+  .box-menu-row input.box-menu-name{flex:2; min-width:0; padding:10px 11px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.6); font-family:inherit; font-size:14px; color:var(--ink);}
+  .box-menu-row input.box-menu-qty{flex:1; min-width:0; padding:10px 11px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.6); font-family:inherit; font-size:14px; color:var(--ink);}
+  .box-menu-remove{width:32px; height:38px; border-radius:8px; border:none; background:#FFE8E8; color:#B4322F; font-weight:700; cursor:pointer; font-family:inherit; flex-shrink:0;}
+  .add-menu-btn{margin-top:10px; padding:9px 16px; border-radius:8px; border:1.5px dashed var(--gold); background:transparent; color:#8A6200; font-weight:700; font-size:13px; cursor:pointer; font-family:inherit;}
+  .box-menu-total{margin-top:12px; font-size:14px; font-weight:700; color:var(--ink); background:var(--ivory-dim); border-radius:8px; padding:10px 14px; text-align:center;}
+  .attendee-actions{display:flex; gap:10px; margin-bottom:10px;}
+  .action-btn{flex:1; min-width:0; display:flex; align-items:center; justify-content:center; gap:6px; padding:12px; border-radius:8px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-weight:700; font-size:13.5px; cursor:pointer; font-family:inherit;}
+  .action-btn svg{width:16px;height:16px;}
+  .action-btn.upload{background:var(--ink); color:#fff;}
+  .attendee-summary{font-size:13px; font-weight:600; margin:10px 0; color:var(--ink-soft);}
+  .preview-table{width:100%; border-collapse:collapse; font-size:12px; margin-top:8px;}
+  .preview-table th, .preview-table td{border:1px solid rgba(31,45,61,0.12); padding:6px 7px; text-align:left;}
+  .preview-table th{background:var(--ivory-dim);}
+  .submit-btn{
+    width:100%; padding:16px; border-radius:10px; border:none;
+    background:linear-gradient(180deg,#D9A628,#B8860B); color:#fff; font-weight:700; font-size:16px;
+    cursor:pointer; font-family:inherit; box-shadow:0 10px 24px rgba(217,166,40,0.35);
+  }
+  .submit-btn:disabled{background:#B9C6D4; box-shadow:none; cursor:default;}
+  .error{color:#D64550; background:#FFE8E8; border:1px solid #FFC9C9; padding:10px 12px; border-radius:8px; font-size:14px; font-weight:600; margin-bottom:14px;}
+  .success .seal{width:74px; height:74px; border-radius:50%; background:linear-gradient(180deg,#34D399,#22C55E); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; box-shadow:0 10px 26px rgba(34,197,94,0.35);}
+  .success .seal svg{width:36px; height:36px; color:#fff;}
+  .success h2{font-family:'Prompt',sans-serif; font-weight:700; font-size:20px; text-align:center; margin:0 0 16px;}
+  .summary-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;}
+  .summary-item{background:var(--ivory-dim); border-radius:12px; padding:14px; text-align:center;}
+  .summary-item .num{font-family:'Prompt',sans-serif; font-weight:800; font-size:24px;}
+  .summary-item .lbl{font-size:11px; color:var(--ink-soft); margin-top:4px;}
+  .detail-box{background:var(--ivory-dim); border-radius:10px; padding:14px; font-size:13.5px; margin-bottom:12px; line-height:1.6;}
+  .detail-box b{color:var(--ink);}
+  .dietary-list{background:var(--warn-bg); border-radius:10px; padding:14px; margin-bottom:12px;}
+  .dietary-list .t{font-weight:700; font-size:13.5px; color:#8A6200; margin-bottom:8px;}
+  .dietary-item{font-size:13px; padding:5px 0; border-top:1px dashed rgba(31,45,61,0.12);}
+  .dietary-item:first-child{border-top:none;}
+  .btn-outline{width:100%; margin-top:6px; padding:12px 22px; border-radius:10px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-weight:700; font-size:14.5px; cursor:pointer; font-family:inherit;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ใบประสงค์ขอรับการสนับสนุน<br/>จากครัวกลาง</h1>
+  <div class="rule"></div>
+  <div class="vendor-note">ร้าน Rus Hotel ครัวกลาง — โปรดแจ้งล่วงหน้าก่อนวันจัดเลี้ยง</div>
+  <div class="navlinks">
+    <a class="navlink" href="kitchen_requests_list.html">📋 ดูรายการที่จองไว้</a>
+    <a class="navlink" href="kitchen_pickup_qr.html">📦 QR รับอาหารกล่อง</a>
+  </div>
+  <div id="content"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://uhefxwccuqagnbrbidbh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVoZWZ4d2NjdXFhZ25icmJpZGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDI1NDYsImV4cCI6MjEwMTU3ODU0Nn0.EE5QWPVjSkZpUTU37hgiz4LsGMAfq87dxFOkt9OYynY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
+
+const UNITS = [
+  'อาคารเรียน-รู้-เรื่องโขน',
+  'แผนกนักเรียนศิลปาชีพ',
+  'พิพิธภัณฑ์ศิลป์แผ่นดิน',
+  'โครงการก่อสร้างศิลปาชีพ ตำบลเกาะเกิด',
+  'อาคารศิลปาชีพ ตำบลช้างใหญ่',
+  'อาคารเก็บผลิตภัณฑ์ศิลปาชีพ',
+  'บุคคลอื่นๆ ที่มาใช้บริการ (โปรดระบุ)',
+];
+const OTHER_UNIT = 'บุคคลอื่นๆ ที่มาใช้บริการ (โปรดระบุ)';
+const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const THAI_DAYS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+const ICON_SHEET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 9h18M9 9v11"/></svg>';
+const ICON_UPLOAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>';
+const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+
+function tomorrowStr(){ const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().slice(0,10); }
+function isoToDMY(iso){ const d = new Date(iso+'T00:00:00'); return { day:d.getDate(), month:d.getMonth()+1, yearBE:d.getFullYear()+543 }; }
+function dmyToIso(day,month,yearBE){ const yearCE = yearBE-543; return yearCE+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0'); }
+function weekdayLabel(iso){
+  const d = new Date(iso+'T00:00:00');
+  const dmy = isoToDMY(iso);
+  return 'วัน' + THAI_DAYS[d.getDay()] + 'ที่ ' + dmy.day + ' ' + THAI_MONTHS[dmy.month-1] + ' ' + dmy.yearBE;
+}
+
+let state = {
+  event_date: tomorrowStr(), unit:'', other_unit_name:'',
+  service_type:'', menu_count:'', menu_detail:'',
+  box_menu_items: [{ name:'', qty:'' }], savedBoxItems: [],
+  meals: { 'เช้า':false, 'กลางวัน':true, 'เย็น':false },
+  requester_name:'', requester_phone:'', general_notes:'',
+  attendees: [],
+  submitting:false, submitted:false, error:'', result:null,
+};
+
+const SERVICE_TYPES = ['บุฟเฟ่ต์', 'ข้าวกล่อง'];
+
+function dateSelectsHtml(){
+  const dmy = isoToDMY(state.event_date);
+  const nowBE = new Date().getFullYear()+543;
+  let dayOpts=''; for(let i=1;i<=31;i++) dayOpts += '<option value="'+i+'"'+(i===dmy.day?' selected':'')+'>'+i+'</option>';
+  let monthOpts=''; THAI_MONTHS.forEach(function(name,idx){ const m=idx+1; monthOpts += '<option value="'+m+'"'+(m===dmy.month?' selected':'')+'>'+name+'</option>'; });
+  let yearOpts=''; for(let y=nowBE;y<=nowBE+2;y++) yearOpts += '<option value="'+y+'"'+(y===dmy.yearBE?' selected':'')+'>'+y+'</option>';
+  return '<div class="date-selects">' +
+    '<select id="reqDay">'+dayOpts+'</select>' +
+    '<select id="reqMonth">'+monthOpts+'</select>' +
+    '<select id="reqYear">'+yearOpts+'</select>' +
+  '</div>' +
+  '<div class="weekday-preview" id="weekdayPreview">' + weekdayLabel(state.event_date) + '</div>';
+}
+function attachDateHandlers(){
+  function update(){
+    const d = document.getElementById('reqDay').value, m = document.getElementById('reqMonth').value, y = document.getElementById('reqYear').value;
+    state.event_date = dmyToIso(d,m,y);
+    document.getElementById('weekdayPreview').textContent = weekdayLabel(state.event_date);
+  }
+  ['reqDay','reqMonth','reqYear'].forEach(function(id){ const e=document.getElementById(id); if(e) e.onchange = update; });
+}
+
+function unitSelectHtml(){
+  const opts = UNITS.map(function(u){ return '<option value="'+u+'"'+(state.unit===u?' selected':'')+'>'+u+'</option>'; }).join('');
+  return '<select class="unit-select" id="unitSelect"><option value="">-- เลือกหน่วยงาน --</option>' + opts + '</select>' +
+    (state.unit===OTHER_UNIT ? '<input type="text" id="otherUnitName" placeholder="ระบุชื่อหน่วยงาน" value="'+state.other_unit_name+'" style="margin-top:8px;">' : '');
+}
+
+function serviceTypeHtml(){
+  const chips = SERVICE_TYPES.map(function(t){
+    const active = state.service_type === t;
+    return '<button type="button" class="meal-chip-btn" data-active="'+active+'" style="'+(active?'background:var(--gold);':'')+'" onclick="setServiceType(\''+t+'\')">'+t+'</button>';
+  }).join('');
+  return '<div class="meal-chips">' + chips + '</div>';
+}
+function setServiceType(t){ state.service_type = t; renderForm(); }
+
+function sumBoxQty(){
+  return state.box_menu_items.reduce(function(sum,item){ return sum + (Number(item.qty)||0); }, 0);
+}
+function boxMenuListHtml(){
+  const rows = state.box_menu_items.map(function(item, idx){
+    return '<div class="box-menu-row">' +
+      '<input type="text" class="box-menu-name" data-idx="'+idx+'" placeholder="ชื่อเมนู เช่น กะเพราหมูสับ" value="'+item.name+'">' +
+      '<input type="number" min="1" class="box-menu-qty" data-idx="'+idx+'" placeholder="จำนวนกล่อง" value="'+item.qty+'">' +
+      (state.box_menu_items.length>1 ? '<button type="button" class="box-menu-remove" onclick="removeBoxMenuRow('+idx+')">✕</button>' : '<span style="width:32px;"></span>') +
+    '</div>';
+  }).join('');
+  return '<div class="box-menu-list">' + rows + '</div>' +
+    '<button type="button" class="add-menu-btn" onclick="addBoxMenuRow()">+ เพิ่มเมนู</button>' +
+    '<div class="box-menu-total">รวมทั้งหมด <span id="boxMenuTotal">' + sumBoxQty() + '</span> กล่อง</div>';
+}
+function addBoxMenuRow(){ state.box_menu_items.push({ name:'', qty:'' }); renderForm(); }
+function removeBoxMenuRow(idx){ state.box_menu_items.splice(idx,1); renderForm(); }
+function attachBoxMenuHandlers(){
+  document.querySelectorAll('.box-menu-name').forEach(function(el){
+    el.oninput = function(e){ state.box_menu_items[Number(el.dataset.idx)].name = e.target.value; };
+  });
+  document.querySelectorAll('.box-menu-qty').forEach(function(el){
+    el.oninput = function(e){
+      state.box_menu_items[Number(el.dataset.idx)].qty = e.target.value;
+      const totalEl = document.getElementById('boxMenuTotal');
+      if(totalEl) totalEl.textContent = sumBoxQty();
+    };
+  });
+}
+
+function serviceDetailFieldsHtml(){
+  if(state.service_type === 'บุฟเฟ่ต์'){
+    return '<div class="field-row single"><div class="field"><label>จำนวนเมนูที่ต้องการ (จาน)</label><input type="number" min="1" id="menu_count" value="' + state.menu_count + '" placeholder="เช่น 5"></div></div>' +
+      '<div class="field-row single"><div class="field"><label>รายชื่อเมนูที่ต้องการ (ไม่บังคับ)</label><textarea id="menu_detail" rows="3" placeholder="เช่น ต้มยำกุ้ง, ผัดไทย, ข้าวผัดปู, แกงเขียวหวานไก่, ผัดผักรวม">' + state.menu_detail + '</textarea></div></div>';
+  }
+  if(state.service_type === 'ข้าวกล่อง'){
+    return '<div class="pickup-note">📦 สำหรับข้าวกล่อง <b>ผู้ประสานงานจะเป็นผู้สแกน QR เพื่อยืนยันรับกล่องอาหารทั้งหมดครั้งเดียว</b> ในวันงาน (ไม่ต้องให้แขกสแกนทีละคน)</div>' +
+      '<div class="field-row single"><div class="field"><label>เมนูและจำนวนกล่อง (เพิ่มได้หลายเมนู)</label>' + boxMenuListHtml() + '</div></div>';
+  }
+  return '<div style="font-size:12.5px;color:var(--ink-soft);">กรุณาเลือกประเภทการเลี้ยงก่อน</div>';
+}
+
+function mealChipsHtml(){
+  return ['เช้า','กลางวัน','เย็น'].map(function(m){
+    const active = state.meals[m];
+    const color = m==='เช้า' ? '#FFC857' : m==='กลางวัน' ? '#22C55E' : '#5B6FE0';
+    return '<button type="button" class="meal-chip-btn" data-active="'+active+'" style="'+(active?('background:'+color+';'):'')+'" onclick="toggleMeal(\''+m+'\')">'+m+'</button>';
+  }).join('');
+}
+function toggleMeal(m){ state.meals[m] = !state.meals[m]; renderForm(); }
+
+function downloadTemplate(){
+  const ws = XLSX.utils.json_to_sheet([
+    { 'ชื่อ-นามสกุล':'นายตัวอย่าง ใจดี', 'หน่วยงาน':'อาคารเรียน-รู้-เรื่องโขน', 'หมายเหตุ (แพ้อาหาร/ศาสนา)':'แพ้กุ้ง' },
+    { 'ชื่อ-นามสกุล':'นางสาวตัวอย่าง สุขใจ', 'หน่วยงาน':'อาคารเรียน-รู้-เรื่องโขน', 'หมายเหตุ (แพ้อาหาร/ศาสนา)':'ศาสนาอิสลาม' },
+  ]);
+  ws['!cols'] = [{wch:24},{wch:28},{wch:26}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'รายชื่อ');
+  XLSX.writeFile(wb, 'เทมเพลตรายชื่อผู้ร่วมรับประทาน.xlsx');
+}
+
+function findCol(headers, candidates){
+  const lower = headers.map(function(h){ return String(h).trim().toLowerCase(); });
+  for(const c of candidates){ const idx = lower.indexOf(c.toLowerCase()); if(idx!==-1) return idx; }
+  return -1;
+}
+
+function handleFileUpload(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    const wb = XLSX.read(evt.target.result, { type:'array' });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header:1, raw:false });
+    if(!rows.length){ alert('ไฟล์ว่างเปล่า'); return; }
+    const headers = rows[0];
+    const nameIdx = findCol(headers, ['ชื่อ-นามสกุล','ชื่อ','name','full_name']);
+    const unitIdx = findCol(headers, ['หน่วยงาน','unit','สังกัด']);
+    const noteIdx = findCol(headers, ['หมายเหตุ (แพ้อาหาร/ศาสนา)','หมายเหตุ','แพ้อาหาร','dietary','note']);
+    if(nameIdx===-1){
+      state.error = 'ไม่พบคอลัมน์ชื่อในไฟล์ กรุณาใช้เทมเพลตที่ดาวน์โหลดไว้';
+      renderForm();
+      return;
+    }
+    state.attendees = rows.slice(1)
+      .filter(function(r){ return r[nameIdx] && String(r[nameIdx]).trim(); })
+      .map(function(r){
+        return {
+          full_name: String(r[nameIdx]||'').trim(),
+          unit: unitIdx!==-1 ? String(r[unitIdx]||'').trim() : '',
+          dietary_note: noteIdx!==-1 ? String(r[noteIdx]||'').trim() : '',
+        };
+      });
+    state.error = '';
+    renderForm();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function attendeePreviewHtml(){
+  if(!state.attendees.length) return '';
+  const withNotes = state.attendees.filter(function(a){ return a.dietary_note; }).length;
+  const rows = state.attendees.slice(0,6).map(function(a){
+    return '<tr><td>'+a.full_name+'</td><td>'+a.unit+'</td><td>'+a.dietary_note+'</td></tr>';
+  }).join('');
+  return '<div class="attendee-summary">พบรายชื่อทั้งหมด ' + state.attendees.length + ' คน' +
+    (withNotes ? (' \u00b7 มีข้อจำกัดด้านอาหาร ' + withNotes + ' คน') : '') + '</div>' +
+    '<table class="preview-table"><tr><th>ชื่อ-นามสกุล</th><th>หน่วยงาน</th><th>หมายเหตุ</th></tr>' + rows + '</table>' +
+    (state.attendees.length > 6 ? '<div style="font-size:11.5px;color:var(--ink-soft);margin-top:6px;">...และอีก ' + (state.attendees.length-6) + ' คน</div>' : '');
+}
+
+function renderForm(){
+  const el = document.getElementById('content');
+
+  if(state.submitted && state.result){
+    const r = state.result;
+    const dietaryAttendees = state.attendees.filter(function(a){ return a.dietary_note; });
+    el.innerHTML =
+      '<div class="card"><div class="success">' +
+        '<div class="seal">' + CHECK_ICON + '</div>' +
+        '<h2>บันทึกคำขอเรียบร้อย</h2>' +
+        '<div class="summary-grid">' +
+          '<div class="summary-item"><div class="num">' + state.attendees.length + '</div><div class="lbl">จำนวนคนทั้งหมด</div></div>' +
+          '<div class="summary-item"><div class="num">' + dietaryAttendees.length + '</div><div class="lbl">มีข้อจำกัดอาหาร</div></div>' +
+        '</div>' +
+        '<div class="detail-box">' +
+          '<div><b>วันที่:</b> ' + weekdayLabel(state.event_date) + '</div>' +
+          '<div><b>หน่วยงาน:</b> ' + (state.unit===OTHER_UNIT ? state.other_unit_name : state.unit) + '</div>' +
+          '<div><b>ประเภทการเลี้ยง:</b> ' + state.service_type + '</div>' +
+          (r.menu_count ? ('<div><b>จำนวนเมนู:</b> ' + r.menu_count + '</div>') : '') +
+          (state.service_type!=='ข้าวกล่อง' && r.menu_detail ? ('<div><b>เมนูที่ต้องการ:</b> ' + r.menu_detail + '</div>') : '') +
+          '<div><b>มื้อที่ขอรับการสนับสนุน:</b> ' + Object.keys(state.meals).filter(function(m){return state.meals[m];}).join(', ') + '</div>' +
+          '<div><b>ผู้ประสานงาน:</b> ' + state.requester_name + ' (' + state.requester_phone + ')</div>' +
+          (state.general_notes ? ('<div><b>หมายเหตุทั่วไป:</b> ' + state.general_notes + '</div>') : '') +
+        '</div>' +
+        (state.service_type==='ข้าวกล่อง' && state.savedBoxItems.length ? (
+          '<div class="detail-box">' +
+            '<div style="font-weight:700;margin-bottom:6px;">รายการเมนูข้าวกล่อง</div>' +
+            state.savedBoxItems.map(function(it){ return '<div>• ' + it.name.trim() + ' — ' + it.qty + ' กล่อง</div>'; }).join('') +
+            '<div style="font-weight:700;margin-top:8px;border-top:1px dashed rgba(31,45,61,0.15);padding-top:8px;">รวมทั้งหมด ' + state.savedBoxItems.reduce(function(s,it){return s+Number(it.qty);},0) + ' กล่อง</div>' +
+          '</div>'
+        ) : '') +
+        (state.service_type==='ข้าวกล่อง' ? '<div class="pickup-note">📦 ในวันงาน ผู้ประสานงาน (' + state.requester_name + ') สแกน QR ที่ <a href="kitchen_pickup_qr.html">หน้ายืนยันรับอาหารกล่อง</a> เพื่อยืนยันรับกล่องทั้งหมดครั้งเดียว</div>' : '') +
+        (dietaryAttendees.length ? (
+          '<div class="dietary-list"><div class="t">\u26a0 รายชื่อที่มีข้อจำกัดด้านอาหาร</div>' +
+          dietaryAttendees.map(function(a){ return '<div class="dietary-item"><b>'+a.full_name+'</b> \u2014 '+a.dietary_note+'</div>'; }).join('') +
+          '</div>'
+        ) : '') +
+        '<button class="btn-outline" onclick="resetForm()">ยื่นคำขอใหม่</button>' +
+      '</div></div>';
+    return;
+  }
+
+  el.innerHTML =
+    '<div class="card">' +
+      '<div class="sec-title">1. วันที่และสถานที่</div>' +
+      '<div class="field-row single"><div class="field"><label>วันที่ขอรับการสนับสนุน (พ.ศ.)</label>' + dateSelectsHtml() + '</div></div>' +
+      '<div class="field-row single"><div class="field"><label>หน่วยงาน/อาคาร</label>' + unitSelectHtml() + '</div></div>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<div class="sec-title">2. ประเภทการเลี้ยงและเมนู</div>' +
+      '<div class="field-row single"><div class="field"><label>ประเภทการเลี้ยง</label>' + serviceTypeHtml() + '</div></div>' +
+      serviceDetailFieldsHtml() +
+    '</div>' +
+
+    '<div class="card">' +
+      '<div class="sec-title">3. มื้อที่ต้องการรับการสนับสนุน</div>' +
+      '<div class="meal-chips">' + mealChipsHtml() + '</div>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<div class="sec-title">ผู้ประสานงาน</div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label>ชื่อผู้ประสานงาน</label><input type="text" id="requester_name" value="' + state.requester_name + '"></div>' +
+        '<div class="field"><label>เบอร์ติดต่อ</label><input type="tel" id="requester_phone" value="' + state.requester_phone + '"></div>' +
+      '</div>' +
+      '<div class="field-row single"><div class="field"><label>4. ทานอะไรไม่ได้บ้าง / คำขอพิเศษของงานนี้ (ภาพรวม)</label><textarea id="general_notes" rows="2">' + state.general_notes + '</textarea></div></div>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<div class="sec-title">รายชื่อผู้ร่วมรับประทาน</div>' +
+      '<div class="attendee-actions">' +
+        '<button type="button" class="action-btn" onclick="downloadTemplate()">' + ICON_SHEET + ' ดาวน์โหลดเทมเพลต</button>' +
+        '<label class="action-btn upload" style="cursor:pointer;">' + ICON_UPLOAD + ' อัปโหลดรายชื่อ<input type="file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleFileUpload(event)"></label>' +
+      '</div>' +
+      attendeePreviewHtml() +
+    '</div>' +
+
+    (state.error ? '<div class="error">' + state.error + '</div>' : '') +
+    '<button class="submit-btn" id="submitBtn" ' + (state.submitting?'disabled':'') + ' onclick="handleSubmit()">' + (state.submitting?'กำลังบันทึก…':'ยื่นคำขอรับการสนับสนุน') + '</button>';
+
+  ['requester_name','requester_phone','general_notes','menu_detail','menu_count'].forEach(function(key){
+    const e = document.getElementById(key);
+    if(e) e.oninput = function(ev){ state[key] = ev.target.value; };
+  });
+  attachDateHandlers();
+  attachBoxMenuHandlers();
+  const unitSel = document.getElementById('unitSelect');
+  if(unitSel) unitSel.onchange = function(ev){ state.unit = ev.target.value; renderForm(); };
+  const otherUnitEl = document.getElementById('otherUnitName');
+  if(otherUnitEl) otherUnitEl.oninput = function(ev){ state.other_unit_name = ev.target.value; };
+}
+
+function resetForm(){
+  state = {
+    event_date: tomorrowStr(), unit:'', other_unit_name:'',
+    service_type:'', menu_count:'', menu_detail:'',
+    box_menu_items: [{ name:'', qty:'' }], savedBoxItems: [],
+    meals: { 'เช้า':false, 'กลางวัน':true, 'เย็น':false },
+    requester_name:'', requester_phone:'', general_notes:'',
+    attendees: [], submitting:false, submitted:false, error:'', result:null,
+  };
+  renderForm();
+}
+
+async function handleSubmit(){
+  const mealsChosen = Object.keys(state.meals).filter(function(m){ return state.meals[m]; });
+  if(!state.unit || (state.unit===OTHER_UNIT && !state.other_unit_name.trim())){
+    state.error = 'กรุณาเลือกหน่วยงาน (หรือระบุชื่อหน่วยงานถ้าเลือก "บุคคลอื่นๆ")';
+    renderForm(); return;
+  }
+  if(!state.service_type){
+    state.error = 'กรุณาเลือกประเภทการเลี้ยง (บุฟเฟ่ต์ หรือ ข้าวกล่อง)';
+    renderForm(); return;
+  }
+  if(state.service_type==='บุฟเฟ่ต์' && !state.menu_count){
+    state.error = 'กรุณาระบุจำนวนเมนูที่ต้องการ';
+    renderForm(); return;
+  }
+  let validBoxItems = [];
+  if(state.service_type==='ข้าวกล่อง'){
+    validBoxItems = state.box_menu_items.filter(function(it){ return it.name.trim() && Number(it.qty) > 0; });
+    if(!validBoxItems.length){
+      state.error = 'กรุณาระบุอย่างน้อย 1 เมนู พร้อมจำนวนกล่อง';
+      renderForm(); return;
+    }
+  }
+  if(!mealsChosen.length){
+    state.error = 'กรุณาเลือกอย่างน้อย 1 มื้อ';
+    renderForm(); return;
+  }
+  if(!state.requester_name.trim() || !state.requester_phone.trim()){
+    state.error = 'กรุณากรอกชื่อและเบอร์ติดต่อผู้ประสานงาน';
+    renderForm(); return;
+  }
+  if(!state.attendees.length){
+    state.error = 'กรุณาอัปโหลดรายชื่อผู้ร่วมรับประทานอย่างน้อย 1 คน';
+    renderForm(); return;
+  }
+  state.error = ''; state.submitting = true; renderForm();
+  try{
+    const menuDetailToSave = state.service_type==='ข้าวกล่อง'
+      ? validBoxItems.map(function(it){ return it.name.trim() + ' ' + it.qty + ' กล่อง'; }).join(', ')
+      : state.menu_detail.trim();
+    const menuCountToSave = state.service_type==='ข้าวกล่อง'
+      ? validBoxItems.length
+      : (state.menu_count ? Number(state.menu_count) : null);
+
+    const insertRes = await sb.from('kitchen_support_requests').insert({
+      event_date: state.event_date,
+      unit: state.unit,
+      other_unit_name: state.unit===OTHER_UNIT ? state.other_unit_name.trim() : '',
+      service_type: state.service_type,
+      menu_count: menuCountToSave,
+      menu_detail: menuDetailToSave,
+      meal_periods: mealsChosen.join(','),
+      requester_name: state.requester_name.trim(),
+      requester_phone: state.requester_phone.trim(),
+      general_notes: state.general_notes.trim(),
+      headcount: state.attendees.length,
+    }).select().single();
+    if(insertRes.error) throw insertRes.error;
+    const reqData = insertRes.data;
+
+    const attendeeRows = state.attendees.map(function(a){
+      return { request_id: reqData.id, full_name: a.full_name, unit: a.unit, dietary_note: a.dietary_note };
+    });
+    const BATCH = 200;
+    for(let i=0;i<attendeeRows.length;i+=BATCH){
+      const attRes = await sb.from('kitchen_support_attendees').insert(attendeeRows.slice(i,i+BATCH));
+      if(attRes.error) throw attRes.error;
+    }
+
+    state.result = reqData;
+    state.savedBoxItems = validBoxItems;
+    state.submitted = true;
+  }catch(e){
+    console.error(e);
+    state.error = 'บันทึกไม่สำเร็จ: ' + (e && e.message ? e.message : e);
+  }finally{
+    state.submitting = false;
+    renderForm();
+  }
+}
+
+renderForm();
+</script>
+</body>
+</html>
