@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <style>
@@ -310,36 +310,6 @@ function dateRangeLabel(){
   return 'ทั้งหมด';
 }
 
-function exportExcel(){
-  const filtered = getFilteredResponses();
-  if(!filtered.length){ alert('ไม่มีข้อมูลในช่วงเวลาที่เลือก'); return; }
-  const rows = filtered.map(r => {
-    const row = {
-      'วันที่ส่ง': new Date(r.created_at).toLocaleString('th-TH'),
-      'ชื่อ-นามสกุล': r.respondent_name || '',
-      'เบอร์ติดต่อ': r.respondent_phone || '',
-      'หน่วยงาน': displayUnit(r),
-    };
-    ALL_CATS.forEach(c => { row[c.label] = r.ratings?.[c.key] ?? ''; });
-    row['11. อาหารคาวที่อยากเพิ่ม'] = r.savory_suggestions || '';
-    row['12. ของหวานที่อยากเพิ่ม'] = r.dessert_suggestions || '';
-    row['13. ของทานเล่นที่อยากเพิ่ม'] = r.snack_suggestions || '';
-    row['14. เมนูอื่นๆที่แนะนำ'] = r.other_menu_suggestions || '';
-    row['15. ข้อเสนอแนะเพิ่มเติม'] = r.additional_comments || '';
-    return row;
-  });
-  try{
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = Object.keys(rows[0]).map(k => ({ wch: Math.min(Math.max(k.length, 14), 40) }));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'แบบประเมิน');
-    XLSX.writeFile(wb, `แบบประเมินความพึงพอใจ_${new Date().toISOString().slice(0,10)}.xlsx`);
-  }catch(e){
-    console.error(e);
-    alert('สร้างไฟล์ Excel ไม่สำเร็จ: ' + (e?.message || e));
-  }
-}
-
 function sizedIcon(name, size){
   return ICONS[name].replace('<svg ', `<svg width="${size}" height="${size}" `);
 }
@@ -593,7 +563,6 @@ function renderDashboard(){
   el.innerHTML = dateFilterHtml + `
     <div class="card">
       <div class="export-row">
-        <button class="export-btn" id="excelBtn" onclick="exportExcel()">${ICONS.sheet} Excel รายชื่อผู้ประเมิน</button>
         <button class="export-btn pdf" id="pdfBtn" onclick="exportPDF()">${ICONS.doc} PDF รายงานสรุป</button>
       </div>
     </div>

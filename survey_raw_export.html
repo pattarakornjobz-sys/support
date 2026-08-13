@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow">
+<title>ดึงข้อมูลดิบแบบประเมิน (ภายในเท่านั้น)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg:#0B2545; --gold:#D9A628; --gold-light:#F0CB6C;
+    --ivory:#FFFFFF; --ivory-dim:#EEF3F8; --ink:#1F2D3D; --ink-soft:#5B6B85;
+    --bad:#FF6B6B; --bad-bg:#FFE8E8; --good-bg:#E7F9EE;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Kanit',sans-serif; color:var(--ink);
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(217,166,40,0.18), transparent 45%),
+      radial-gradient(circle at 90% 90%, rgba(255,255,255,0.06), transparent 50%);
+    padding:30px 12px 60px; font-size:16px; line-height:1.6; min-height:100vh;
+  }
+  .wrap{max-width:520px; margin:0 auto;}
+  h1{
+    font-family:'Prompt',sans-serif; font-size:clamp(17px, 5.5vw, 20px); font-weight:900; margin:0 0 4px; text-align:center; line-height:1.4;
+    background:linear-gradient(180deg,var(--gold-light),var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 20px;}
+  .warn-banner{background:var(--bad-bg); color:#B4322F; border-radius:10px; padding:12px 14px; font-size:13px; font-weight:600; margin-bottom:18px; text-align:center; line-height:1.6;}
+  .card{
+    position:relative; background:var(--ivory); border-radius:20px; overflow:hidden;
+    box-shadow:0 10px 28px rgba(217,166,40,0.14), 0 2px 8px rgba(31,45,61,0.06);
+    padding:24px 22px; margin-bottom:16px; text-align:center;
+  }
+  .card::before{content:''; position:absolute; top:0; left:0; right:0; height:5px; background:linear-gradient(90deg,var(--gold-light),var(--gold));}
+  .sec-title{font-family:'Prompt',sans-serif; font-weight:700; font-size:16px; margin-bottom:14px;}
+  .pin-input{
+    width:100%; padding:16px; border-radius:12px; border:1.5px solid rgba(31,45,61,0.16);
+    background:var(--ivory-dim); font-family:'Kanit',sans-serif; font-size:24px; letter-spacing:6px;
+    text-align:center; color:var(--ink); font-weight:700;
+  }
+  .pin-input:focus{outline:none; border-color:var(--gold);}
+  .btn{
+    width:100%; margin-top:14px; padding:15px; border-radius:10px; border:none;
+    background:linear-gradient(180deg,#D9A628,#B8860B); color:#fff; font-weight:700; font-size:15.5px;
+    cursor:pointer; font-family:inherit;
+  }
+  .btn:disabled{background:#B9C6D4; cursor:default;}
+  .date-filter{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-bottom:14px;}
+  .date-pill{padding:7px 13px; border-radius:20px; border:1px solid rgba(31,45,61,0.18); background:transparent; font-size:13px; cursor:pointer; font-family:inherit; color:var(--ink); font-weight:600;}
+  .date-pill.active{background:var(--ink); border-color:var(--ink); color:var(--ivory);}
+  .result-msg{margin-top:12px; padding:12px; border-radius:10px; font-size:13.5px; font-weight:600;}
+  .result-msg.ok{background:var(--good-bg); color:#1A7A45;}
+  .result-msg.err{background:var(--bad-bg); color:#B4322F;}
+  .hint{font-size:12px; color:var(--ink-soft); margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ดึงข้อมูลดิบแบบประเมิน</h1>
+  <div class="rule"></div>
+  <div class="warn-banner">🔒 หน้านี้สำหรับเจ้าหน้าที่ภายในเท่านั้น มีข้อมูลชื่อ-เบอร์โทรผู้ประเมินรายบุคคล ห้ามส่งลิงก์นี้ให้บุคคลภายนอกหรือร้านอาหาร</div>
+  <div id="content"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://uhefxwccuqagnbrbidbh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVoZWZ4d2NjdXFhZ25icmJpZGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDI1NDYsImV4cCI6MjEwMTU3ODU0Nn0.EE5QWPVjSkZpUTU37hgiz4LsGMAfq87dxFOkt9OYynY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
+
+// เปลี่ยน PIN นี้ได้ตามต้องการ (เป็นแค่ตัวกันคนพลาดเข้ามาเจอ ไม่ใช่ระบบความปลอดภัยจริง
+// เพราะเป็นเว็บฝั่ง client — ใครมีลิงก์และดูซอร์สโค้ดก็เห็น PIN ได้ ควรเก็บลิงก์นี้ไว้ในวงจำกัดด้วย)
+const ACCESS_PIN = '21072519';
+
+const FOOD_CATS = [
+  { key:'taste', label:'1. รสชาติของอาหารโดยรวม' },
+  { key:'freshness', label:'2. ความสด สะอาด และคุณภาพของวัตถุดิบ' },
+  { key:'variety', label:'3. ความหลากหลายของรายการอาหาร' },
+  { key:'presentation', label:'4. ความน่ารับประทานและการจัดตกแต่งอาหาร' },
+  { key:'quantity', label:'5. ปริมาณอาหารมีความเหมาะสม และเพียงพอต่อมื้อรับประทาน' },
+];
+const SERVICE_CATS = [
+  { key:'politeness', label:'6. ความสุภาพและมีมารยาทของผู้ให้บริการ' },
+  { key:'speed', label:'7. ความรวดเร็วและความคล่องตัวในการให้บริการ' },
+  { key:'cleanliness', label:'8. ความสะอาดของภาชนะ โต๊ะ และบริเวณรับประทานอาหาร' },
+  { key:'attentiveness', label:'9. การเอาใจใส่และความพร้อมในการให้บริการ' },
+  { key:'overall', label:'10. ความพึงพอใจโดยรวมต่ออาหารและการบริการ' },
+];
+const ALL_CATS = [...FOOD_CATS, ...SERVICE_CATS];
+const UNITS_SHORT = {};
+function displayUnit(r){
+  return r.other_unit_name ? (r.unit + ': ' + r.other_unit_name) : r.unit;
+}
+
+let unlocked = false;
+let dateFilter = 'all';
+let customFrom = '', customTo = '';
+
+function renderPin(){
+  const el = document.getElementById('content');
+  el.innerHTML = `
+    <div class="card">
+      <div class="sec-title">กรอกรหัสผ่านเพื่อเข้าถึง</div>
+      <input type="password" inputmode="numeric" maxlength="10" class="pin-input" id="pinInput" placeholder="••••">
+      <button class="btn" id="pinBtn" onclick="checkPin()">เข้าสู่ระบบ</button>
+      <div id="pinErr"></div>
+    </div>`;
+  document.getElementById('pinInput').focus();
+  document.getElementById('pinInput').onkeydown = function(e){ if(e.key==='Enter') checkPin(); };
+}
+
+function checkPin(){
+  const val = document.getElementById('pinInput').value;
+  if(val === ACCESS_PIN){
+    unlocked = true;
+    renderExport();
+  }else{
+    document.getElementById('pinErr').innerHTML = '<div class="result-msg err">รหัสไม่ถูกต้อง</div>';
+  }
+}
+
+function getRange(){
+  const now = new Date();
+  if(dateFilter==='today') return { from: now.toISOString().slice(0,10), to: now.toISOString().slice(0,10) };
+  if(dateFilter==='7d') return { from: new Date(now.getTime()-6*86400000).toISOString().slice(0,10), to: now.toISOString().slice(0,10) };
+  if(dateFilter==='30d') return { from: new Date(now.getTime()-29*86400000).toISOString().slice(0,10), to: now.toISOString().slice(0,10) };
+  if(dateFilter==='custom') return { from: customFrom||null, to: customTo||null };
+  return { from:null, to:null };
+}
+
+function setFilter(k){ dateFilter = k; renderExport(); }
+function setCustom(which, val){
+  if(which==='from') customFrom = val; else customTo = val;
+  dateFilter = 'custom';
+  renderExport();
+}
+
+function renderExport(){
+  const el = document.getElementById('content');
+  const r = getRange();
+  el.innerHTML = `
+    <div class="card">
+      <div class="sec-title">เลือกช่วงเวลา</div>
+      <div class="date-filter">
+        <button class="date-pill ${dateFilter==='today'?'active':''}" onclick="setFilter('today')">วันนี้</button>
+        <button class="date-pill ${dateFilter==='7d'?'active':''}" onclick="setFilter('7d')">7 วันล่าสุด</button>
+        <button class="date-pill ${dateFilter==='30d'?'active':''}" onclick="setFilter('30d')">30 วันล่าสุด</button>
+        <button class="date-pill ${dateFilter==='all'?'active':''}" onclick="setFilter('all')">ทั้งหมด</button>
+        <button class="date-pill ${dateFilter==='custom'?'active':''}" onclick="setFilter('custom')">กำหนดเอง</button>
+      </div>
+      ${dateFilter==='custom' ? `
+      <div style="display:flex; gap:8px; justify-content:center; margin-bottom:12px; font-size:13px;">
+        <span>จาก</span><input type="date" value="${customFrom}" onchange="setCustom('from', this.value)">
+        <span>ถึง</span><input type="date" value="${customTo}" onchange="setCustom('to', this.value)">
+      </div>` : ''}
+      <button class="btn" id="exportBtn" onclick="doExport()">ดาวน์โหลด Excel ข้อมูลดิบ</button>
+      <div id="resultMsg"></div>
+      <div class="hint">ไฟล์จะมีชื่อ-เบอร์โทร-คะแนนทุกข้อ-ข้อเสนอแนะของผู้ประเมินแต่ละคน</div>
+    </div>`;
+}
+
+async function doExport(){
+  const btn = document.getElementById('exportBtn');
+  const msgEl = document.getElementById('resultMsg');
+  btn.disabled = true; btn.textContent = 'กำลังโหลดข้อมูล…';
+  msgEl.innerHTML = '';
+  try{
+    const { from, to } = getRange();
+    let q = sb.from('food_survey_responses').select('*').order('created_at', { ascending:true });
+    if(from) q = q.gte('created_at', from + 'T00:00:00');
+    if(to) q = q.lte('created_at', to + 'T23:59:59');
+    const { data, error } = await q;
+    if(error) throw error;
+    if(!data.length){
+      msgEl.innerHTML = '<div class="result-msg err">ไม่มีข้อมูลในช่วงเวลาที่เลือก</div>';
+      return;
+    }
+    const rows = data.map(r => {
+      const row = {
+        'วันที่ส่ง': new Date(r.created_at).toLocaleString('th-TH'),
+        'ชื่อ-นามสกุล': r.respondent_name || '',
+        'เบอร์ติดต่อ': r.respondent_phone || '',
+        'หน่วยงาน': displayUnit(r),
+      };
+      ALL_CATS.forEach(c => { row[c.label] = r.ratings?.[c.key] ?? ''; });
+      row['11. อาหารคาวที่อยากเพิ่ม'] = r.savory_suggestions || '';
+      row['12. ของหวานที่อยากเพิ่ม'] = r.dessert_suggestions || '';
+      row['13. ของทานเล่นที่อยากเพิ่ม'] = r.snack_suggestions || '';
+      row['14. เมนูอื่นๆที่แนะนำ'] = r.other_menu_suggestions || '';
+      row['15. ข้อเสนอแนะเพิ่มเติม'] = r.additional_comments || '';
+      return row;
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = Object.keys(rows[0]).map(k => ({ wch: Math.min(Math.max(k.length, 14), 40) }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'แบบประเมิน');
+    XLSX.writeFile(wb, `แบบประเมินความพึงพอใจ_ข้อมูลดิบ_${new Date().toISOString().slice(0,10)}.xlsx`);
+    msgEl.innerHTML = `<div class="result-msg ok">✓ ดาวน์โหลดแล้ว ${data.length} รายการ</div>`;
+  }catch(e){
+    console.error(e);
+    msgEl.innerHTML = '<div class="result-msg err">เกิดข้อผิดพลาด: ' + (e?.message || e) + '</div>';
+  }finally{
+    btn.disabled = false; btn.textContent = 'ดาวน์โหลด Excel ข้อมูลดิบ';
+  }
+}
+
+renderPin();
+</script>
+</body>
+</html>

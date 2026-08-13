@@ -47,29 +47,23 @@
   .sec-title{font-family:'Prompt',sans-serif; font-weight:700; font-size:16px; margin-bottom:14px;}
   .field-row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
   .field-row.single{grid-template-columns:1fr;}
-  .field{display:flex; flex-direction:column;}
+  .field{display:flex; flex-direction:column; min-width:0;}
   .field label{font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
-  .field{min-width:0;}
+  .field label .req{color:#D64550; font-weight:800;}
   .field input, .field textarea, .field select{
     width:100%; box-sizing:border-box; padding:11px 12px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16);
     background:rgba(255,255,255,0.6); font-family:inherit; font-size:15px; color:var(--ink);
   }
+  .field textarea.required-field{border-color:#D64550; background:#FFF8F8;}
   .field input:focus, .field textarea:focus, .field select:focus{outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(217,166,40,0.15);}
   .date-selects{display:flex; gap:8px;}
   .date-selects select{flex:1; min-width:0; padding:11px 6px; font-size:13.5px;}
   .weekday-preview{font-size:13px; font-weight:700; color:var(--service-text); background:var(--service-bg); border-radius:8px; padding:8px 12px; margin-top:8px; text-align:center;}
   .unit-select{width:100%;}
-  .meal-chips{display:flex; gap:8px;}
-  .meal-chip-btn{flex:1; padding:13px; border-radius:10px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.5); color:var(--ink); font-weight:700; font-size:14px; cursor:pointer; font-family:inherit;}
+  .meal-chips{display:flex; gap:8px; flex-wrap:wrap;}
+  .meal-chip-btn{flex:1; min-width:80px; padding:13px; border-radius:10px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.5); color:var(--ink); font-weight:700; font-size:14px; cursor:pointer; font-family:inherit;}
   .meal-chip-btn[data-active="true"]{color:#fff; border-color:transparent;}
-  .pickup-note{background:var(--service-bg); color:var(--service-text); border-radius:10px; padding:12px 14px; font-size:13px; line-height:1.6; margin-bottom:12px;}
-  .box-menu-list{display:flex; flex-direction:column; gap:8px;}
-  .box-menu-row{display:flex; gap:8px; align-items:center;}
-  .box-menu-row input.box-menu-name{flex:2; min-width:0; padding:10px 11px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.6); font-family:inherit; font-size:14px; color:var(--ink);}
-  .box-menu-row input.box-menu-qty{flex:1; min-width:0; padding:10px 11px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.6); font-family:inherit; font-size:14px; color:var(--ink);}
-  .box-menu-remove{width:32px; height:38px; border-radius:8px; border:none; background:#FFE8E8; color:#B4322F; font-weight:700; cursor:pointer; font-family:inherit; flex-shrink:0;}
-  .add-menu-btn{margin-top:10px; padding:9px 16px; border-radius:8px; border:1.5px dashed var(--gold); background:transparent; color:#8A6200; font-weight:700; font-size:13px; cursor:pointer; font-family:inherit;}
-  .box-menu-total{margin-top:12px; font-size:14px; font-weight:700; color:var(--ink); background:var(--ivory-dim); border-radius:8px; padding:10px 14px; text-align:center;}
+  .pickup-note{background:var(--service-bg); color:var(--service-text); border-radius:10px; padding:12px 14px; font-size:13px; line-height:1.6; margin-top:4px;}
   .attendee-actions{display:flex; gap:10px; margin-bottom:10px;}
   .action-btn{flex:1; min-width:0; display:flex; align-items:center; justify-content:center; gap:6px; padding:12px; border-radius:8px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-weight:700; font-size:13.5px; cursor:pointer; font-family:inherit;}
   .action-btn svg{width:16px;height:16px;}
@@ -130,6 +124,7 @@ const UNITS = [
   'บุคคลอื่นๆ ที่มาใช้บริการ (โปรดระบุ)',
 ];
 const OTHER_UNIT = 'บุคคลอื่นๆ ที่มาใช้บริการ (โปรดระบุ)';
+const SERVICE_TYPES = ['บุฟเฟ่ต์', 'ข้าวกล่อง'];
 const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const THAI_DAYS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const ICON_SHEET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 9h18M9 9v11"/></svg>';
@@ -147,15 +142,12 @@ function weekdayLabel(iso){
 
 let state = {
   event_date: tomorrowStr(), unit:'', other_unit_name:'',
-  service_type:'', menu_count:'', menu_detail:'',
-  box_menu_items: [{ name:'', qty:'' }], savedBoxItems: [],
+  service_type:'',
   meals: { 'เช้า':false, 'กลางวัน':true, 'เย็น':false },
   requester_name:'', requester_phone:'', general_notes:'',
   attendees: [],
   submitting:false, submitted:false, error:'', result:null,
 };
-
-const SERVICE_TYPES = ['บุฟเฟ่ต์', 'ข้าวกล่อง'];
 
 function dateSelectsHtml(){
   const dmy = isoToDMY(state.event_date);
@@ -190,51 +182,12 @@ function serviceTypeHtml(){
     const active = state.service_type === t;
     return '<button type="button" class="meal-chip-btn" data-active="'+active+'" style="'+(active?'background:var(--gold);':'')+'" onclick="setServiceType(\''+t+'\')">'+t+'</button>';
   }).join('');
-  return '<div class="meal-chips">' + chips + '</div>';
+  const note = state.service_type==='ข้าวกล่อง'
+    ? '<div class="pickup-note">\ud83d\udce6 สำหรับข้าวกล่อง <b>ผู้ประสานงานจะเป็นผู้สแกน QR เพื่อยืนยันรับกล่องอาหารทั้งหมดครั้งเดียว</b> ในวันงาน (ไม่ต้องให้แขกสแกนทีละคน) \u2014 ดูรายละเอียดที่ปุ่ม "QR รับอาหารกล่อง" ด้านบน</div>'
+    : '';
+  return '<div class="meal-chips">' + chips + '</div>' + note;
 }
 function setServiceType(t){ state.service_type = t; renderForm(); }
-
-function sumBoxQty(){
-  return state.box_menu_items.reduce(function(sum,item){ return sum + (Number(item.qty)||0); }, 0);
-}
-function boxMenuListHtml(){
-  const rows = state.box_menu_items.map(function(item, idx){
-    return '<div class="box-menu-row">' +
-      '<input type="text" class="box-menu-name" data-idx="'+idx+'" placeholder="ชื่อเมนู เช่น กะเพราหมูสับ" value="'+item.name+'">' +
-      '<input type="number" min="1" class="box-menu-qty" data-idx="'+idx+'" placeholder="จำนวนกล่อง" value="'+item.qty+'">' +
-      (state.box_menu_items.length>1 ? '<button type="button" class="box-menu-remove" onclick="removeBoxMenuRow('+idx+')">✕</button>' : '<span style="width:32px;"></span>') +
-    '</div>';
-  }).join('');
-  return '<div class="box-menu-list">' + rows + '</div>' +
-    '<button type="button" class="add-menu-btn" onclick="addBoxMenuRow()">+ เพิ่มเมนู</button>' +
-    '<div class="box-menu-total">รวมทั้งหมด <span id="boxMenuTotal">' + sumBoxQty() + '</span> กล่อง</div>';
-}
-function addBoxMenuRow(){ state.box_menu_items.push({ name:'', qty:'' }); renderForm(); }
-function removeBoxMenuRow(idx){ state.box_menu_items.splice(idx,1); renderForm(); }
-function attachBoxMenuHandlers(){
-  document.querySelectorAll('.box-menu-name').forEach(function(el){
-    el.oninput = function(e){ state.box_menu_items[Number(el.dataset.idx)].name = e.target.value; };
-  });
-  document.querySelectorAll('.box-menu-qty').forEach(function(el){
-    el.oninput = function(e){
-      state.box_menu_items[Number(el.dataset.idx)].qty = e.target.value;
-      const totalEl = document.getElementById('boxMenuTotal');
-      if(totalEl) totalEl.textContent = sumBoxQty();
-    };
-  });
-}
-
-function serviceDetailFieldsHtml(){
-  if(state.service_type === 'บุฟเฟ่ต์'){
-    return '<div class="field-row single"><div class="field"><label>จำนวนเมนูที่ต้องการ (จาน)</label><input type="number" min="1" id="menu_count" value="' + state.menu_count + '" placeholder="เช่น 5"></div></div>' +
-      '<div class="field-row single"><div class="field"><label>รายชื่อเมนูที่ต้องการ (ไม่บังคับ)</label><textarea id="menu_detail" rows="3" placeholder="เช่น ต้มยำกุ้ง, ผัดไทย, ข้าวผัดปู, แกงเขียวหวานไก่, ผัดผักรวม">' + state.menu_detail + '</textarea></div></div>';
-  }
-  if(state.service_type === 'ข้าวกล่อง'){
-    return '<div class="pickup-note">📦 สำหรับข้าวกล่อง <b>ผู้ประสานงานจะเป็นผู้สแกน QR เพื่อยืนยันรับกล่องอาหารทั้งหมดครั้งเดียว</b> ในวันงาน (ไม่ต้องให้แขกสแกนทีละคน)</div>' +
-      '<div class="field-row single"><div class="field"><label>เมนูและจำนวนกล่อง (เพิ่มได้หลายเมนู)</label>' + boxMenuListHtml() + '</div></div>';
-  }
-  return '<div style="font-size:12.5px;color:var(--ink-soft);">กรุณาเลือกประเภทการเลี้ยงก่อน</div>';
-}
 
 function mealChipsHtml(){
   return ['เช้า','กลางวัน','เย็น'].map(function(m){
@@ -325,25 +278,16 @@ function renderForm(){
           '<div><b>วันที่:</b> ' + weekdayLabel(state.event_date) + '</div>' +
           '<div><b>หน่วยงาน:</b> ' + (state.unit===OTHER_UNIT ? state.other_unit_name : state.unit) + '</div>' +
           '<div><b>ประเภทการเลี้ยง:</b> ' + state.service_type + '</div>' +
-          (r.menu_count ? ('<div><b>จำนวนเมนู:</b> ' + r.menu_count + '</div>') : '') +
-          (state.service_type!=='ข้าวกล่อง' && r.menu_detail ? ('<div><b>เมนูที่ต้องการ:</b> ' + r.menu_detail + '</div>') : '') +
           '<div><b>มื้อที่ขอรับการสนับสนุน:</b> ' + Object.keys(state.meals).filter(function(m){return state.meals[m];}).join(', ') + '</div>' +
           '<div><b>ผู้ประสานงาน:</b> ' + state.requester_name + ' (' + state.requester_phone + ')</div>' +
-          (state.general_notes ? ('<div><b>หมายเหตุทั่วไป:</b> ' + state.general_notes + '</div>') : '') +
+          '<div><b>ทานอะไรไม่ได้บ้าง/คำขอพิเศษ:</b> ' + state.general_notes + '</div>' +
         '</div>' +
-        (state.service_type==='ข้าวกล่อง' && state.savedBoxItems.length ? (
-          '<div class="detail-box">' +
-            '<div style="font-weight:700;margin-bottom:6px;">รายการเมนูข้าวกล่อง</div>' +
-            state.savedBoxItems.map(function(it){ return '<div>• ' + it.name.trim() + ' — ' + it.qty + ' กล่อง</div>'; }).join('') +
-            '<div style="font-weight:700;margin-top:8px;border-top:1px dashed rgba(31,45,61,0.15);padding-top:8px;">รวมทั้งหมด ' + state.savedBoxItems.reduce(function(s,it){return s+Number(it.qty);},0) + ' กล่อง</div>' +
-          '</div>'
-        ) : '') +
-        (state.service_type==='ข้าวกล่อง' ? '<div class="pickup-note">📦 ในวันงาน ผู้ประสานงาน (' + state.requester_name + ') สแกน QR ที่ <a href="kitchen_pickup_qr.html">หน้ายืนยันรับอาหารกล่อง</a> เพื่อยืนยันรับกล่องทั้งหมดครั้งเดียว</div>' : '') +
         (dietaryAttendees.length ? (
           '<div class="dietary-list"><div class="t">\u26a0 รายชื่อที่มีข้อจำกัดด้านอาหาร</div>' +
           dietaryAttendees.map(function(a){ return '<div class="dietary-item"><b>'+a.full_name+'</b> \u2014 '+a.dietary_note+'</div>'; }).join('') +
           '</div>'
         ) : '') +
+        (state.service_type==='ข้าวกล่อง' ? '<div class="pickup-note">\ud83d\udce6 ในวันงาน ผู้ประสานงาน (' + state.requester_name + ') สแกน QR ที่ <a href="kitchen_pickup_qr.html">หน้ายืนยันรับอาหารกล่อง</a> เพื่อยืนยันรับกล่องทั้งหมดครั้งเดียว</div>' : '') +
         '<button class="btn-outline" onclick="resetForm()">ยื่นคำขอใหม่</button>' +
       '</div></div>';
     return;
@@ -357,9 +301,8 @@ function renderForm(){
     '</div>' +
 
     '<div class="card">' +
-      '<div class="sec-title">2. ประเภทการเลี้ยงและเมนู</div>' +
-      '<div class="field-row single"><div class="field"><label>ประเภทการเลี้ยง</label>' + serviceTypeHtml() + '</div></div>' +
-      serviceDetailFieldsHtml() +
+      '<div class="sec-title">2. ประเภทการเลี้ยง</div>' +
+      serviceTypeHtml() +
     '</div>' +
 
     '<div class="card">' +
@@ -373,7 +316,10 @@ function renderForm(){
         '<div class="field"><label>ชื่อผู้ประสานงาน</label><input type="text" id="requester_name" value="' + state.requester_name + '"></div>' +
         '<div class="field"><label>เบอร์ติดต่อ</label><input type="tel" id="requester_phone" value="' + state.requester_phone + '"></div>' +
       '</div>' +
-      '<div class="field-row single"><div class="field"><label>4. ทานอะไรไม่ได้บ้าง / คำขอพิเศษของงานนี้ (ภาพรวม)</label><textarea id="general_notes" rows="2">' + state.general_notes + '</textarea></div></div>' +
+      '<div class="field-row single"><div class="field">' +
+        '<label>4. ทานอะไรไม่ได้บ้าง / คำขอพิเศษของงานนี้ (ภาพรวม) <span class="req">*</span></label>' +
+        '<textarea class="required-field" id="general_notes" rows="3" placeholder="เช่น มีผู้แพ้กุ้ง 2 ท่าน, มีเจ้าหน้าที่ศาสนาอิสลามทานหมูไม่ได้">' + state.general_notes + '</textarea>' +
+      '</div></div>' +
     '</div>' +
 
     '<div class="card">' +
@@ -386,14 +332,13 @@ function renderForm(){
     '</div>' +
 
     (state.error ? '<div class="error">' + state.error + '</div>' : '') +
-    '<button class="submit-btn" id="submitBtn" ' + (state.submitting?'disabled':'') + ' onclick="handleSubmit()">' + (state.submitting?'กำลังบันทึก…':'ยื่นคำขอรับการสนับสนุน') + '</button>';
+    '<button class="submit-btn" id="submitBtn" ' + (state.submitting?'disabled':'') + ' onclick="handleSubmit()">' + (state.submitting?'กำลังบันทึก\u2026':'ยื่นคำขอรับการสนับสนุน') + '</button>';
 
-  ['requester_name','requester_phone','general_notes','menu_detail','menu_count'].forEach(function(key){
+  ['requester_name','requester_phone','general_notes'].forEach(function(key){
     const e = document.getElementById(key);
     if(e) e.oninput = function(ev){ state[key] = ev.target.value; };
   });
   attachDateHandlers();
-  attachBoxMenuHandlers();
   const unitSel = document.getElementById('unitSelect');
   if(unitSel) unitSel.onchange = function(ev){ state.unit = ev.target.value; renderForm(); };
   const otherUnitEl = document.getElementById('otherUnitName');
@@ -403,8 +348,7 @@ function renderForm(){
 function resetForm(){
   state = {
     event_date: tomorrowStr(), unit:'', other_unit_name:'',
-    service_type:'', menu_count:'', menu_detail:'',
-    box_menu_items: [{ name:'', qty:'' }], savedBoxItems: [],
+    service_type:'',
     meals: { 'เช้า':false, 'กลางวัน':true, 'เย็น':false },
     requester_name:'', requester_phone:'', general_notes:'',
     attendees: [], submitting:false, submitted:false, error:'', result:null,
@@ -422,18 +366,6 @@ async function handleSubmit(){
     state.error = 'กรุณาเลือกประเภทการเลี้ยง (บุฟเฟ่ต์ หรือ ข้าวกล่อง)';
     renderForm(); return;
   }
-  if(state.service_type==='บุฟเฟ่ต์' && !state.menu_count){
-    state.error = 'กรุณาระบุจำนวนเมนูที่ต้องการ';
-    renderForm(); return;
-  }
-  let validBoxItems = [];
-  if(state.service_type==='ข้าวกล่อง'){
-    validBoxItems = state.box_menu_items.filter(function(it){ return it.name.trim() && Number(it.qty) > 0; });
-    if(!validBoxItems.length){
-      state.error = 'กรุณาระบุอย่างน้อย 1 เมนู พร้อมจำนวนกล่อง';
-      renderForm(); return;
-    }
-  }
   if(!mealsChosen.length){
     state.error = 'กรุณาเลือกอย่างน้อย 1 มื้อ';
     renderForm(); return;
@@ -442,26 +374,23 @@ async function handleSubmit(){
     state.error = 'กรุณากรอกชื่อและเบอร์ติดต่อผู้ประสานงาน';
     renderForm(); return;
   }
+  if(!state.general_notes.trim()){
+    state.error = 'กรุณากรอกข้อมูล "ทานอะไรไม่ได้บ้าง / คำขอพิเศษ" \u2014 จำเป็นสำหรับป้องกันผู้แพ้อาหารหรือข้อจำกัดทางศาสนา';
+    renderForm(); return;
+  }
   if(!state.attendees.length){
     state.error = 'กรุณาอัปโหลดรายชื่อผู้ร่วมรับประทานอย่างน้อย 1 คน';
     renderForm(); return;
   }
   state.error = ''; state.submitting = true; renderForm();
   try{
-    const menuDetailToSave = state.service_type==='ข้าวกล่อง'
-      ? validBoxItems.map(function(it){ return it.name.trim() + ' ' + it.qty + ' กล่อง'; }).join(', ')
-      : state.menu_detail.trim();
-    const menuCountToSave = state.service_type==='ข้าวกล่อง'
-      ? validBoxItems.length
-      : (state.menu_count ? Number(state.menu_count) : null);
-
     const insertRes = await sb.from('kitchen_support_requests').insert({
       event_date: state.event_date,
       unit: state.unit,
       other_unit_name: state.unit===OTHER_UNIT ? state.other_unit_name.trim() : '',
       service_type: state.service_type,
-      menu_count: menuCountToSave,
-      menu_detail: menuDetailToSave,
+      menu_count: null,
+      menu_detail: '',
       meal_periods: mealsChosen.join(','),
       requester_name: state.requester_name.trim(),
       requester_phone: state.requester_phone.trim(),
@@ -481,7 +410,6 @@ async function handleSubmit(){
     }
 
     state.result = reqData;
-    state.savedBoxItems = validBoxItems;
     state.submitted = true;
   }catch(e){
     console.error(e);
