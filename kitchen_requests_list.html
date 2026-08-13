@@ -111,7 +111,7 @@ async function loadRequests(){
   content.innerHTML = '<div class="card"><div class="loading">กำลังโหลดข้อมูล…</div></div>';
   try{
     let q = sb.from('kitchen_support_requests').select('*').order('event_date', { ascending: filterKey!=='past' });
-    const today = new Date().toISOString().slice(0,10);
+    const today = new Date().toLocaleDateString('en-CA');
     if(filterKey==='upcoming') q = q.gte('event_date', today);
     if(filterKey==='today') q = q.eq('event_date', today);
     if(filterKey==='past') q = q.lt('event_date', today);

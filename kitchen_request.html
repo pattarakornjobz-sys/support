@@ -131,7 +131,7 @@ const ICON_SHEET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 const ICON_UPLOAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>';
 const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 
-function tomorrowStr(){ const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().slice(0,10); }
+function tomorrowStr(){ const d = new Date(); d.setDate(d.getDate()+1); return d.toLocaleDateString('en-CA'); }
 function isoToDMY(iso){ const d = new Date(iso+'T00:00:00'); return { day:d.getDate(), month:d.getMonth()+1, yearBE:d.getFullYear()+543 }; }
 function dmyToIso(day,month,yearBE){ const yearCE = yearBE-543; return yearCE+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0'); }
 function weekdayLabel(iso){

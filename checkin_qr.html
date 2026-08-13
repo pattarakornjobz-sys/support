@@ -126,7 +126,7 @@ async function loadCount(){
   const row = document.getElementById('counterRow');
   row.innerHTML = `<div class="counter-item"><div class="num">…</div><div class="lbl">กำลังโหลด</div></div>`;
   try{
-    const today = new Date().toISOString().slice(0,10);
+    const today = new Date().toLocaleDateString('en-CA');
     const { data, error } = await sb.from('meal_checkins').select('meal_period').eq('checkin_date', today);
     if(error) throw error;
     const total = data.length;
@@ -145,7 +145,7 @@ async function loadCount(){
 }
 loadCount();
 
-const todayStr = new Date().toISOString().slice(0,10);
+const todayStr = new Date().toLocaleDateString('en-CA');
 document.getElementById('dateFrom').value = todayStr;
 document.getElementById('dateTo').value = todayStr;
 

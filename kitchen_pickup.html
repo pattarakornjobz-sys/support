@@ -109,7 +109,7 @@ async function lookup(){
   const el = document.getElementById('content');
   el.innerHTML = '<div class="card"><div class="loading">กำลังค้นหารายการ…</div></div>';
   try{
-    const today = new Date().toISOString().slice(0,10);
+    const today = new Date().toLocaleDateString('en-CA');
     const res = await sb.from('kitchen_support_requests').select('*')
       .eq('requester_phone', phone).eq('event_date', today).eq('service_type', 'ข้าวกล่อง');
     if(res.error) throw res.error;

@@ -461,7 +461,7 @@ async function exportPDF(){
         heightLeft -= pageH;
       }
     });
-    pdf.save(`สรุปผลความพึงพอใจ_${new Date().toISOString().slice(0,10)}.pdf`);
+    pdf.save(`สรุปผลความพึงพอใจ_${new Date().toLocaleDateString('en-CA')}.pdf`);
   }catch(e){
     console.error(e);
     alert('สร้าง PDF ไม่สำเร็จ: ' + (e?.message || e));

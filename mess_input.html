@@ -115,7 +115,7 @@ const ICONS = {
 };
 
 let state = {
-  report_date: new Date().toISOString().slice(0,10),
+  report_date: new Date().toLocaleDateString('en-CA'),
   meal_complete: null,
   meals_planned:'', meals_served:'', total_food_cost:'',
   food_prepared_kg:'', food_waste_kg:'',
@@ -260,7 +260,7 @@ function renderForm(){
 function setComplete(v){ state.meal_complete = v; renderForm(); }
 function resetForm(){
   state = {
-    report_date: new Date().toISOString().slice(0,10),
+    report_date: new Date().toLocaleDateString('en-CA'),
     meal_complete: null,
     meals_planned:'', meals_served:'', total_food_cost:'',
     food_prepared_kg:'', food_waste_kg:'',

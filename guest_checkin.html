@@ -132,7 +132,7 @@ async function lookup(){
       document.getElementById('errArea').innerHTML = '<div class="error">ไม่พบรหัสนี้ในระบบ กรุณาตรวจสอบรหัสอีกครั้ง</div>';
       return;
     }
-    const today = new Date().toISOString().slice(0,10);
+    const today = new Date().toLocaleDateString('en-CA');
     if(data.visit_date !== today){
       renderCodeInput();
       const visitLabel = new Date(data.visit_date+'T00:00:00').toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'});
@@ -196,7 +196,7 @@ async function confirmCheckin(){
       pass_id: currentPass.id,
       guest_name: guestName,
       meal_period: period,
-      checkin_date: new Date().toISOString().slice(0,10),
+      checkin_date: new Date().toLocaleDateString('en-CA'),
     });
     if(res2.error) throw res2.error;
     const now = new Date().toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' });

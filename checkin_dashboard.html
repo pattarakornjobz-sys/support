@@ -132,11 +132,11 @@ function getFilteredRange(){
   const now = new Date();
   let from = null, to = null;
   if(dash.dateFilter === 'today'){
-    from = now.toISOString().slice(0,10); to = from;
+    from = now.toLocaleDateString('en-CA'); to = from;
   }else if(dash.dateFilter === '7d'){
-    from = new Date(now.getTime() - 6*24*60*60*1000).toISOString().slice(0,10); to = now.toISOString().slice(0,10);
+    from = new Date(now.getTime() - 6*24*60*60*1000).toLocaleDateString('en-CA'); to = now.toLocaleDateString('en-CA');
   }else if(dash.dateFilter === '30d'){
-    from = new Date(now.getTime() - 29*24*60*60*1000).toISOString().slice(0,10); to = now.toISOString().slice(0,10);
+    from = new Date(now.getTime() - 29*24*60*60*1000).toLocaleDateString('en-CA'); to = now.toLocaleDateString('en-CA');
   }else if(dash.dateFilter === 'custom'){
     from = dash.customFrom || null; to = dash.customTo || null;
   }
@@ -317,7 +317,7 @@ function exportExcel(){
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'เช็คอิน');
-  XLSX.writeFile(wb, 'สถิติเช็คอินรับอาหาร_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  XLSX.writeFile(wb, 'สถิติเช็คอินรับอาหาร_' + new Date().toLocaleDateString('en-CA') + '.xlsx');
 }
 
 async function exportPDF(){
@@ -360,7 +360,7 @@ async function exportPDF(){
       pdf.addImage(contentData, 'PNG', 0, position, pageW, contentImgH);
       heightLeft -= pageH;
     }
-    pdf.save('สถิติเช็คอินรับอาหาร_' + new Date().toISOString().slice(0,10) + '.pdf');
+    pdf.save('สถิติเช็คอินรับอาหาร_' + new Date().toLocaleDateString('en-CA') + '.pdf');
   }catch(e){
     console.error(e);
     alert('สร้าง PDF ไม่สำเร็จ: ' + (e?.message || e));
@@ -370,7 +370,7 @@ async function exportPDF(){
   }
 }
 
-const todayStr = new Date().toISOString().slice(0,10);
+const todayStr = new Date().toLocaleDateString('en-CA');
 dash.customFrom = todayStr; dash.customTo = todayStr;
 loadData();
 </script>

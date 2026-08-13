@@ -127,9 +127,9 @@ function checkPin(){
 
 function getRange(){
   const now = new Date();
-  if(dateFilter==='today') return { from: now.toISOString().slice(0,10), to: now.toISOString().slice(0,10) };
-  if(dateFilter==='7d') return { from: new Date(now.getTime()-6*86400000).toISOString().slice(0,10), to: now.toISOString().slice(0,10) };
-  if(dateFilter==='30d') return { from: new Date(now.getTime()-29*86400000).toISOString().slice(0,10), to: now.toISOString().slice(0,10) };
+  if(dateFilter==='today') return { from: now.toLocaleDateString('en-CA'), to: now.toLocaleDateString('en-CA') };
+  if(dateFilter==='7d') return { from: new Date(now.getTime()-6*86400000).toLocaleDateString('en-CA'), to: now.toLocaleDateString('en-CA') };
+  if(dateFilter==='30d') return { from: new Date(now.getTime()-29*86400000).toLocaleDateString('en-CA'), to: now.toLocaleDateString('en-CA') };
   if(dateFilter==='custom') return { from: customFrom||null, to: customTo||null };
   return { from:null, to:null };
 }
@@ -200,7 +200,7 @@ async function doExport(){
     ws['!cols'] = Object.keys(rows[0]).map(k => ({ wch: Math.min(Math.max(k.length, 14), 40) }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'แบบประเมิน');
-    XLSX.writeFile(wb, `แบบประเมินความพึงพอใจ_ข้อมูลดิบ_${new Date().toISOString().slice(0,10)}.xlsx`);
+    XLSX.writeFile(wb, `แบบประเมินความพึงพอใจ_ข้อมูลดิบ_${new Date().toLocaleDateString('en-CA')}.xlsx`);
     msgEl.innerHTML = `<div class="result-msg ok">✓ ดาวน์โหลดแล้ว ${data.length} รายการ</div>`;
   }catch(e){
     console.error(e);

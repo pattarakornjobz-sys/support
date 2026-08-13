@@ -169,7 +169,7 @@ let confirming = false;
 async function checkAndConfirm(){
   const el = document.getElementById('content');
   el.innerHTML = '<div class="card"><div class="loading">กำลังตรวจสอบ…</div></div>';
-  const today = new Date().toISOString().slice(0,10);
+  const today = new Date().toLocaleDateString('en-CA');
   let existingCount = 0;
   let cooldownRemainingMs = 0;
   try{
@@ -224,7 +224,7 @@ async function confirmCheckin(existingCount){
   const el = document.getElementById('content');
   try{
     // re-check right before insert to close the race window between two devices/taps
-    const today = new Date().toISOString().slice(0,10);
+    const today = new Date().toLocaleDateString('en-CA');
     const { data: lastRow, error: lastErr } = await sb.from('meal_checkins').select('created_at')
       .eq('staff_id', currentStaff.id).order('created_at', { ascending:false }).limit(1).maybeSingle();
     if(lastErr) throw lastErr;

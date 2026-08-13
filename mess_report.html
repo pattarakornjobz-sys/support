@@ -132,7 +132,7 @@ const SLABEL = { good:'ปกติ', warn:'เฝ้าระวัง', bad:'�
 const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l2.5 2.5L16 8"/><circle cx="12" cy="12" r="9"/></svg>';
 const WARN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17h.01"/></svg>';
 
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+function todayStr(){ return new Date().toLocaleDateString('en-CA'); }
 let currentData = null;
 
 async function loadDay(dateStr){
