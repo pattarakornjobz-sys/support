@@ -199,6 +199,9 @@ textarea{resize:vertical; line-height:1.5;}
     <div class="rule"></div>
   </div>
   <div class="vendor-note" id="topNote">เลือกเมนูที่ท่านอยากรับประทานในสัปดาห์หน้า ผลโหวตอันดับ 1–5 จะถูกส่งให้ร้านจัดเตรียมอาหารล่วงหน้า</div>
+  <div style="text-align:center; margin-bottom:18px;">
+    <a href="rk_feedback.html" class="btn-outline on-dark" style="display:inline-block; text-decoration:none;">💬 แจ้งปัญหา / ส่งข้อความถึงแอดมิน</a>
+  </div>
   <div id="app"></div>
 </div>
 
@@ -476,6 +479,7 @@ function renderDone(el){
       </div>
       <ul class="rank-list">${list}</ul>
       ${canEdit ? `<button class="btn-outline" style="width:100%; margin-top:16px;" onclick="state.step='vote'; renderApp();">แก้ไขโหวต</button>` : `<div class="note">ปิดรับการแก้ไขแล้วเมื่อพ้นเวลาโหวต</div>`}
+      <a href="rk_feedback.html" class="btn-outline" style="width:100%; margin-top:10px; display:block; text-align:center; text-decoration:none; box-sizing:border-box;">💬 แจ้งปัญหา / ส่งข้อความถึงแอดมิน</a>
       <div style="text-align:center; margin-top:14px;"><button class="link-btn" onclick="backToLogin()">เปลี่ยนชื่อ / หน่วยงาน</button></div>
     </div>`;
 }
