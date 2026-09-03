@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>หลังบ้าน - ครัวหมุนเวียน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<style>
+:root{
+  --bg:#0B2545; --bg-2:#12395E;
+  --gold:#D9A628; --gold-light:#F0CB6C; --gold-dim: rgba(217,166,40,0.35);
+  --ivory:#FFFFFF; --ivory-dim:#EEF3F8;
+  --ink:#1F2D3D; --ink-soft:#5B6B85;
+  --food:#1E9E93; --food-bg:#DFF7F3; --food-text:#0F766E;
+  --service:#5B6FE0; --service-bg:#E9ECFC; --service-text:#4451C7;
+  --l5:#22C55E; --l4:#86D99C; --l3:#FFC857; --l2:#FF9F68; --l1:#FF6B6B;
+  --ok:#22C55E; --warn:#FFC857; --danger:#FF6B6B;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; font-family:'Kanit',sans-serif; color:var(--ink);
+  background:var(--bg);
+  background-image:
+    radial-gradient(circle at 20% 0%, rgba(217,166,40,0.18), transparent 45%),
+    radial-gradient(circle at 90% 90%, rgba(255,255,255,0.06), transparent 50%);
+  padding:30px 12px 60px;
+  font-size:16px; line-height:1.6; min-height:100vh;
+}
+.wrap{max-width:648px; margin:0 auto; padding:26px 16px 30px;}
+.wrap.wide{max-width:1080px;}
+.eyebrow{display:flex; align-items:center; justify-content:center; gap:8px; color:var(--gold-light); font-size:13px; letter-spacing:3px; font-weight:700; text-align:center; margin-bottom:10px;}
+.header-band{background:transparent; box-shadow:none; padding:0; margin-bottom:6px;}
+h1{font-family:'Prompt',sans-serif; font-size:clamp(20px, 6vw, 26px); font-weight:900; margin:0 0 4px; text-align:center; line-height:1.45; padding:0 4px; background:linear-gradient(180deg,var(--gold-light),var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+.rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 14px;}
+.subhead{text-align:center; font-size:14.5px; color:rgba(251,246,234,0.82); margin:0 0 10px; line-height:1.6; max-width:520px; margin-left:auto; margin-right:auto;}
+.vendor-note{text-align:center; font-size:13px; color:var(--gold-light); margin:0 0 22px; line-height:1.6; max-width:520px; margin-left:auto; margin-right:auto; padding:10px 14px; border:1px solid rgba(217,166,40,0.3); border-radius:8px; background:rgba(217,166,40,0.06);}
+.card{
+  position:relative; background:var(--ivory); border-radius:20px; overflow:hidden;
+  box-shadow:0 10px 28px rgba(217,166,40,0.14), 0 2px 8px rgba(31,45,61,0.06);
+  padding:26px 22px; margin-bottom:18px;
+}
+.card::before{content:''; position:absolute; top:0; left:0; right:0; height:5px; background:linear-gradient(90deg,var(--gold-light),var(--gold));}
+.card.flush{padding:0;}
+.sec-head{display:flex; align-items:center; gap:12px; margin-bottom:16px;}
+.sec-icon{width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.sec-icon svg{width:21px; height:21px;}
+.sec-title{font-family:'Prompt',sans-serif; font-weight:700; font-size:18px; line-height:1.3;}
+.sec-sub{font-size:12.5px; color:var(--ink-soft); margin-top:1px;}
+.divider{border-top:1px solid rgba(31,45,61,0.12); margin:20px 0;}
+.unit-row-btn{
+  display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:13px 14px; border-radius:8px;
+  border:1.5px solid rgba(31,45,61,0.14); background:rgba(255,255,255,0.5); cursor:pointer; font-family:inherit;
+  margin-bottom:9px; transition:transform .15s, box-shadow .15s, background .15s, border-color .15s;
+}
+.unit-row-btn:hover{transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+.unit-row-btn .icon{width:32px; height:32px; border-radius:50%; background:var(--ivory-dim); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--ink-soft);}
+.unit-row-btn .icon svg{width:17px; height:17px;}
+.unit-row-btn .label{font-size:14.5px; font-weight:600; line-height:1.4;}
+.unit-row-btn.active{background:var(--ink); border-color:var(--gold);}
+.unit-row-btn.active .label{color:var(--ivory);}
+.unit-row-btn.active .icon{background:var(--gold); color:var(--ink);}
+.field-block{border-left:3px solid var(--accent, var(--gold)); padding-left:14px; margin-bottom:20px;}
+.field-label{display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; margin-bottom:4px; line-height:1.4;}
+.field-hint{font-size:12.5px; color:var(--ink-soft); margin-bottom:8px;}
+input[type=text], input[type=tel], input[type=number], input[type=date], input[type=time], select, textarea{
+  width:100%; padding:12px 14px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.6);
+  font-family:inherit; font-size:14.5px; color:var(--ink); margin-top:-2px; margin-bottom:9px;
+}
+input:focus, select:focus, textarea:focus{outline:none; box-shadow:0 0 0 3px rgba(217,166,40,0.2); border-color:var(--gold);}
+textarea{resize:vertical; line-height:1.5;}
+.submit-btn{
+  width:100%; padding:16px; border-radius:8px; border:1px solid var(--gold-dim);
+  background:linear-gradient(180deg,#4FA8DE,#2E86D6); color:var(--ivory); font-weight:700; font-size:16.5px;
+  cursor:pointer; letter-spacing:1px; font-family:inherit; box-shadow:0 10px 24px rgba(217,166,40,0.35);
+  transition:transform .15s, box-shadow .15s;
+}
+.submit-btn:hover{transform:translateY(-2px); box-shadow:0 14px 30px rgba(217,166,40,0.45);}
+.submit-btn:disabled{background:#B9C6D4; box-shadow:none; cursor:default; transform:none;}
+.submit-btn.gold{background:linear-gradient(180deg,var(--gold-light),var(--gold)); color:var(--ink);}
+.note{text-align:center; font-size:12.5px; color:var(--ink-soft); margin-top:12px;}
+.error{display:flex; align-items:center; gap:8px; color:#D64550; background:#FFE8E8; border:1px solid #FFC9C9; padding:10px 12px; border-radius:6px; font-size:14px; font-weight:600; margin-bottom:14px;}
+.info-box{display:flex; align-items:flex-start; gap:8px; color:var(--service-text); background:var(--service-bg); border:1px solid rgba(68,81,199,0.25); padding:10px 12px; border-radius:6px; font-size:13.5px; font-weight:500; margin-bottom:14px;}
+.success{text-align:center; padding:12px 0;}
+.success .seal{width:74px; height:74px; border-radius:50%; border:2px solid var(--gold); background:var(--ivory-dim); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; box-shadow:0 0 0 5px rgba(217,166,40,0.12);}
+.success .seal svg{width:34px; height:34px; color:var(--food);}
+.success h2{font-family:'Prompt',sans-serif; font-weight:700; font-size:21px; color:var(--ink); margin:0 0 8px;}
+.success p{font-size:15px; margin:0 0 22px; color:var(--ink-soft);}
+.btn-outline{padding:12px 22px; border-radius:8px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-weight:700; font-size:15px; cursor:pointer; font-family:inherit; transition:background .15s;}
+.btn-outline:hover{background:rgba(31,45,61,0.06);}
+.btn-outline.on-dark{border-color:var(--gold-light); color:var(--gold-light);}
+.btn-outline.on-dark:hover{background:rgba(217,166,40,0.1);}
+.btn-small{padding:7px 13px; border-radius:6px; border:1.5px solid rgba(31,45,61,0.18); background:#fff; color:var(--ink); font-weight:600; font-size:12.5px; cursor:pointer; font-family:inherit;}
+.btn-small.danger{border-color:rgba(255,107,107,0.4); color:#D64550;}
+.btn-small.primary{border-color:var(--gold); background:var(--gold); color:#fff;}
+.link-btn{background:none; border:none; color:var(--service-text); font-weight:600; font-size:13.5px; cursor:pointer; font-family:inherit; padding:0;}
+
+/* pills / badges */
+.pill{display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:99px; font-size:11.5px; font-weight:700; letter-spacing:.3px;}
+.pill.draft{background:#EEF1F5; color:#5B6B85;}
+.pill.vote_open{background:#DFF7EA; color:#0F9D58;}
+.pill.vote_closed{background:#FFEFD6; color:#B5720A;}
+.pill.serving{background:#E9ECFC; color:#4451C7;}
+.pill.completed{background:#EDEDED; color:#777;}
+.pill.new{background:#FFE8E8; color:#D64550;}
+.pill.acknowledged{background:#FFEFD6; color:#B5720A;}
+.pill.resolved{background:#DFF7EA; color:#0F9D58;}
+
+/* admin shell */
+.admin-topbar{background:rgba(255,255,255,0.06); border:1px solid rgba(217,166,40,0.25); border-radius:14px; padding:14px 18px; margin-bottom:20px; display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px;}
+.admin-topbar .brand{font-family:'Prompt',sans-serif; font-weight:800; color:var(--gold-light); font-size:15px; letter-spacing:.5px; margin-right:auto;}
+.admin-nav{display:flex; flex-wrap:wrap; gap:6px;}
+.admin-nav a{color:rgba(255,255,255,0.75); text-decoration:none; font-size:13px; font-weight:600; padding:7px 12px; border-radius:8px; transition:background .15s,color .15s;}
+.admin-nav a:hover{background:rgba(255,255,255,0.08); color:#fff;}
+.admin-nav a.current{background:var(--gold); color:var(--ink);}
+
+/* tables */
+.data-table{width:100%; border-collapse:collapse; font-size:13.5px;}
+.data-table th{text-align:left; background:var(--ink); color:#fff; padding:10px 12px; font-weight:600; font-size:12.5px;}
+.data-table td{padding:10px 12px; border-bottom:1px solid rgba(31,45,61,0.08); vertical-align:middle;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:var(--ivory-dim);}
+.table-scroll{overflow-x:auto; border-radius:10px;}
+
+/* grid cards (vendors, menu sets) */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px;}
+.item-card{background:#fff; border:1.5px solid rgba(31,45,61,0.1); border-radius:14px; overflow:hidden; cursor:pointer; transition:transform .15s, box-shadow .15s, border-color .15s; position:relative;}
+.item-card:hover{transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,0.1);}
+.item-card .thumb{width:100%; aspect-ratio:1; background:var(--ivory-dim) center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:var(--ink-soft);}
+.item-card .thumb svg{width:30px; height:30px;}
+.item-card .cap{padding:10px 10px 12px; font-size:13px; font-weight:600; line-height:1.4;}
+.item-card .cap .sub{font-size:11px; color:var(--ink-soft); font-weight:500; margin-top:2px;}
+.item-card.selected{border-color:var(--gold); box-shadow:0 0 0 3px rgba(217,166,40,0.25);}
+.rank-badge{position:absolute; top:8px; left:8px; width:28px; height:28px; border-radius:50%; background:var(--gold); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; box-shadow:0 3px 8px rgba(0,0,0,0.25);}
+.item-card .toggle-active{position:absolute; top:8px; right:8px; z-index:2;}
+
+/* upload dropzone */
+.dropzone{border:2px dashed rgba(31,45,61,0.25); border-radius:12px; padding:18px; text-align:center; cursor:pointer; background:var(--ivory-dim); margin-bottom:10px; transition:border-color .15s, background .15s;}
+.dropzone:hover{border-color:var(--gold);}
+.dropzone.has-image{padding:0; border-style:solid;}
+.dropzone img{width:100%; max-height:180px; object-fit:contain; display:block; border-radius:10px;}
+.dropzone .dz-label{font-size:13px; color:var(--ink-soft); font-weight:600;}
+
+/* modal */
+.modal-overlay{position:fixed; inset:0; background:rgba(11,37,69,0.6); backdrop-filter:blur(2px); display:flex; align-items:flex-start; justify-content:center; padding:30px 14px; overflow-y:auto; z-index:50;}
+.modal-card{background:#fff; border-radius:18px; max-width:480px; width:100%; padding:24px 22px; box-shadow:0 20px 50px rgba(0,0,0,0.35);}
+.modal-card h3{font-family:'Prompt',sans-serif; font-size:18px; margin:0 0 16px; color:var(--ink);}
+.modal-actions{display:flex; gap:10px; margin-top:6px;}
+.modal-actions button{flex:1;}
+
+/* segmented category selector */
+.seg-row{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;}
+.seg-opt{padding:9px 14px; border-radius:99px; border:1.5px solid rgba(31,45,61,0.16); background:#fff; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; color:var(--ink-soft);}
+.seg-opt.active{background:var(--ink); border-color:var(--ink); color:#fff;}
+
+/* chat / feedback list */
+.msg-item{border:1px solid rgba(31,45,61,0.1); border-radius:12px; padding:14px 16px; margin-bottom:12px; background:#fff;}
+.msg-item .msg-head{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;}
+.msg-item .msg-name{font-weight:700; font-size:14px;}
+.msg-item .msg-meta{font-size:11.5px; color:var(--ink-soft);}
+.msg-item .msg-body{font-size:14px; line-height:1.6; color:var(--ink);}
+.msg-item .msg-reply{margin-top:10px; padding:10px 12px; background:var(--ivory-dim); border-radius:8px; font-size:13.5px; border-left:3px solid var(--gold);}
+.msg-item .msg-reply .lbl{font-weight:700; color:var(--gold); font-size:11.5px; display:block; margin-bottom:3px;}
+
+.stat-row{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:18px;}
+.stat-box{flex:1 1 130px; background:#fff; border-radius:14px; padding:16px; text-align:center; box-shadow:0 6px 16px rgba(0,0,0,0.08);}
+.stat-box .num{font-family:'Prompt',sans-serif; font-weight:800; font-size:26px; color:var(--ink);}
+.stat-box .lbl{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+
+.rank-list{list-style:none; margin:0; padding:0;}
+.rank-list li{display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(31,45,61,0.08);}
+.rank-list li:last-child{border-bottom:none;}
+.rank-list .pos{width:26px; height:26px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex-shrink:0;}
+.rank-list li:nth-child(1) .pos{background:linear-gradient(180deg,#F0CB6C,#D9A628);}
+.rank-list li:nth-child(2) .pos{background:#B8C0CC;}
+.rank-list li:nth-child(3) .pos{background:#C98A4E;}
+.rank-list .bar-wrap{flex:1;}
+.rank-list .bar-name{font-size:13.5px; font-weight:700; margin-bottom:4px; display:flex; justify-content:space-between; gap:6px;}
+.rank-list .bar-bg{background:var(--ivory-dim); border-radius:6px; height:10px; overflow:hidden;}
+.rank-list .bar-fill{height:100%; background:linear-gradient(90deg,var(--gold-light),var(--gold)); border-radius:6px;}
+
+.spinner{width:22px; height:22px; border-radius:50%; border:3px solid rgba(217,166,40,0.25); border-top-color:var(--gold); animation:spin 0.8s linear infinite; margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty-state{text-align:center; padding:30px 10px; color:var(--ink-soft); font-size:14px;}
+
+@media (max-width:640px){
+  .admin-topbar{flex-direction:column; align-items:flex-start;}
+  .admin-nav{width:100%;}
+}
+
+</style>
+</head>
+<body>
+<div class="wrap wide">
+  <div class="admin-topbar">
+    <div class="brand">🍜 ครัวหมุนเวียน · หลังบ้าน</div>
+    <div class="admin-nav">
+      <a href="#" class="${''}" onclick="setTab('vendors');return false;" id="nav-vendors">ร้านค้า</a>
+      <a href="#" onclick="setTab('menusets');return false;" id="nav-menusets">เซทเมนู</a>
+      <a href="#" onclick="setTab('schedule');return false;" id="nav-schedule">ตารางหมุนเวียน</a>
+      <a href="rk_admin_results.html">ผลโหวต / กล่องข้อความ →</a>
+    </div>
+  </div>
+  <div id="app"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://uhefxwccuqagnbrbidbh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVoZWZ4d2NjdXFhZ25icmJpZGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDI1NDYsImV4cCI6MjEwMTU3ODU0Nn0.EE5QWPVjSkZpUTU37hgiz4LsGMAfq87dxFOkt9OYynY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
+const THAI_MONTHS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function fmtDate(d){ d=new Date(d); return d.getDate()+' '+THAI_MONTHS[d.getMonth()]+' '+(d.getFullYear()+543); }
+function fmtDateTime(d){ d=new Date(d); const hh=String(d.getHours()).padStart(2,'0'); const mm=String(d.getMinutes()).padStart(2,'0'); return fmtDate(d)+' '+hh+':'+mm+' น.'; }
+function pad(n){ return String(n).padStart(2,'0'); }
+function toDatetimeLocalValue(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); }
+function addDays(dateStr, n){ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d; }
+function setTime(d,h,m){ const c=new Date(d); c.setHours(h,m,0,0); return c; }
+function isVotingOpen(row){
+  if(!row) return false;
+  const now = new Date();
+  if(row.status==='vote_closed' || row.status==='completed') return false;
+  if(row.status==='vote_open') return true;
+  return now >= new Date(row.vote_opens_at) && now <= new Date(row.vote_closes_at);
+}
+function statusLabel(s){
+  return { draft:'ร่าง', vote_open:'เปิดโหวต', vote_closed:'ปิดโหวตแล้ว', serving:'กำลังบริการ', completed:'เสร็จสิ้น' }[s] || s;
+}
+const ICONS = {
+  image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
+};
+
+let state = {
+  tab: 'vendors',
+  vendors: [], sets: [], schedule: [], locations: [],
+  selectedVendorId: null,
+  modal: null,
+  scheduleForm: null,
+  loading: true, error: '',
+};
+
+async function boot(){
+  try{
+    const [{ data: vendors, error:e1 }, { data: locations, error:e2 }] = await Promise.all([
+      sb.from('rk_vendors').select('*').order('sort_order').order('created_at'),
+      sb.from('rk_locations').select('*').order('sort_order'),
+    ]);
+    if(e1) throw e1; if(e2) throw e2;
+    state.vendors = vendors || [];
+    state.locations = locations || [];
+    if(state.vendors.length) state.selectedVendorId = state.vendors[0].id;
+    await loadMenuSets();
+    await loadSchedule();
+    state.loading = false;
+    render();
+  }catch(e){
+    console.error(e);
+    state.error = 'โหลดข้อมูลไม่สำเร็จ: ' + (e.message||'');
+    state.loading = false; render();
+  }
+}
+async function loadMenuSets(){
+  if(!state.selectedVendorId){ state.sets=[]; return; }
+  const { data, error } = await sb.from('rk_menu_sets').select('*').eq('vendor_id', state.selectedVendorId).order('sort_order').order('set_no');
+  if(error) throw error;
+  state.sets = data || [];
+}
+async function loadSchedule(){
+  const { data, error } = await sb.from('rk_schedule').select('*').order('service_week_start', { ascending:false });
+  if(error) throw error;
+  state.schedule = data || [];
+}
+
+function setTab(t){ state.tab=t; render(); }
+
+function render(){
+  ['vendors','menusets','schedule'].forEach(t => document.getElementById('nav-'+t).classList.toggle('current', state.tab===t));
+  const el = document.getElementById('app');
+  if(state.loading){ el.innerHTML='<div class="card"><div class="spinner"></div></div>'; return; }
+  let html = state.error ? `<div class="error">${state.error}</div>` : '';
+  if(state.tab==='vendors') html += renderVendors();
+  if(state.tab==='menusets') html += renderMenuSets();
+  if(state.tab==='schedule') html += renderSchedule();
+  html += state.modal ? renderModal() : '';
+  el.innerHTML = html;
+  wireModalInputs();
+}
+
+/* ---------------- Vendors tab ---------------- */
+function renderVendors(){
+  const cards = state.vendors.map(v => `
+    <div class="item-card" style="cursor:default;">
+      <div class="thumb" ${v.logo_url?`style="background-image:url('${v.logo_url}')"`:''}>${v.logo_url?'':ICONS.image}</div>
+      <div class="cap">${v.name}<div class="sub">${v.active?'เปิดใช้งาน':'ปิดใช้งาน'}</div>
+        <div style="display:flex; gap:5px; margin-top:8px; flex-wrap:wrap;">
+          <button class="btn-small" onclick='openVendorModal(${JSON.stringify(v).replace(/'/g,"&apos;")})'>แก้ไข</button>
+          <button class="btn-small" onclick="toggleVendorActive('${v.id}', ${!v.active})">${v.active?'ปิด':'เปิด'}</button>
+          <button class="btn-small danger" onclick="deleteVendor('${v.id}')">ลบ</button>
+        </div>
+      </div>
+    </div>`).join('');
+  return `
+    <div class="card">
+      <div class="sec-head">
+        <div><div class="sec-title">จัดการข้อมูลร้าน</div><div class="sec-sub">โลโก้ + ชื่อร้าน ทั้งหมด ${state.vendors.length} ร้าน</div></div>
+        <button class="btn-small primary" style="margin-left:auto;" onclick="openVendorModal(null)">+ เพิ่มร้านใหม่</button>
+      </div>
+      <div class="card-grid">${cards || '<div class="empty-state">ยังไม่มีร้านค้า</div>'}</div>
+    </div>`;
+}
+function openVendorModal(v){
+  state.modal = { type:'vendor', data: v ? {...v} : { id:null, name:'', contact_phone:'', logo_url:'', active:true }, uploading:false };
+  render();
+}
+async function toggleVendorActive(id, val){
+  const { error } = await sb.from('rk_vendors').update({ active: val }).eq('id', id);
+  if(error){ alert('ผิดพลาด: '+error.message); return; }
+  await boot();
+}
+async function deleteVendor(id){
+  if(!confirm('ลบร้านนี้ พร้อมเซทเมนูทั้งหมดของร้าน?')) return;
+  const { error } = await sb.from('rk_vendors').delete().eq('id', id);
+  if(error){ alert('ผิดพลาด: '+error.message); return; }
+  await boot();
+}
+
+/* ---------------- Menu sets tab ---------------- */
+function renderMenuSets(){
+  const vendorOptions = state.vendors.map(v => `<option value="${v.id}" ${v.id===state.selectedVendorId?'selected':''}>${v.name}</option>`).join('');
+  const cards = state.sets.map(s => `
+    <div class="item-card" style="cursor:default;">
+      <div class="thumb" ${s.image_url?`style="background-image:url('${s.image_url}')"`:''}>${s.image_url?'':ICONS.image}</div>
+      <div class="cap">เซทที่ ${s.set_no}: ${s.set_name}<div class="sub">${s.active?'แสดงในหน้าโหวต':'ซ่อนอยู่'}</div>
+        <div style="display:flex; gap:5px; margin-top:8px; flex-wrap:wrap;">
+          <button class="btn-small" onclick='openSetModal(${JSON.stringify(s).replace(/'/g,"&apos;")})'>แก้ไข</button>
+          <button class="btn-small" onclick="toggleSetActive('${s.id}', ${!s.active})">${s.active?'ซ่อน':'แสดง'}</button>
+          <button class="btn-small danger" onclick="deleteSet('${s.id}')">ลบ</button>
+        </div>
+      </div>
+    </div>`).join('');
+  return `
+    <div class="card">
+      <div class="sec-head">
+        <div><div class="sec-title">จัดการเซทเมนู</div><div class="sec-sub">เลือกร้านด้านล่างเพื่อจัดการเซทเมนู (10–20 เซทต่อร้าน)</div></div>
+      </div>
+      <select id="vendorSelect" ${state.vendors.length? '': 'disabled'}>${vendorOptions || '<option>ยังไม่มีร้าน</option>'}</select>
+    </div>
+    <div class="card">
+      <div class="sec-head">
+        <div class="sec-title">เซทเมนูทั้งหมด ${state.sets.length} เซท</div>
+        <button class="btn-small primary" style="margin-left:auto;" ${state.selectedVendorId?'':'disabled'} onclick="openSetModal(null)">+ เพิ่มเซทเมนู</button>
+      </div>
+      <div class="card-grid">${cards || '<div class="empty-state">ร้านนี้ยังไม่มีเซทเมนู</div>'}</div>
+    </div>`;
+}
+function openSetModal(s){
+  const nextNo = (state.sets.reduce((m,x)=>Math.max(m,x.set_no),0)) + 1;
+  state.modal = { type:'set', data: s ? {...s} : { id:null, vendor_id: state.selectedVendorId, set_no: nextNo, set_name:'', image_url:'', active:true }, uploading:false };
+  render();
+}
+async function toggleSetActive(id, val){
+  const { error } = await sb.from('rk_menu_sets').update({ active: val }).eq('id', id);
+  if(error){ alert('ผิดพลาด: '+error.message); return; }
+  await loadMenuSets(); render();
+}
+async function deleteSet(id){
+  if(!confirm('ลบเซทเมนูนี้?')) return;
+  const { error } = await sb.from('rk_menu_sets').delete().eq('id', id);
+  if(error){ alert('ผิดพลาด: '+error.message); return; }
+  await loadMenuSets(); render();
+}
+
+/* ---------------- Schedule tab ---------------- */
+function blankScheduleForm(){
+  return { location_id: state.locations[0]?.id || null, vendor_id: state.vendors[0]?.id || '', service_week_start:'', vote_opens_at:'', vote_closes_at:'', service_week_end:'' };
+}
+function computeWindowFromStart(startStr){
+  if(!startStr) return { end:'', opens:'', closes:'' };
+  const end = addDays(startStr, 4);
+  const opens = setTime(addDays(startStr, -7), 8, 30);
+  const closes = setTime(addDays(startStr, -3), 18, 0);
+  return { end: toDatetimeLocalValue(end).slice(0,10), opens: toDatetimeLocalValue(opens), closes: toDatetimeLocalValue(closes) };
+}
+function renderSchedule(){
+  if(!state.scheduleForm) state.scheduleForm = blankScheduleForm();
+  const f = state.scheduleForm;
+  const locBtns = state.locations.map(l => `<button type="button" class="unit-row-btn ${f.location_id===l.id?'active':''}" onclick="setScheduleLocation(${l.id})"><span class="label">${l.short_name} — ${l.full_name}</span></button>`).join('');
+  const vendorOptions = state.vendors.map(v => `<option value="${v.id}" ${v.id===f.vendor_id?'selected':''}>${v.name}</option>`).join('');
+  const rows = state.schedule.map(r => {
+    const loc = state.locations.find(l=>l.id===r.location_id);
+    const ven = state.vendors.find(v=>v.id===r.vendor_id);
+    const openNow = isVotingOpen(r);
+    return `<tr>
+      <td>${loc? loc.short_name : '-'}</td>
+      <td>${ven? ven.name : '-'}</td>
+      <td>${fmtDate(r.service_week_start)} – ${fmtDate(r.service_week_end)}</td>
+      <td>${fmtDateTime(r.vote_opens_at)}<br>ถึง ${fmtDateTime(r.vote_closes_at)}</td>
+      <td><span class="pill ${r.status}">${statusLabel(r.status)}</span>${openNow?' <span class="pill vote_open">กำลังโหวตอยู่</span>':''}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn-small" onclick="setScheduleStatus('${r.id}','vote_open')">เปิดโหวตทันที</button>
+        <button class="btn-small" onclick="setScheduleStatus('${r.id}','vote_closed')">ปิดโหวตทันที</button>
+        <button class="btn-small danger" onclick="deleteSchedule('${r.id}')">ลบ</button>
+      </td>
+    </tr>`;
+  }).join('');
+  return `
+    <div class="card">
+      <div class="sec-head"><div><div class="sec-title">เพิ่ม / แก้ไขตารางหมุนเวียน</div><div class="sec-sub">กำหนดร้าน + จุด + สัปดาห์ที่ร้านประจำจริง ระบบคำนวณช่วงเวลาโหวตให้อัตโนมัติ (ย้อนหลัง 1 สัปดาห์)</div></div></div>
+      <div class="field-label">จุดบริการ</div>
+      ${locBtns}
+      <div class="field-block" style="border-left-color:var(--gold); margin-top:14px;">
+        <div class="field-label">ร้านที่จะประจำจุดนี้</div>
+        <select id="schVendor">${vendorOptions || '<option>ยังไม่มีร้าน</option>'}</select>
+      </div>
+      <div class="field-block" style="border-left-color:var(--gold);">
+        <div class="field-label">วันเริ่มประจำจุด (ควรเป็นวันพุธ)</div>
+        <input type="date" id="schStart" value="${f.service_week_start}">
+      </div>
+      ${f.service_week_start ? `
+      <div class="info-box">
+        สัปดาห์บริการ: ${fmtDate(f.service_week_start)} – ${f.service_week_end?fmtDate(f.service_week_end):''}<br>
+        ช่วงเวลาโหวต (แก้ไขได้):
+      </div>
+      <div class="field-block" style="border-left-color:var(--service);">
+        <div class="field-label">เปิดโหวต</div>
+        <input type="datetime-local" id="schOpens" value="${f.vote_opens_at}">
+      </div>
+      <div class="field-block" style="border-left-color:var(--service);">
+        <div class="field-label">ปิดโหวต</div>
+        <input type="datetime-local" id="schCloses" value="${f.vote_closes_at}">
+      </div>` : ''}
+      <button class="submit-btn" onclick="saveSchedule()">บันทึกตารางหมุนเวียน</button>
+    </div>
+    <div class="card">
+      <div class="sec-title" style="margin-bottom:12px;">ตารางหมุนเวียนทั้งหมด</div>
+      <div class="table-scroll"><table class="data-table">
+        <thead><tr><th>จุด</th><th>ร้าน</th><th>สัปดาห์บริการ</th><th>ช่วงเวลาโหวต</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="6" class="empty-state">ยังไม่มีตารางหมุนเวียน</td></tr>'}</tbody>
+      </table></div>
+    </div>`;
+}
+function setScheduleLocation(id){ state.scheduleForm.location_id = id; render(); }
+function onScheduleStartChange(v){
+  const f = state.scheduleForm;
+  f.service_week_start = v;
+  const c = computeWindowFromStart(v);
+  f.service_week_end = c.end; f.vote_opens_at = c.opens; f.vote_closes_at = c.closes;
+  render();
+}
+async function saveSchedule(){
+  const f = state.scheduleForm;
+  f.vendor_id = document.getElementById('schVendor').value;
+  if(!f.service_week_start){ alert('กรุณาเลือกวันเริ่มประจำจุด'); return; }
+  const opensEl = document.getElementById('schOpens'), closesEl = document.getElementById('schCloses');
+  if(opensEl) f.vote_opens_at = opensEl.value;
+  if(closesEl) f.vote_closes_at = closesEl.value;
+  if(!f.location_id || !f.vendor_id){ alert('กรุณาเลือกจุดและร้าน'); return; }
+  try{
+    const { error } = await sb.from('rk_schedule').upsert({
+      location_id: f.location_id, vendor_id: f.vendor_id,
+      service_week_start: f.service_week_start, service_week_end: f.service_week_end,
+      vote_opens_at: new Date(f.vote_opens_at).toISOString(), vote_closes_at: new Date(f.vote_closes_at).toISOString(),
+      status: 'draft',
+    }, { onConflict: 'location_id,service_week_start' });
+    if(error) throw error;
+    state.scheduleForm = blankScheduleForm();
+    await loadSchedule(); render();
+  }catch(e){ alert('บันทึกไม่สำเร็จ: ' + e.message); }
+}
+async function setScheduleStatus(id, status){
+  const { error } = await sb.from('rk_schedule').update({ status }).eq('id', id);
+  if(error){ alert('ผิดพลาด: '+error.message); return; }
+  await loadSchedule(); render();
+}
+async function deleteSchedule(id){
+  if(!confirm('ลบรายการตารางนี้? (โหวตที่เกี่ยวข้องจะถูกลบด้วย)')) return;
+  const { error } = await sb.from('rk_schedule').delete().eq('id', id);
+  if(error){ alert('ผิดพลาด: '+error.message); return; }
+  await loadSchedule(); render();
+}
+
+/* ---------------- Modal (add/edit vendor or menu set) ---------------- */
+function renderModal(){
+  const m = state.modal;
+  const isVendor = m.type==='vendor';
+  const d = m.data;
+  return `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal();">
+      <div class="modal-card">
+        <h3>${isVendor ? (d.id? 'แก้ไขร้าน':'เพิ่มร้านใหม่') : (d.id? 'แก้ไขเซทเมนู':'เพิ่มเซทเมนู')}</h3>
+        <div class="field-block" style="border-left-color:var(--gold);">
+          <div class="field-label">${isVendor ? 'โลโก้ร้าน (.jpg)' : 'รูปเซทเมนู (.jpg)'}</div>
+          <div class="dropzone ${d.logo_url||d.image_url?'has-image':''}" onclick="document.getElementById('fileInput').click();">
+            ${ (isVendor?d.logo_url:d.image_url) ? `<img src="${isVendor?d.logo_url:d.image_url}">` : `<div class="dz-label">${m.uploading?'กำลังอัปโหลด…':'แตะเพื่อเลือกรูปภาพ'}</div>` }
+          </div>
+          <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+        </div>
+        ${isVendor ? `
+        <div class="field-block" style="border-left-color:var(--gold);">
+          <div class="field-label">ชื่อร้าน</div>
+          <input type="text" id="mName" value="${d.name||''}" placeholder="ชื่อร้าน (แสดงใต้โลโก้)">
+        </div>
+        <div class="field-block" style="border-left-color:var(--gold);">
+          <div class="field-label">เบอร์ติดต่อร้าน (ไม่บังคับ)</div>
+          <input type="text" id="mPhone" value="${d.contact_phone||''}" placeholder="เบอร์โทร">
+        </div>` : `
+        <div class="field-block" style="border-left-color:var(--gold);">
+          <div class="field-label">ลำดับเซท</div>
+          <input type="number" id="mSetNo" value="${d.set_no||1}" min="1">
+        </div>
+        <div class="field-block" style="border-left-color:var(--gold);">
+          <div class="field-label">ชื่อเซท</div>
+          <input type="text" id="mSetName" value="${d.set_name||''}" placeholder="เช่น ข้าวผัดกะเพราไก่ไข่ดาว">
+        </div>`}
+        <div class="modal-actions">
+          <button class="btn-outline" onclick="closeModal()">ยกเลิก</button>
+          <button class="submit-btn" style="width:auto;" onclick="saveModal()">บันทึก</button>
+        </div>
+      </div>
+    </div>`;
+}
+function wireModalInputs(){
+  if(state.modal){
+    const d = state.modal.data;
+    const nameEl = document.getElementById('mName'); if(nameEl) nameEl.oninput = e=>d.name=e.target.value;
+    const phoneEl = document.getElementById('mPhone'); if(phoneEl) phoneEl.oninput = e=>d.contact_phone=e.target.value;
+    const setNoEl = document.getElementById('mSetNo'); if(setNoEl) setNoEl.oninput = e=>d.set_no=parseInt(e.target.value||'1',10);
+    const setNameEl = document.getElementById('mSetName'); if(setNameEl) setNameEl.oninput = e=>d.set_name=e.target.value;
+  }
+  const startEl = document.getElementById('schStart'); if(startEl) startEl.onchange = e=>onScheduleStartChange(e.target.value);
+}
+function closeModal(){ state.modal=null; render(); }
+async function handleImageUpload(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  const bucket = state.modal.type==='vendor' ? 'rk-vendor-logos' : 'rk-menu-set-images';
+  state.modal.uploading = true; render();
+  try{
+    const ext = (file.name.split('.').pop()||'jpg').toLowerCase();
+    const path = Date.now()+'-'+Math.random().toString(16).slice(2)+'.'+ext;
+    const { error } = await sb.storage.from(bucket).upload(path, file, { cacheControl:'3600', upsert:false });
+    if(error) throw error;
+    const { data } = sb.storage.from(bucket).getPublicUrl(path);
+    if(state.modal.type==='vendor') state.modal.data.logo_url = data.publicUrl;
+    else state.modal.data.image_url = data.publicUrl;
+  }catch(e){
+    alert('อัปโหลดรูปไม่สำเร็จ: ' + e.message + ' (ตรวจสอบว่าสร้าง Storage bucket "'+bucket+'" แล้ว และตั้งเป็น public)');
+  }finally{
+    state.modal.uploading = false; render();
+  }
+}
+async function saveModal(){
+  const m = state.modal, d = m.data;
+  try{
+    if(m.type==='vendor'){
+      if(!d.name || !d.name.trim()){ alert('กรุณากรอกชื่อร้าน'); return; }
+      const payload = { name:d.name.trim(), contact_phone:d.contact_phone||'', logo_url:d.logo_url||null, active: d.active!==false };
+      if(d.id){ const { error } = await sb.from('rk_vendors').update(payload).eq('id', d.id); if(error) throw error; }
+      else{ const { error } = await sb.from('rk_vendors').insert(payload); if(error) throw error; }
+      closeModal(); await boot();
+    }else{
+      if(!d.set_name || !d.set_name.trim()){ alert('กรุณากรอกชื่อเซท'); return; }
+      const payload = { vendor_id:d.vendor_id, set_no:d.set_no||1, set_name:d.set_name.trim(), image_url:d.image_url||null, active: d.active!==false, sort_order:d.set_no||1 };
+      if(d.id){ const { error } = await sb.from('rk_menu_sets').update(payload).eq('id', d.id); if(error) throw error; }
+      else{ const { error } = await sb.from('rk_menu_sets').insert(payload); if(error) throw error; }
+      closeModal(); await loadMenuSets(); render();
+    }
+  }catch(e){ alert('บันทึกไม่สำเร็จ: ' + e.message); }
+}
+
+document.addEventListener('change', (e) => { if(e.target && e.target.id==='vendorSelect'){ state.selectedVendorId = e.target.value; loadMenuSets().then(render); } });
+
+boot();
+</script>
+</body></html>

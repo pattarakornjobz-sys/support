@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ผลโหวต & กล่องข้อความ - ครัวหมุนเวียน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<style>
+:root{
+  --bg:#0B2545; --bg-2:#12395E;
+  --gold:#D9A628; --gold-light:#F0CB6C; --gold-dim: rgba(217,166,40,0.35);
+  --ivory:#FFFFFF; --ivory-dim:#EEF3F8;
+  --ink:#1F2D3D; --ink-soft:#5B6B85;
+  --food:#1E9E93; --food-bg:#DFF7F3; --food-text:#0F766E;
+  --service:#5B6FE0; --service-bg:#E9ECFC; --service-text:#4451C7;
+  --l5:#22C55E; --l4:#86D99C; --l3:#FFC857; --l2:#FF9F68; --l1:#FF6B6B;
+  --ok:#22C55E; --warn:#FFC857; --danger:#FF6B6B;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; font-family:'Kanit',sans-serif; color:var(--ink);
+  background:var(--bg);
+  background-image:
+    radial-gradient(circle at 20% 0%, rgba(217,166,40,0.18), transparent 45%),
+    radial-gradient(circle at 90% 90%, rgba(255,255,255,0.06), transparent 50%);
+  padding:30px 12px 60px;
+  font-size:16px; line-height:1.6; min-height:100vh;
+}
+.wrap{max-width:648px; margin:0 auto; padding:26px 16px 30px;}
+.wrap.wide{max-width:1080px;}
+.eyebrow{display:flex; align-items:center; justify-content:center; gap:8px; color:var(--gold-light); font-size:13px; letter-spacing:3px; font-weight:700; text-align:center; margin-bottom:10px;}
+.header-band{background:transparent; box-shadow:none; padding:0; margin-bottom:6px;}
+h1{font-family:'Prompt',sans-serif; font-size:clamp(20px, 6vw, 26px); font-weight:900; margin:0 0 4px; text-align:center; line-height:1.45; padding:0 4px; background:linear-gradient(180deg,var(--gold-light),var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+.rule{width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:10px auto 14px;}
+.subhead{text-align:center; font-size:14.5px; color:rgba(251,246,234,0.82); margin:0 0 10px; line-height:1.6; max-width:520px; margin-left:auto; margin-right:auto;}
+.vendor-note{text-align:center; font-size:13px; color:var(--gold-light); margin:0 0 22px; line-height:1.6; max-width:520px; margin-left:auto; margin-right:auto; padding:10px 14px; border:1px solid rgba(217,166,40,0.3); border-radius:8px; background:rgba(217,166,40,0.06);}
+.card{
+  position:relative; background:var(--ivory); border-radius:20px; overflow:hidden;
+  box-shadow:0 10px 28px rgba(217,166,40,0.14), 0 2px 8px rgba(31,45,61,0.06);
+  padding:26px 22px; margin-bottom:18px;
+}
+.card::before{content:''; position:absolute; top:0; left:0; right:0; height:5px; background:linear-gradient(90deg,var(--gold-light),var(--gold));}
+.card.flush{padding:0;}
+.sec-head{display:flex; align-items:center; gap:12px; margin-bottom:16px;}
+.sec-icon{width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.sec-icon svg{width:21px; height:21px;}
+.sec-title{font-family:'Prompt',sans-serif; font-weight:700; font-size:18px; line-height:1.3;}
+.sec-sub{font-size:12.5px; color:var(--ink-soft); margin-top:1px;}
+.divider{border-top:1px solid rgba(31,45,61,0.12); margin:20px 0;}
+.unit-row-btn{
+  display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:13px 14px; border-radius:8px;
+  border:1.5px solid rgba(31,45,61,0.14); background:rgba(255,255,255,0.5); cursor:pointer; font-family:inherit;
+  margin-bottom:9px; transition:transform .15s, box-shadow .15s, background .15s, border-color .15s;
+}
+.unit-row-btn:hover{transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+.unit-row-btn .icon{width:32px; height:32px; border-radius:50%; background:var(--ivory-dim); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--ink-soft);}
+.unit-row-btn .icon svg{width:17px; height:17px;}
+.unit-row-btn .label{font-size:14.5px; font-weight:600; line-height:1.4;}
+.unit-row-btn.active{background:var(--ink); border-color:var(--gold);}
+.unit-row-btn.active .label{color:var(--ivory);}
+.unit-row-btn.active .icon{background:var(--gold); color:var(--ink);}
+.field-block{border-left:3px solid var(--accent, var(--gold)); padding-left:14px; margin-bottom:20px;}
+.field-label{display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; margin-bottom:4px; line-height:1.4;}
+.field-hint{font-size:12.5px; color:var(--ink-soft); margin-bottom:8px;}
+input[type=text], input[type=tel], input[type=number], input[type=date], input[type=time], select, textarea{
+  width:100%; padding:12px 14px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.6);
+  font-family:inherit; font-size:14.5px; color:var(--ink); margin-top:-2px; margin-bottom:9px;
+}
+input:focus, select:focus, textarea:focus{outline:none; box-shadow:0 0 0 3px rgba(217,166,40,0.2); border-color:var(--gold);}
+textarea{resize:vertical; line-height:1.5;}
+.submit-btn{
+  width:100%; padding:16px; border-radius:8px; border:1px solid var(--gold-dim);
+  background:linear-gradient(180deg,#4FA8DE,#2E86D6); color:var(--ivory); font-weight:700; font-size:16.5px;
+  cursor:pointer; letter-spacing:1px; font-family:inherit; box-shadow:0 10px 24px rgba(217,166,40,0.35);
+  transition:transform .15s, box-shadow .15s;
+}
+.submit-btn:hover{transform:translateY(-2px); box-shadow:0 14px 30px rgba(217,166,40,0.45);}
+.submit-btn:disabled{background:#B9C6D4; box-shadow:none; cursor:default; transform:none;}
+.submit-btn.gold{background:linear-gradient(180deg,var(--gold-light),var(--gold)); color:var(--ink);}
+.note{text-align:center; font-size:12.5px; color:var(--ink-soft); margin-top:12px;}
+.error{display:flex; align-items:center; gap:8px; color:#D64550; background:#FFE8E8; border:1px solid #FFC9C9; padding:10px 12px; border-radius:6px; font-size:14px; font-weight:600; margin-bottom:14px;}
+.info-box{display:flex; align-items:flex-start; gap:8px; color:var(--service-text); background:var(--service-bg); border:1px solid rgba(68,81,199,0.25); padding:10px 12px; border-radius:6px; font-size:13.5px; font-weight:500; margin-bottom:14px;}
+.success{text-align:center; padding:12px 0;}
+.success .seal{width:74px; height:74px; border-radius:50%; border:2px solid var(--gold); background:var(--ivory-dim); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; box-shadow:0 0 0 5px rgba(217,166,40,0.12);}
+.success .seal svg{width:34px; height:34px; color:var(--food);}
+.success h2{font-family:'Prompt',sans-serif; font-weight:700; font-size:21px; color:var(--ink); margin:0 0 8px;}
+.success p{font-size:15px; margin:0 0 22px; color:var(--ink-soft);}
+.btn-outline{padding:12px 22px; border-radius:8px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-weight:700; font-size:15px; cursor:pointer; font-family:inherit; transition:background .15s;}
+.btn-outline:hover{background:rgba(31,45,61,0.06);}
+.btn-outline.on-dark{border-color:var(--gold-light); color:var(--gold-light);}
+.btn-outline.on-dark:hover{background:rgba(217,166,40,0.1);}
+.btn-small{padding:7px 13px; border-radius:6px; border:1.5px solid rgba(31,45,61,0.18); background:#fff; color:var(--ink); font-weight:600; font-size:12.5px; cursor:pointer; font-family:inherit;}
+.btn-small.danger{border-color:rgba(255,107,107,0.4); color:#D64550;}
+.btn-small.primary{border-color:var(--gold); background:var(--gold); color:#fff;}
+.link-btn{background:none; border:none; color:var(--service-text); font-weight:600; font-size:13.5px; cursor:pointer; font-family:inherit; padding:0;}
+
+/* pills / badges */
+.pill{display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:99px; font-size:11.5px; font-weight:700; letter-spacing:.3px;}
+.pill.draft{background:#EEF1F5; color:#5B6B85;}
+.pill.vote_open{background:#DFF7EA; color:#0F9D58;}
+.pill.vote_closed{background:#FFEFD6; color:#B5720A;}
+.pill.serving{background:#E9ECFC; color:#4451C7;}
+.pill.completed{background:#EDEDED; color:#777;}
+.pill.new{background:#FFE8E8; color:#D64550;}
+.pill.acknowledged{background:#FFEFD6; color:#B5720A;}
+.pill.resolved{background:#DFF7EA; color:#0F9D58;}
+
+/* admin shell */
+.admin-topbar{background:rgba(255,255,255,0.06); border:1px solid rgba(217,166,40,0.25); border-radius:14px; padding:14px 18px; margin-bottom:20px; display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px;}
+.admin-topbar .brand{font-family:'Prompt',sans-serif; font-weight:800; color:var(--gold-light); font-size:15px; letter-spacing:.5px; margin-right:auto;}
+.admin-nav{display:flex; flex-wrap:wrap; gap:6px;}
+.admin-nav a{color:rgba(255,255,255,0.75); text-decoration:none; font-size:13px; font-weight:600; padding:7px 12px; border-radius:8px; transition:background .15s,color .15s;}
+.admin-nav a:hover{background:rgba(255,255,255,0.08); color:#fff;}
+.admin-nav a.current{background:var(--gold); color:var(--ink);}
+
+/* tables */
+.data-table{width:100%; border-collapse:collapse; font-size:13.5px;}
+.data-table th{text-align:left; background:var(--ink); color:#fff; padding:10px 12px; font-weight:600; font-size:12.5px;}
+.data-table td{padding:10px 12px; border-bottom:1px solid rgba(31,45,61,0.08); vertical-align:middle;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:var(--ivory-dim);}
+.table-scroll{overflow-x:auto; border-radius:10px;}
+
+/* grid cards (vendors, menu sets) */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px;}
+.item-card{background:#fff; border:1.5px solid rgba(31,45,61,0.1); border-radius:14px; overflow:hidden; cursor:pointer; transition:transform .15s, box-shadow .15s, border-color .15s; position:relative;}
+.item-card:hover{transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,0.1);}
+.item-card .thumb{width:100%; aspect-ratio:1; background:var(--ivory-dim) center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:var(--ink-soft);}
+.item-card .thumb svg{width:30px; height:30px;}
+.item-card .cap{padding:10px 10px 12px; font-size:13px; font-weight:600; line-height:1.4;}
+.item-card .cap .sub{font-size:11px; color:var(--ink-soft); font-weight:500; margin-top:2px;}
+.item-card.selected{border-color:var(--gold); box-shadow:0 0 0 3px rgba(217,166,40,0.25);}
+.rank-badge{position:absolute; top:8px; left:8px; width:28px; height:28px; border-radius:50%; background:var(--gold); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; box-shadow:0 3px 8px rgba(0,0,0,0.25);}
+.item-card .toggle-active{position:absolute; top:8px; right:8px; z-index:2;}
+
+/* upload dropzone */
+.dropzone{border:2px dashed rgba(31,45,61,0.25); border-radius:12px; padding:18px; text-align:center; cursor:pointer; background:var(--ivory-dim); margin-bottom:10px; transition:border-color .15s, background .15s;}
+.dropzone:hover{border-color:var(--gold);}
+.dropzone.has-image{padding:0; border-style:solid;}
+.dropzone img{width:100%; max-height:180px; object-fit:contain; display:block; border-radius:10px;}
+.dropzone .dz-label{font-size:13px; color:var(--ink-soft); font-weight:600;}
+
+/* modal */
+.modal-overlay{position:fixed; inset:0; background:rgba(11,37,69,0.6); backdrop-filter:blur(2px); display:flex; align-items:flex-start; justify-content:center; padding:30px 14px; overflow-y:auto; z-index:50;}
+.modal-card{background:#fff; border-radius:18px; max-width:480px; width:100%; padding:24px 22px; box-shadow:0 20px 50px rgba(0,0,0,0.35);}
+.modal-card h3{font-family:'Prompt',sans-serif; font-size:18px; margin:0 0 16px; color:var(--ink);}
+.modal-actions{display:flex; gap:10px; margin-top:6px;}
+.modal-actions button{flex:1;}
+
+/* segmented category selector */
+.seg-row{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;}
+.seg-opt{padding:9px 14px; border-radius:99px; border:1.5px solid rgba(31,45,61,0.16); background:#fff; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; color:var(--ink-soft);}
+.seg-opt.active{background:var(--ink); border-color:var(--ink); color:#fff;}
+
+/* chat / feedback list */
+.msg-item{border:1px solid rgba(31,45,61,0.1); border-radius:12px; padding:14px 16px; margin-bottom:12px; background:#fff;}
+.msg-item .msg-head{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;}
+.msg-item .msg-name{font-weight:700; font-size:14px;}
+.msg-item .msg-meta{font-size:11.5px; color:var(--ink-soft);}
+.msg-item .msg-body{font-size:14px; line-height:1.6; color:var(--ink);}
+.msg-item .msg-reply{margin-top:10px; padding:10px 12px; background:var(--ivory-dim); border-radius:8px; font-size:13.5px; border-left:3px solid var(--gold);}
+.msg-item .msg-reply .lbl{font-weight:700; color:var(--gold); font-size:11.5px; display:block; margin-bottom:3px;}
+
+.stat-row{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:18px;}
+.stat-box{flex:1 1 130px; background:#fff; border-radius:14px; padding:16px; text-align:center; box-shadow:0 6px 16px rgba(0,0,0,0.08);}
+.stat-box .num{font-family:'Prompt',sans-serif; font-weight:800; font-size:26px; color:var(--ink);}
+.stat-box .lbl{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+
+.rank-list{list-style:none; margin:0; padding:0;}
+.rank-list li{display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(31,45,61,0.08);}
+.rank-list li:last-child{border-bottom:none;}
+.rank-list .pos{width:26px; height:26px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex-shrink:0;}
+.rank-list li:nth-child(1) .pos{background:linear-gradient(180deg,#F0CB6C,#D9A628);}
+.rank-list li:nth-child(2) .pos{background:#B8C0CC;}
+.rank-list li:nth-child(3) .pos{background:#C98A4E;}
+.rank-list .bar-wrap{flex:1;}
+.rank-list .bar-name{font-size:13.5px; font-weight:700; margin-bottom:4px; display:flex; justify-content:space-between; gap:6px;}
+.rank-list .bar-bg{background:var(--ivory-dim); border-radius:6px; height:10px; overflow:hidden;}
+.rank-list .bar-fill{height:100%; background:linear-gradient(90deg,var(--gold-light),var(--gold)); border-radius:6px;}
+
+.spinner{width:22px; height:22px; border-radius:50%; border:3px solid rgba(217,166,40,0.25); border-top-color:var(--gold); animation:spin 0.8s linear infinite; margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty-state{text-align:center; padding:30px 10px; color:var(--ink-soft); font-size:14px;}
+
+@media (max-width:640px){
+  .admin-topbar{flex-direction:column; align-items:flex-start;}
+  .admin-nav{width:100%;}
+}
+
+</style>
+</head>
+<body>
+<div class="wrap wide">
+  <div class="admin-topbar">
+    <div class="brand">🍜 ครัวหมุนเวียน · หลังบ้าน</div>
+    <div class="admin-nav">
+      <a href="rk_admin.html">← ร้านค้า / เซทเมนู / ตาราง</a>
+      <a href="#" onclick="setTab('results');return false;" id="nav-results">ผลโหวต</a>
+      <a href="#" onclick="setTab('feedback');return false;" id="nav-feedback">กล่องข้อความ</a>
+    </div>
+  </div>
+  <div id="app"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://uhefxwccuqagnbrbidbh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVoZWZ4d2NjdXFhZ25icmJpZGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDI1NDYsImV4cCI6MjEwMTU3ODU0Nn0.EE5QWPVjSkZpUTU37hgiz4LsGMAfq87dxFOkt9OYynY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
+const THAI_MONTHS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function fmtDate(d){ d=new Date(d); return d.getDate()+' '+THAI_MONTHS[d.getMonth()]+' '+(d.getFullYear()+543); }
+function fmtDateTime(d){ d=new Date(d); const hh=String(d.getHours()).padStart(2,'0'); const mm=String(d.getMinutes()).padStart(2,'0'); return fmtDate(d)+' '+hh+':'+mm+' น.'; }
+function statusLabel(s){ return { draft:'ร่าง', vote_open:'เปิดโหวต', vote_closed:'ปิดโหวตแล้ว', serving:'กำลังบริการ', completed:'เสร็จสิ้น' }[s] || s; }
+function fbStatusLabel(s){ return { new:'รอตรวจสอบ', acknowledged:'รับทราบแล้ว', resolved:'ดำเนินการแล้ว' }[s] || s; }
+const CATEGORIES = [
+  { key:'food_quality', label:'คุณภาพอาหาร' },
+  { key:'service', label:'การบริการ' },
+  { key:'quantity', label:'ปริมาณอาหาร' },
+  { key:'hygiene', label:'ความสะอาด' },
+  { key:'other', label:'อื่น ๆ' },
+];
+
+let state = {
+  tab: 'results',
+  locations: [], vendors: [],
+  resultsLocationId: null, scheduleList: [], scheduleId: null,
+  votes: [], sets: [],
+  fbLocationFilter: '', fbStatusFilter: '', fbCategoryFilter: '',
+  feedback: [], replyDrafts: {},
+  loading: true, error:'',
+};
+
+async function boot(){
+  try{
+    const [{ data: locations, error:e1 }, { data: vendors, error:e2 }] = await Promise.all([
+      sb.from('rk_locations').select('*').order('sort_order'),
+      sb.from('rk_vendors').select('*'),
+    ]);
+    if(e1) throw e1; if(e2) throw e2;
+    state.locations = locations || []; state.vendors = vendors || [];
+    state.resultsLocationId = state.locations[0]?.id || null;
+    state.fbLocationFilter = '';
+    await loadScheduleList();
+    await loadFeedback();
+    state.loading = false; render();
+  }catch(e){ console.error(e); state.error='โหลดข้อมูลไม่สำเร็จ: '+e.message; state.loading=false; render(); }
+}
+async function loadScheduleList(){
+  if(!state.resultsLocationId){ state.scheduleList=[]; return; }
+  const { data, error } = await sb.from('rk_schedule').select('*').eq('location_id', state.resultsLocationId).order('service_week_start', { ascending:false });
+  if(error) throw error;
+  state.scheduleList = data || [];
+  state.scheduleId = state.scheduleList[0]?.id || null;
+  await loadVotesForSchedule();
+}
+async function loadVotesForSchedule(){
+  state.votes = []; state.sets = [];
+  if(!state.scheduleId) return;
+  const sch = state.scheduleList.find(s=>s.id===state.scheduleId);
+  if(!sch) return;
+  const [{ data: sets, error:e1 }, { data: votes, error:e2 }] = await Promise.all([
+    sb.from('rk_menu_sets').select('*').eq('vendor_id', sch.vendor_id),
+    sb.from('rk_votes').select('*').eq('schedule_id', state.scheduleId),
+  ]);
+  if(e1) throw e1; if(e2) throw e2;
+  state.sets = sets || []; state.votes = votes || [];
+}
+async function loadFeedback(){
+  let q = sb.from('rk_feedback').select('*').order('created_at', { ascending:false }).limit(200);
+  if(state.fbLocationFilter) q = q.eq('location_id', state.fbLocationFilter);
+  if(state.fbStatusFilter) q = q.eq('status', state.fbStatusFilter);
+  if(state.fbCategoryFilter) q = q.eq('category', state.fbCategoryFilter);
+  const { data, error } = await q;
+  if(error) throw error;
+  state.feedback = data || [];
+}
+
+function setTab(t){ state.tab=t; render(); }
+
+function render(){
+  ['results','feedback'].forEach(t => document.getElementById('nav-'+t).classList.toggle('current', state.tab===t));
+  const el = document.getElementById('app');
+  if(state.loading){ el.innerHTML='<div class="card"><div class="spinner"></div></div>'; return; }
+  el.innerHTML = (state.error?`<div class="error">${state.error}</div>`:'') + (state.tab==='results' ? renderResults() : renderFeedback());
+  wireInputs();
+}
+
+/* ---------------- Results tab ---------------- */
+function computeRanking(){
+  const tally = {};
+  state.sets.forEach(s => tally[s.id] = { set:s, score:0, count:0, rank1:0 });
+  state.votes.forEach(v => {
+    if(!tally[v.menu_set_id]) return;
+    tally[v.menu_set_id].score += (6 - v.rank);
+    tally[v.menu_set_id].count += 1;
+    if(v.rank===1) tally[v.menu_set_id].rank1 += 1;
+  });
+  return Object.values(tally).sort((a,b)=> b.score-a.score || b.rank1-a.rank1);
+}
+function renderResults(){
+  const locBtns = state.locations.map(l => `<button type="button" class="unit-row-btn ${state.resultsLocationId===l.id?'active':''}" onclick="setResultsLocation(${l.id})"><span class="label">${l.short_name}</span></button>`).join('');
+  const schOptions = state.scheduleList.map(s => {
+    const ven = state.vendors.find(v=>v.id===s.vendor_id);
+    return `<option value="${s.id}" ${s.id===state.scheduleId?'selected':''}>${fmtDate(s.service_week_start)}–${fmtDate(s.service_week_end)} · ${ven?ven.name:'-'} · ${statusLabel(s.status)}</option>`;
+  }).join('');
+  const sch = state.scheduleList.find(s=>s.id===state.scheduleId);
+  const ranking = computeRanking();
+  const voters = new Set(state.votes.map(v=>v.voter_key)).size;
+  const maxScore = ranking[0]?.score || 1;
+  const rows = ranking.map((r,i) => `
+    <li>
+      <span class="pos">${i+1}</span>
+      <span class="bar-wrap">
+        <div class="bar-name"><span>${i<5?'⭐ ':''}${r.set.set_name}</span><span>${r.score} คะแนน (${r.count} โหวต)</span></div>
+        <div class="bar-bg"><div class="bar-fill" style="width:${maxScore? (r.score/maxScore*100):0}%"></div></div>
+      </span>
+    </li>`).join('');
+  return `
+    <div class="card">
+      <div class="sec-title" style="margin-bottom:10px;">เลือกจุดบริการและรอบสัปดาห์</div>
+      <div class="field-label">จุดบริการ</div>
+      ${locBtns}
+      <div class="field-block" style="border-left-color:var(--gold); margin-top:12px;">
+        <div class="field-label">รอบสัปดาห์</div>
+        <select id="schSelect">${schOptions || '<option>ยังไม่มีตารางหมุนเวียน</option>'}</select>
+      </div>
+    </div>
+    ${sch ? `
+    <div class="stat-row">
+      <div class="stat-box"><div class="num">${voters}</div><div class="lbl">จำนวนผู้โหวต</div></div>
+      <div class="stat-box"><div class="num">${state.sets.length}</div><div class="lbl">เซทเมนูทั้งหมด</div></div>
+      <div class="stat-box"><div class="num">${statusLabel(sch.status)}</div><div class="lbl">สถานะรอบ</div></div>
+    </div>
+    <div class="card">
+      <div class="sec-head">
+        <div><div class="sec-title">อันดับเซทเมนูจากผลโหวต</div><div class="sec-sub">⭐ = อันดับ Top 5 ที่แนะนำส่งให้ร้านจัดเตรียม</div></div>
+        <button class="btn-small primary" style="margin-left:auto;" onclick="downloadCsv()">ดาวน์โหลด CSV</button>
+      </div>
+      <ul class="rank-list">${rows || '<div class="empty-state">ยังไม่มีผู้โหวตในรอบนี้</div>'}</ul>
+    </div>` : ''}
+  `;
+}
+function setResultsLocation(id){ state.resultsLocationId=id; loadScheduleList().then(render); }
+function downloadCsv(){
+  const sch = state.scheduleList.find(s=>s.id===state.scheduleId);
+  const loc = state.locations.find(l=>l.id===state.resultsLocationId);
+  const ven = state.vendors.find(v=>v.id===sch?.vendor_id);
+  const ranking = computeRanking();
+  let csv = 'อันดับ,ชื่อเซทเมนู,คะแนนถ่วงน้ำหนัก,จำนวนโหวต,จำนวนที่เลือกเป็นอันดับ1\n';
+  ranking.forEach((r,i)=>{ csv += `${i+1},"${r.set.set_name.replace(/"/g,'""')}",${r.score},${r.count},${r.rank1}\n`; });
+  const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `ผลโหวต_${loc?loc.short_name:''}_${ven?ven.name:''}_${sch?sch.service_week_start:''}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+/* ---------------- Feedback tab ---------------- */
+function renderFeedback(){
+  const locOptions = ['<option value="">ทุกจุดบริการ</option>'].concat(state.locations.map(l=>`<option value="${l.id}" ${String(state.fbLocationFilter)===String(l.id)?'selected':''}>${l.short_name}</option>`)).join('');
+  const statusOptions = ['<option value="">ทุกสถานะ</option>', ['new','รอตรวจสอบ'], ['acknowledged','รับทราบแล้ว'], ['resolved','ดำเนินการแล้ว']].map(o=>{
+    if(typeof o==='string') return o;
+    return `<option value="${o[0]}" ${state.fbStatusFilter===o[0]?'selected':''}>${o[1]}</option>`;
+  }).join('');
+  const catOptions = ['<option value="">ทุกหมวดหมู่</option>'].concat(CATEGORIES.map(c=>`<option value="${c.key}" ${state.fbCategoryFilter===c.key?'selected':''}>${c.label}</option>`)).join('');
+  const items = state.feedback.map(f => {
+    const loc = state.locations.find(l=>l.id===f.location_id);
+    const draft = state.replyDrafts[f.id] !== undefined ? state.replyDrafts[f.id] : (f.admin_reply||'');
+    return `
+    <div class="msg-item">
+      <div class="msg-head">
+        <span class="msg-name">${f.anonymous ? 'ไม่ประสงค์ออกนาม' : (f.voter_name||'-')} ${f.unit && !f.anonymous? '· '+f.unit : ''}</span>
+        <span class="pill ${f.status}">${fbStatusLabel(f.status)}</span>
+      </div>
+      <div class="msg-meta">${loc?loc.short_name:'-'} · ${CATEGORIES.find(c=>c.key===f.category)?.label||f.category} · ${fmtDateTime(f.created_at)}</div>
+      <div class="msg-body" style="margin-top:6px;">${f.message}</div>
+      <div class="field-block" style="border-left-color:var(--service); margin-top:10px; margin-bottom:6px;">
+        <div class="field-label" style="font-size:12.5px;">คำตอบ / บันทึกจากแอดมิน</div>
+        <textarea rows="2" data-fbid="${f.id}" class="fbReply">${draft}</textarea>
+      </div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="btn-small primary" onclick="saveReply('${f.id}','acknowledged')">บันทึกคำตอบ / รับทราบ</button>
+        <button class="btn-small" onclick="saveReply('${f.id}','resolved')">ทำเครื่องหมายว่าแก้ไขแล้ว</button>
+      </div>
+    </div>`;
+  }).join('');
+  return `
+    <div class="card">
+      <div class="sec-title" style="margin-bottom:10px;">ตัวกรอง</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <select id="fFilterLoc" style="flex:1; min-width:160px;">${locOptions}</select>
+        <select id="fFilterStatus" style="flex:1; min-width:160px;">${statusOptions}</select>
+        <select id="fFilterCat" style="flex:1; min-width:160px;">${catOptions}</select>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sec-title" style="margin-bottom:10px;">ข้อความทั้งหมด ${state.feedback.length} รายการ</div>
+      ${items || '<div class="empty-state">ไม่มีข้อความตามเงื่อนไขที่เลือก</div>'}
+    </div>`;
+}
+async function saveReply(id, status){
+  const ta = document.querySelector(`textarea[data-fbid="${id}"]`);
+  const reply = ta ? ta.value : '';
+  try{
+    const { error } = await sb.from('rk_feedback').update({ admin_reply: reply, admin_reply_at: new Date().toISOString(), status }).eq('id', id);
+    if(error) throw error;
+    await loadFeedback(); render();
+  }catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); }
+}
+
+function wireInputs(){
+  const schSelect = document.getElementById('schSelect');
+  if(schSelect) schSelect.onchange = e => { state.scheduleId = e.target.value; loadVotesForSchedule().then(render); };
+  const fLoc = document.getElementById('fFilterLoc');
+  if(fLoc) fLoc.onchange = e => { state.fbLocationFilter = e.target.value; loadFeedback().then(render); };
+  const fStatus = document.getElementById('fFilterStatus');
+  if(fStatus) fStatus.onchange = e => { state.fbStatusFilter = e.target.value; loadFeedback().then(render); };
+  const fCat = document.getElementById('fFilterCat');
+  if(fCat) fCat.onchange = e => { state.fbCategoryFilter = e.target.value; loadFeedback().then(render); };
+  document.querySelectorAll('.fbReply').forEach(t => { t.oninput = e => { state.replyDrafts[e.target.getAttribute('data-fbid')] = e.target.value; }; });
+}
+
+boot();
+</script>
+</body></html>
