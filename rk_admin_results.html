@@ -198,6 +198,7 @@ textarea{resize:vertical; line-height:1.5;}
     <div class="admin-nav">
       <a href="rk_admin.html">← ร้านค้า / เซทเมนู / ตาราง</a>
       <a href="#" onclick="setTab('results');return false;" id="nav-results">ผลโหวต</a>
+      <a href="#" onclick="setTab('raw');return false;" id="nav-raw">ข้อมูลดิบ (ใครโหวตอะไร)</a>
       <a href="#" onclick="setTab('feedback');return false;" id="nav-feedback">กล่องข้อความ</a>
     </div>
   </div>
@@ -230,21 +231,27 @@ let state = {
   votes: [], sets: [],
   fbLocationFilter: '', fbStatusFilter: '', fbCategoryFilter: '',
   feedback: [], replyDrafts: {},
+  allSchedule: [], allSets: [],
+  rawLocationFilter: '', rawScheduleFilter: '', rawVotes: [],
   loading: true, error:'',
 };
 
 async function boot(){
   try{
-    const [{ data: locations, error:e1 }, { data: vendors, error:e2 }] = await Promise.all([
+    const [{ data: locations, error:e1 }, { data: vendors, error:e2 }, { data: allSchedule, error:e3 }, { data: allSets, error:e4 }] = await Promise.all([
       sb.from('rk_locations').select('*').order('sort_order'),
       sb.from('rk_vendors').select('*'),
+      sb.from('rk_schedule').select('*').order('service_week_start', { ascending:false }),
+      sb.from('rk_menu_sets').select('*'),
     ]);
-    if(e1) throw e1; if(e2) throw e2;
+    if(e1) throw e1; if(e2) throw e2; if(e3) throw e3; if(e4) throw e4;
     state.locations = locations || []; state.vendors = vendors || [];
+    state.allSchedule = allSchedule || []; state.allSets = allSets || [];
     state.resultsLocationId = state.locations[0]?.id || null;
     state.fbLocationFilter = '';
     await loadScheduleList();
     await loadFeedback();
+    await loadRawVotes();
     state.loading = false; render();
   }catch(e){ console.error(e); state.error='โหลดข้อมูลไม่สำเร็จ: '+e.message; state.loading=false; render(); }
 }
@@ -281,10 +288,11 @@ async function loadFeedback(){
 function setTab(t){ state.tab=t; render(); }
 
 function render(){
-  ['results','feedback'].forEach(t => document.getElementById('nav-'+t).classList.toggle('current', state.tab===t));
+  ['results','raw','feedback'].forEach(t => document.getElementById('nav-'+t).classList.toggle('current', state.tab===t));
   const el = document.getElementById('app');
   if(state.loading){ el.innerHTML='<div class="card"><div class="spinner"></div></div>'; return; }
-  el.innerHTML = (state.error?`<div class="error">${state.error}</div>`:'') + (state.tab==='results' ? renderResults() : renderFeedback());
+  const body = state.tab==='results' ? renderResults() : state.tab==='raw' ? renderRaw() : renderFeedback();
+  el.innerHTML = (state.error?`<div class="error">${state.error}</div>`:'') + body;
   wireInputs();
 }
 
@@ -358,6 +366,81 @@ function downloadCsv(){
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
+/* ---------------- Raw data tab (ใครโหวตอะไร มาจากหน่วยงานอะไร) ---------------- */
+async function loadRawVotes(){
+  let scheduleIds;
+  if(state.rawScheduleFilter){
+    scheduleIds = [state.rawScheduleFilter];
+  }else if(state.rawLocationFilter){
+    scheduleIds = state.allSchedule.filter(s => String(s.location_id)===String(state.rawLocationFilter)).map(s=>s.id);
+  }else{
+    scheduleIds = state.allSchedule.map(s=>s.id);
+  }
+  if(!scheduleIds.length){ state.rawVotes = []; return; }
+  const { data, error } = await sb.from('rk_votes').select('*').in('schedule_id', scheduleIds).order('voted_at', { ascending:false });
+  if(error) throw error;
+  state.rawVotes = data || [];
+}
+function renderRaw(){
+  const locOptions = ['<option value="">ทุกจุดบริการ</option>'].concat(state.locations.map(l=>`<option value="${l.id}" ${String(state.rawLocationFilter)===String(l.id)?'selected':''}>${l.short_name}</option>`)).join('');
+  const schedulesForFilter = state.rawLocationFilter ? state.allSchedule.filter(s=>String(s.location_id)===String(state.rawLocationFilter)) : state.allSchedule;
+  const schOptions = ['<option value="">ทุกสัปดาห์</option>'].concat(schedulesForFilter.map(s=>{
+    const ven = state.vendors.find(v=>v.id===s.vendor_id);
+    return `<option value="${s.id}" ${state.rawScheduleFilter===s.id?'selected':''}>${fmtDate(s.service_week_start)}–${fmtDate(s.service_week_end)} · ${ven?ven.name:'-'}</option>`;
+  })).join('');
+  const rows = state.rawVotes.map(v => {
+    const sch = state.allSchedule.find(s=>s.id===v.schedule_id);
+    const loc = sch ? state.locations.find(l=>l.id===sch.location_id) : null;
+    const ven = sch ? state.vendors.find(ve=>ve.id===sch.vendor_id) : null;
+    const set = state.allSets.find(s=>s.id===v.menu_set_id);
+    return `<tr>
+      <td>${fmtDateTime(v.voted_at)}</td>
+      <td>${v.voter_name||'-'}</td>
+      <td>${v.unit||'-'}</td>
+      <td>${loc?loc.short_name:'-'}</td>
+      <td>${ven?ven.name:'-'}</td>
+      <td>${sch? fmtDate(sch.service_week_start)+'–'+fmtDate(sch.service_week_end) : '-'}</td>
+      <td style="text-align:center;">${v.rank}</td>
+      <td>${set?set.set_name:'-'}</td>
+    </tr>`;
+  }).join('');
+  return `
+    <div class="card">
+      <div class="sec-head">
+        <div><div class="sec-title">ข้อมูลดิบรายบุคคล</div><div class="sec-sub">ใครโหวตเซทไหน อันดับที่เท่าไร มาจากหน่วยงาน/จุดใด — 1 แถว ต่อ 1 รายการที่เลือก</div></div>
+        <button class="btn-small primary" style="margin-left:auto;" onclick="downloadRawCsv()">ดาวน์โหลด CSV</button>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <select id="rawFilterLoc" style="flex:1; min-width:180px;">${locOptions}</select>
+        <select id="rawFilterSch" style="flex:1; min-width:220px;">${schOptions}</select>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sec-title" style="margin-bottom:12px;">ทั้งหมด ${state.rawVotes.length} รายการ (${new Set(state.rawVotes.map(v=>v.voter_key)).size} คน)</div>
+      <div class="table-scroll"><table class="data-table">
+        <thead><tr><th>เวลาโหวต</th><th>ชื่อ-นามสกุล</th><th>หน่วยงาน</th><th>จุดบริการ</th><th>ร้าน</th><th>สัปดาห์บริการ</th><th>อันดับ</th><th>เซทเมนูที่เลือก</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="8" class="empty-state">ไม่มีข้อมูลตามเงื่อนไขที่เลือก</td></tr>'}</tbody>
+      </table></div>
+    </div>`;
+}
+function downloadRawCsv(){
+  let csv = 'เวลาโหวต,ชื่อ-นามสกุล,หน่วยงาน,จุดบริการ,ร้าน,สัปดาห์บริการ,อันดับ,เซทเมนูที่เลือก\n';
+  state.rawVotes.forEach(v => {
+    const sch = state.allSchedule.find(s=>s.id===v.schedule_id);
+    const loc = sch ? state.locations.find(l=>l.id===sch.location_id) : null;
+    const ven = sch ? state.vendors.find(ve=>ve.id===sch.vendor_id) : null;
+    const set = state.allSets.find(s=>s.id===v.menu_set_id);
+    const wk = sch ? (fmtDate(sch.service_week_start)+'-'+fmtDate(sch.service_week_end)) : '';
+    const esc = s => `"${String(s==null?'':s).replace(/"/g,'""')}"`;
+    csv += [esc(fmtDateTime(v.voted_at)), esc(v.voter_name), esc(v.unit), esc(loc?loc.short_name:''), esc(ven?ven.name:''), esc(wk), v.rank, esc(set?set.set_name:'')].join(',') + '\n';
+  });
+  const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `ข้อมูลดิบการโหวต_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
 /* ---------------- Feedback tab ---------------- */
 function renderFeedback(){
   const locOptions = ['<option value="">ทุกจุดบริการ</option>'].concat(state.locations.map(l=>`<option value="${l.id}" ${String(state.fbLocationFilter)===String(l.id)?'selected':''}>${l.short_name}</option>`)).join('');
@@ -421,6 +504,10 @@ function wireInputs(){
   const fCat = document.getElementById('fFilterCat');
   if(fCat) fCat.onchange = e => { state.fbCategoryFilter = e.target.value; loadFeedback().then(render); };
   document.querySelectorAll('.fbReply').forEach(t => { t.oninput = e => { state.replyDrafts[e.target.getAttribute('data-fbid')] = e.target.value; }; });
+  const rawLoc = document.getElementById('rawFilterLoc');
+  if(rawLoc) rawLoc.onchange = e => { state.rawLocationFilter = e.target.value; state.rawScheduleFilter=''; loadRawVotes().then(render); };
+  const rawSch = document.getElementById('rawFilterSch');
+  if(rawSch) rawSch.onchange = e => { state.rawScheduleFilter = e.target.value; loadRawVotes().then(render); };
 }
 
 boot();
