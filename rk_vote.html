@@ -227,6 +227,9 @@ const LOCATION_INFO = {
   point2: { short:'กลุ่มที่ 2', full:'พิพิธภัณฑ์ศิลป์แผ่นดิน / อาคารเก็บผลิตภัณฑ์ศิลปาชีพ' },
   point3: { short:'กลุ่มที่ 3', full:'โครงการก่อสร้างศิลปาชีพฯ / แผนกนักเรียนช่าง' },
 };
+const MEAL_LABELS = { breakfast:'มื้อเช้า', lunch:'มื้อกลางวัน', dinner:'มื้อเย็น' };
+const MEAL_ORDER = ['breakfast','lunch','dinner'];
+const EXTRA_MEAL_UNIT = 'แผนกนักเรียนช่าง';
 const THAI_MONTHS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 function fmtDate(d){ d=new Date(d); return d.getDate()+' '+THAI_MONTHS[d.getMonth()]+' '+(d.getFullYear()+543); }
 function fmtDateTime(d){ d=new Date(d); const hh=String(d.getHours()).padStart(2,'0'); const mm=String(d.getMinutes()).padStart(2,'0'); return fmtDate(d)+' '+hh+':'+mm+' น.'; }
@@ -259,14 +262,17 @@ let state = {
   otherUnitName: '',
   manualCode: '',
   error: '',
-  loc: null, schedule: null, vendor: null, sets: [],
-  selected: [],
+  loc: null, schedule: null, vendor: null,
+  setsByMeal: { breakfast:[], lunch:[], dinner:[] },
+  selectedByMeal: { breakfast:[], lunch:[], dinner:[] },
   submitting: false,
   upcoming: null,
 };
 const voterKey = getVoterKey();
 
-function required(){ return Math.min(5, state.sets.length || 5); }
+function isExtraMealUnit(){ return state.unit === EXTRA_MEAL_UNIT; }
+function mealsToShow(){ return isExtraMealUnit() ? MEAL_ORDER : ['lunch']; }
+function required(meal){ const n = state.setsByMeal[meal].length; return n ? Math.min(5, n) : 0; }
 
 function renderApp(){
   const el = document.getElementById('app');
@@ -355,12 +361,14 @@ async function startVoting(){
     const { data: sets, error: sErr } = await sb.from('rk_menu_sets').select('*')
       .eq('vendor_id', openRow.vendor_id).eq('active', true).order('sort_order').order('set_no');
     if(sErr) throw sErr;
-    state.sets = sets || [];
+    state.setsByMeal = { breakfast:[], lunch:[], dinner:[] };
+    (sets||[]).forEach(s => { const m = s.meal_period||'lunch'; if(state.setsByMeal[m]) state.setsByMeal[m].push(s); });
 
     const { data: mine, error: myErr } = await sb.from('rk_votes').select('*')
       .eq('schedule_id', openRow.id).eq('voter_key', voterKey).order('rank');
     if(myErr) throw myErr;
-    state.selected = (mine||[]).map(v => v.menu_set_id);
+    state.selectedByMeal = { breakfast:[], lunch:[], dinner:[] };
+    (mine||[]).forEach(v => { const m = v.meal_period||'lunch'; if(state.selectedByMeal[m]) state.selectedByMeal[m].push(v.menu_set_id); });
 
     state.step = 'vote'; renderApp();
   }catch(e){
@@ -386,31 +394,59 @@ function renderClosed(el){
     </div>`;
 }
 
-function toggleSelect(id){
-  const i = state.selected.indexOf(id);
-  if(i>=0){ state.selected.splice(i,1); }
-  else if(state.selected.length < required()){ state.selected.push(id); }
+function toggleSelect(meal, id){
+  const sel = state.selectedByMeal[meal];
+  const i = sel.indexOf(id);
+  if(i>=0){ sel.splice(i,1); }
+  else if(sel.length < required(meal)){ sel.push(id); }
   renderApp();
 }
-function removeSelected(id){ toggleSelect(id); }
+function removeSelected(meal, id){ toggleSelect(meal, id); }
 
-function renderVote(el){
-  const loc = state.loc, v = state.vendor, sch = state.schedule;
-  const req = required();
-  const setCards = state.sets.map(s => {
-    const idx = state.selected.indexOf(s.id);
+function renderMealBlock(meal){
+  const sets = state.setsByMeal[meal];
+  const sel = state.selectedByMeal[meal];
+  const req = required(meal);
+  if(!sets.length){
+    return `
+    <div class="card">
+      <div class="sec-head">
+        <div class="sec-icon" style="background:var(--food-bg); color:var(--food-text);">${ICONS.bowl}</div>
+        <div><div class="sec-title">${MEAL_LABELS[meal]}</div><div class="sec-sub">ยังไม่มีเซทเมนูสำหรับมื้อนี้</div></div>
+      </div>
+      <div class="empty-state">ร้านยังไม่ได้เพิ่มเซทเมนูสำหรับ${MEAL_LABELS[meal]} — ข้ามมื้อนี้ไปก่อนได้ ไม่กระทบมื้ออื่น</div>
+    </div>`;
+  }
+  const setCards = sets.map(s => {
+    const idx = sel.indexOf(s.id);
     const selected = idx>=0;
     return `
-    <div class="item-card ${selected?'selected':''}" onclick="toggleSelect('${s.id}')">
+    <div class="item-card ${selected?'selected':''}" onclick="toggleSelect('${meal}','${s.id}')">
       ${selected? `<div class="rank-badge">${idx+1}</div>` : ''}
       <div class="thumb" ${s.image_url?`style="background-image:url('${s.image_url}')"`:''}>${s.image_url?'':ICONS.image}</div>
       <div class="cap">${s.set_name}</div>
     </div>`;
   }).join('');
-  const chosenList = state.selected.map((id,i) => {
-    const s = state.sets.find(x=>x.id===id);
-    return `<li><span class="pos">${i+1}</span><span class="bar-wrap"><div class="bar-name">${s?s.set_name:''} <button class="link-btn" onclick="removeSelected('${id}')">ลบ</button></div></span></li>`;
+  const chosenList = sel.map((id,i) => {
+    const s = sets.find(x=>x.id===id);
+    return `<li><span class="pos">${i+1}</span><span class="bar-wrap"><div class="bar-name">${s?s.set_name:''} <button class="link-btn" onclick="removeSelected('${meal}','${id}')">ลบ</button></div></span></li>`;
   }).join('');
+  return `
+    <div class="card">
+      <div class="sec-head">
+        <div class="sec-icon" style="background:var(--food-bg); color:var(--food-text);">${ICONS.bowl}</div>
+        <div><div class="sec-title">${MEAL_LABELS[meal]}</div><div class="sec-sub">เลือกแล้ว ${sel.length}/${req}</div></div>
+      </div>
+      <div class="card-grid">${setCards}</div>
+      ${sel.length ? `<ul class="rank-list" style="margin-top:14px;">${chosenList}</ul>` : ''}
+    </div>`;
+}
+
+function renderVote(el){
+  const loc = state.loc, v = state.vendor, sch = state.schedule;
+  const meals = mealsToShow();
+  const allReady = meals.every(m => required(m)===0 || state.selectedByMeal[m].length===required(m));
+  const summary = meals.map(m => `${MEAL_LABELS[m]} ${state.selectedByMeal[m].length}/${required(m)}`).join(' · ');
 
   el.innerHTML = `
     <div class="card">
@@ -421,23 +457,12 @@ function renderVote(el){
           <div class="sec-sub">${loc.short_name} — สัปดาห์บริการ ${fmtDate(sch.service_week_start)}–${fmtDate(sch.service_week_end)}</div>
         </div>
       </div>
-      <div class="info-box">${ICONS.clock} เปิดโหวตถึง ${fmtDateTime(sch.vote_closes_at)} — เลือกเซทที่ท่านต้องการ ${req} อันดับ (แตะเลือกตามลำดับที่อยากได้ก่อน)</div>
+      <div class="info-box">${ICONS.clock} เปิดโหวตถึง ${fmtDateTime(sch.vote_closes_at)} — เลือกเซทที่ท่านต้องการอันดับ 1–5 ในแต่ละมื้อ (แตะเลือกตามลำดับที่อยากได้ก่อน)${isExtraMealUnit() ? ' — หน่วยงานของท่านโหวตได้ทั้งมื้อเช้า กลางวัน และเย็น' : ''}</div>
       ${state.error ? `<div class="error">${state.error}</div>` : ''}
     </div>
-    <div class="card">
-      <div class="sec-head">
-        <div class="sec-icon" style="background:var(--food-bg); color:var(--food-text);">${ICONS.bowl}</div>
-        <div><div class="sec-title">เซทเมนูของร้าน</div><div class="sec-sub">เลือกแล้ว ${state.selected.length}/${req}</div></div>
-      </div>
-      <div class="card-grid">${setCards || '<div class="empty-state">ร้านยังไม่ได้เพิ่มเซทเมนู</div>'}</div>
-    </div>
-    ${state.selected.length ? `
-    <div class="card">
-      <div class="sec-head"><div class="sec-title">อันดับที่ท่านเลือก</div></div>
-      <ul class="rank-list">${chosenList}</ul>
-    </div>` : ''}
-    <button class="submit-btn" ${state.selected.length!==req || state.submitting ? 'disabled':''} onclick="submitVote()">
-      ${state.submitting ? 'กำลังส่งโหวต…' : ('ส่งโหวต ('+state.selected.length+'/'+req+')')}
+    ${meals.map(renderMealBlock).join('')}
+    <button class="submit-btn" ${!allReady || state.submitting ? 'disabled':''} onclick="submitVote()">
+      ${state.submitting ? 'กำลังส่งโหวต…' : ('ส่งโหวต ('+summary+')')}
     </button>
     <div style="text-align:center; margin-top:14px;"><button class="link-btn" onclick="backToLogin()">เปลี่ยนชื่อ / หน่วยงาน</button></div>
   `;
@@ -449,13 +474,21 @@ async function submitVote(){
     const { error: delErr } = await sb.from('rk_votes').delete()
       .eq('schedule_id', state.schedule.id).eq('voter_key', voterKey);
     if(delErr) throw delErr;
-    const rows = state.selected.map((menu_set_id, i) => ({
-      schedule_id: state.schedule.id, voter_key: voterKey,
-      voter_name: state.voterName.trim(), unit: state.unit===OTHER_UNIT ? (state.loc.short_name) : state.unit,
-      menu_set_id, rank: i+1,
-    }));
-    const { error: insErr } = await sb.from('rk_votes').insert(rows);
-    if(insErr) throw insErr;
+    const unitLabel = state.unit===OTHER_UNIT ? state.loc.short_name : state.unit;
+    let rows = [];
+    mealsToShow().forEach(meal => {
+      state.selectedByMeal[meal].forEach((menu_set_id, i) => {
+        rows.push({
+          schedule_id: state.schedule.id, voter_key: voterKey,
+          voter_name: state.voterName.trim(), unit: unitLabel,
+          menu_set_id, meal_period: meal, rank: i+1,
+        });
+      });
+    });
+    if(rows.length){
+      const { error: insErr } = await sb.from('rk_votes').insert(rows);
+      if(insErr) throw insErr;
+    }
     state.step = 'done'; state.submitting=false; renderApp();
   }catch(e){
     console.error(e);
@@ -466,9 +499,12 @@ async function submitVote(){
 
 function renderDone(el){
   const canEdit = isVotingOpen(state.schedule);
-  const list = state.selected.map((id,i) => {
-    const s = state.sets.find(x=>x.id===id);
-    return `<li><span class="pos">${i+1}</span><span class="bar-wrap"><div class="bar-name">${s?s.set_name:''}</div></span></li>`;
+  const mealSections = mealsToShow().filter(m => state.selectedByMeal[m].length).map(meal => {
+    const list = state.selectedByMeal[meal].map((id,i) => {
+      const s = state.setsByMeal[meal].find(x=>x.id===id);
+      return `<li><span class="pos">${i+1}</span><span class="bar-wrap"><div class="bar-name">${s?s.set_name:''}</div></span></li>`;
+    }).join('');
+    return `<div class="sec-title" style="margin:14px 0 4px;">${MEAL_LABELS[meal]}</div><ul class="rank-list">${list}</ul>`;
   }).join('');
   el.innerHTML = `
     <div class="card">
@@ -477,7 +513,7 @@ function renderDone(el){
         <h2>บันทึกโหวตเรียบร้อยแล้ว</h2>
         <p>ขอบคุณ ${state.voterName} — ${state.loc.short_name}</p>
       </div>
-      <ul class="rank-list">${list}</ul>
+      ${mealSections}
       ${canEdit ? `<button class="btn-outline" style="width:100%; margin-top:16px;" onclick="state.step='vote'; renderApp();">แก้ไขโหวต</button>` : `<div class="note">ปิดรับการแก้ไขแล้วเมื่อพ้นเวลาโหวต</div>`}
       <a href="rk_feedback.html" class="btn-outline" style="width:100%; margin-top:10px; display:block; text-align:center; text-decoration:none; box-sizing:border-box;">💬 แจ้งปัญหา / ส่งข้อความถึงแอดมิน</a>
       <div style="text-align:center; margin-top:14px;"><button class="link-btn" onclick="backToLogin()">เปลี่ยนชื่อ / หน่วยงาน</button></div>
@@ -485,7 +521,7 @@ function renderDone(el){
 }
 
 function backToLogin(){
-  state = { ...state, step:'login', error:'', loc:null, schedule:null, vendor:null, sets:[], selected:[] };
+  state = { ...state, step:'login', error:'', loc:null, schedule:null, vendor:null, setsByMeal:{breakfast:[],lunch:[],dinner:[]}, selectedByMeal:{breakfast:[],lunch:[],dinner:[]} };
   renderApp();
 }
 

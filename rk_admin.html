@@ -232,6 +232,8 @@ const ICONS = {
   image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
 };
+const MEAL_LABELS = { breakfast:'มื้อเช้า', lunch:'มื้อกลางวัน', dinner:'มื้อเย็น' };
+const EXTRA_MEAL_UNIT = 'แผนกนักเรียนช่าง';
 
 let state = {
   tab: 'vendors',
@@ -329,8 +331,11 @@ async function deleteVendor(id){
 
 /* ---------------- Menu sets tab ---------------- */
 function renderMenuSets(){
+  if(!state.menuMealFilter) state.menuMealFilter = 'lunch';
   const vendorOptions = state.vendors.map(v => `<option value="${v.id}" ${v.id===state.selectedVendorId?'selected':''}>${v.name}</option>`).join('');
-  const cards = state.sets.map(s => `
+  const mealTabs = Object.keys(MEAL_LABELS).map(k => `<button type="button" class="seg-opt ${state.menuMealFilter===k?'active':''}" onclick="setMenuMealFilter('${k}')">${MEAL_LABELS[k]}</button>`).join('');
+  const filteredSets = state.sets.filter(s => (s.meal_period||'lunch')===state.menuMealFilter);
+  const cards = filteredSets.map(s => `
     <div class="item-card" style="cursor:default;">
       <div class="thumb" ${s.image_url?`style="background-image:url('${s.image_url}')"`:''}>${s.image_url?'':ICONS.image}</div>
       <div class="cap">เซทที่ ${s.set_no}: ${s.set_name}<div class="sub">${s.active?'แสดงในหน้าโหวต':'ซ่อนอยู่'}</div>
@@ -350,15 +355,18 @@ function renderMenuSets(){
     </div>
     <div class="card">
       <div class="sec-head">
-        <div class="sec-title">เซทเมนูทั้งหมด ${state.sets.length} เซท</div>
+        <div><div class="sec-title">เซทเมนู — ${MEAL_LABELS[state.menuMealFilter]}</div><div class="sec-sub">มื้อเช้า/มื้อเย็น เปิดให้โหวตเฉพาะกลุ่มที่ 3 หน่วยงาน "${EXTRA_MEAL_UNIT}" เท่านั้น ส่วนมื้อกลางวันเป็นมื้อหลักของทุกจุด</div></div>
         <button class="btn-small primary" style="margin-left:auto;" ${state.selectedVendorId?'':'disabled'} onclick="openSetModal(null)">+ เพิ่มเซทเมนู</button>
       </div>
-      <div class="card-grid">${cards || '<div class="empty-state">ร้านนี้ยังไม่มีเซทเมนู</div>'}</div>
+      <div class="seg-row">${mealTabs}</div>
+      <div class="card-grid">${cards || `<div class="empty-state">ร้านนี้ยังไม่มีเซทเมนูสำหรับ${MEAL_LABELS[state.menuMealFilter]}</div>`}</div>
     </div>`;
 }
+function setMenuMealFilter(k){ state.menuMealFilter = k; render(); }
 function openSetModal(s){
-  const nextNo = (state.sets.reduce((m,x)=>Math.max(m,x.set_no),0)) + 1;
-  state.modal = { type:'set', data: s ? {...s} : { id:null, vendor_id: state.selectedVendorId, set_no: nextNo, set_name:'', image_url:'', active:true }, uploading:false };
+  const meal = s ? (s.meal_period||'lunch') : state.menuMealFilter;
+  const nextNo = (state.sets.filter(x=>(x.meal_period||'lunch')===meal).reduce((m,x)=>Math.max(m,x.set_no),0)) + 1;
+  state.modal = { type:'set', data: s ? {...s, meal_period: s.meal_period||'lunch'} : { id:null, vendor_id: state.selectedVendorId, set_no: nextNo, set_name:'', image_url:'', meal_period: meal, active:true }, uploading:false };
   render();
 }
 async function toggleSetActive(id, val){
@@ -508,6 +516,13 @@ function renderModal(){
           <input type="text" id="mPhone" value="${d.contact_phone||''}" placeholder="เบอร์โทร">
         </div>` : `
         <div class="field-block" style="border-left-color:var(--gold);">
+          <div class="field-label">มื้ออาหาร</div>
+          <select id="mMeal">
+            ${Object.keys(MEAL_LABELS).map(k=>`<option value="${k}" ${d.meal_period===k?'selected':''}>${MEAL_LABELS[k]}</option>`).join('')}
+          </select>
+          <div class="field-hint" style="margin-top:-6px;">มื้อเช้า/มื้อเย็น จะแสดงให้โหวตเฉพาะกลุ่มที่ 3 หน่วยงาน "${EXTRA_MEAL_UNIT}" เท่านั้น</div>
+        </div>
+        <div class="field-block" style="border-left-color:var(--gold);">
           <div class="field-label">ลำดับเซท</div>
           <input type="number" id="mSetNo" value="${d.set_no||1}" min="1">
         </div>
@@ -529,6 +544,7 @@ function wireModalInputs(){
     const phoneEl = document.getElementById('mPhone'); if(phoneEl) phoneEl.oninput = e=>d.contact_phone=e.target.value;
     const setNoEl = document.getElementById('mSetNo'); if(setNoEl) setNoEl.oninput = e=>d.set_no=parseInt(e.target.value||'1',10);
     const setNameEl = document.getElementById('mSetName'); if(setNameEl) setNameEl.oninput = e=>d.set_name=e.target.value;
+    const mealEl = document.getElementById('mMeal'); if(mealEl) mealEl.onchange = e=>d.meal_period=e.target.value;
   }
   const startEl = document.getElementById('schStart'); if(startEl) startEl.onchange = e=>onScheduleStartChange(e.target.value);
 }
@@ -563,7 +579,7 @@ async function saveModal(){
       closeModal(); await boot();
     }else{
       if(!d.set_name || !d.set_name.trim()){ alert('กรุณากรอกชื่อเซท'); return; }
-      const payload = { vendor_id:d.vendor_id, set_no:d.set_no||1, set_name:d.set_name.trim(), image_url:d.image_url||null, active: d.active!==false, sort_order:d.set_no||1 };
+      const payload = { vendor_id:d.vendor_id, set_no:d.set_no||1, set_name:d.set_name.trim(), image_url:d.image_url||null, meal_period: d.meal_period||'lunch', active: d.active!==false, sort_order:d.set_no||1 };
       if(d.id){ const { error } = await sb.from('rk_menu_sets').update(payload).eq('id', d.id); if(error) throw error; }
       else{ const { error } = await sb.from('rk_menu_sets').insert(payload); if(error) throw error; }
       closeModal(); await loadMenuSets(); render();

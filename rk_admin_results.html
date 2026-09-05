@@ -216,6 +216,8 @@ function fmtDate(d){ d=new Date(d); return d.getDate()+' '+THAI_MONTHS[d.getMont
 function fmtDateTime(d){ d=new Date(d); const hh=String(d.getHours()).padStart(2,'0'); const mm=String(d.getMinutes()).padStart(2,'0'); return fmtDate(d)+' '+hh+':'+mm+' น.'; }
 function statusLabel(s){ return { draft:'ร่าง', vote_open:'เปิดโหวต', vote_closed:'ปิดโหวตแล้ว', serving:'กำลังบริการ', completed:'เสร็จสิ้น' }[s] || s; }
 function fbStatusLabel(s){ return { new:'รอตรวจสอบ', acknowledged:'รับทราบแล้ว', resolved:'ดำเนินการแล้ว' }[s] || s; }
+const MEAL_LABELS = { breakfast:'มื้อเช้า', lunch:'มื้อกลางวัน', dinner:'มื้อเย็น' };
+const MEAL_ORDER = ['breakfast','lunch','dinner'];
 const CATEGORIES = [
   { key:'food_quality', label:'คุณภาพอาหาร' },
   { key:'service', label:'การบริการ' },
@@ -227,12 +229,12 @@ const CATEGORIES = [
 let state = {
   tab: 'results',
   locations: [], vendors: [],
-  resultsLocationId: null, scheduleList: [], scheduleId: null,
+  resultsLocationId: null, scheduleList: [], scheduleId: null, resultsMeal: 'lunch',
   votes: [], sets: [],
   fbLocationFilter: '', fbStatusFilter: '', fbCategoryFilter: '',
   feedback: [], replyDrafts: {},
   allSchedule: [], allSets: [],
-  rawLocationFilter: '', rawScheduleFilter: '', rawVotes: [],
+  rawLocationFilter: '', rawScheduleFilter: '', rawMealFilter: '', rawVotes: [],
   loading: true, error:'',
 };
 
@@ -297,10 +299,12 @@ function render(){
 }
 
 /* ---------------- Results tab ---------------- */
-function computeRanking(){
+function computeRanking(meal){
+  const setsForMeal = state.sets.filter(s => (s.meal_period||'lunch')===meal);
   const tally = {};
-  state.sets.forEach(s => tally[s.id] = { set:s, score:0, count:0, rank1:0 });
+  setsForMeal.forEach(s => tally[s.id] = { set:s, score:0, count:0, rank1:0 });
   state.votes.forEach(v => {
+    if((v.meal_period||'lunch')!==meal) return;
     if(!tally[v.menu_set_id]) return;
     tally[v.menu_set_id].score += (6 - v.rank);
     tally[v.menu_set_id].count += 1;
@@ -315,8 +319,10 @@ function renderResults(){
     return `<option value="${s.id}" ${s.id===state.scheduleId?'selected':''}>${fmtDate(s.service_week_start)}–${fmtDate(s.service_week_end)} · ${ven?ven.name:'-'} · ${statusLabel(s.status)}</option>`;
   }).join('');
   const sch = state.scheduleList.find(s=>s.id===state.scheduleId);
-  const ranking = computeRanking();
-  const voters = new Set(state.votes.map(v=>v.voter_key)).size;
+  const mealTabs = MEAL_ORDER.map(m => `<button type="button" class="seg-opt ${state.resultsMeal===m?'active':''}" onclick="setResultsMeal('${m}')">${MEAL_LABELS[m]}</button>`).join('');
+  const ranking = computeRanking(state.resultsMeal);
+  const mealVotes = state.votes.filter(v => (v.meal_period||'lunch')===state.resultsMeal);
+  const voters = new Set(mealVotes.map(v=>v.voter_key)).size;
   const maxScore = ranking[0]?.score || 1;
   const rows = ranking.map((r,i) => `
     <li>
@@ -337,32 +343,38 @@ function renderResults(){
       </div>
     </div>
     ${sch ? `
+    <div class="card">
+      <div class="sec-title" style="margin-bottom:10px;">มื้ออาหาร</div>
+      <div class="seg-row">${mealTabs}</div>
+      <div class="field-hint">มื้อเช้า/มื้อเย็น มีผลเฉพาะกลุ่มที่ 3 หน่วยงาน "แผนกนักเรียนช่าง" — จุดอื่นจะไม่มีผู้โหวตในมื้อเหล่านี้</div>
+    </div>
     <div class="stat-row">
-      <div class="stat-box"><div class="num">${voters}</div><div class="lbl">จำนวนผู้โหวต</div></div>
-      <div class="stat-box"><div class="num">${state.sets.length}</div><div class="lbl">เซทเมนูทั้งหมด</div></div>
+      <div class="stat-box"><div class="num">${voters}</div><div class="lbl">จำนวนผู้โหวต (${MEAL_LABELS[state.resultsMeal]})</div></div>
+      <div class="stat-box"><div class="num">${state.sets.filter(s=>(s.meal_period||'lunch')===state.resultsMeal).length}</div><div class="lbl">เซทเมนู${MEAL_LABELS[state.resultsMeal]}</div></div>
       <div class="stat-box"><div class="num">${statusLabel(sch.status)}</div><div class="lbl">สถานะรอบ</div></div>
     </div>
     <div class="card">
       <div class="sec-head">
-        <div><div class="sec-title">อันดับเซทเมนูจากผลโหวต</div><div class="sec-sub">⭐ = อันดับ Top 5 ที่แนะนำส่งให้ร้านจัดเตรียม</div></div>
+        <div><div class="sec-title">อันดับเซทเมนูจากผลโหวต — ${MEAL_LABELS[state.resultsMeal]}</div><div class="sec-sub">⭐ = อันดับ Top 5 ที่แนะนำส่งให้ร้านจัดเตรียม</div></div>
         <button class="btn-small primary" style="margin-left:auto;" onclick="downloadCsv()">ดาวน์โหลด CSV</button>
       </div>
-      <ul class="rank-list">${rows || '<div class="empty-state">ยังไม่มีผู้โหวตในรอบนี้</div>'}</ul>
+      <ul class="rank-list">${rows || '<div class="empty-state">ยังไม่มีผู้โหวตในมื้อนี้</div>'}</ul>
     </div>` : ''}
   `;
 }
 function setResultsLocation(id){ state.resultsLocationId=id; loadScheduleList().then(render); }
+function setResultsMeal(m){ state.resultsMeal=m; render(); }
 function downloadCsv(){
   const sch = state.scheduleList.find(s=>s.id===state.scheduleId);
   const loc = state.locations.find(l=>l.id===state.resultsLocationId);
   const ven = state.vendors.find(v=>v.id===sch?.vendor_id);
-  const ranking = computeRanking();
+  const ranking = computeRanking(state.resultsMeal);
   let csv = 'อันดับ,ชื่อเซทเมนู,คะแนนถ่วงน้ำหนัก,จำนวนโหวต,จำนวนที่เลือกเป็นอันดับ1\n';
   ranking.forEach((r,i)=>{ csv += `${i+1},"${r.set.set_name.replace(/"/g,'""')}",${r.score},${r.count},${r.rank1}\n`; });
   const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `ผลโหวต_${loc?loc.short_name:''}_${ven?ven.name:''}_${sch?sch.service_week_start:''}.csv`;
+  a.href = url; a.download = `ผลโหวต_${MEAL_LABELS[state.resultsMeal]}_${loc?loc.short_name:''}_${ven?ven.name:''}_${sch?sch.service_week_start:''}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
@@ -379,7 +391,9 @@ async function loadRawVotes(){
   if(!scheduleIds.length){ state.rawVotes = []; return; }
   const { data, error } = await sb.from('rk_votes').select('*').in('schedule_id', scheduleIds).order('voted_at', { ascending:false });
   if(error) throw error;
-  state.rawVotes = data || [];
+  let rows = data || [];
+  if(state.rawMealFilter) rows = rows.filter(v => (v.meal_period||'lunch')===state.rawMealFilter);
+  state.rawVotes = rows;
 }
 function renderRaw(){
   const locOptions = ['<option value="">ทุกจุดบริการ</option>'].concat(state.locations.map(l=>`<option value="${l.id}" ${String(state.rawLocationFilter)===String(l.id)?'selected':''}>${l.short_name}</option>`)).join('');
@@ -388,6 +402,7 @@ function renderRaw(){
     const ven = state.vendors.find(v=>v.id===s.vendor_id);
     return `<option value="${s.id}" ${state.rawScheduleFilter===s.id?'selected':''}>${fmtDate(s.service_week_start)}–${fmtDate(s.service_week_end)} · ${ven?ven.name:'-'}</option>`;
   })).join('');
+  const mealOptions = ['<option value="">ทุกมื้อ</option>'].concat(MEAL_ORDER.map(m=>`<option value="${m}" ${state.rawMealFilter===m?'selected':''}>${MEAL_LABELS[m]}</option>`)).join('');
   const rows = state.rawVotes.map(v => {
     const sch = state.allSchedule.find(s=>s.id===v.schedule_id);
     const loc = sch ? state.locations.find(l=>l.id===sch.location_id) : null;
@@ -400,6 +415,7 @@ function renderRaw(){
       <td>${loc?loc.short_name:'-'}</td>
       <td>${ven?ven.name:'-'}</td>
       <td>${sch? fmtDate(sch.service_week_start)+'–'+fmtDate(sch.service_week_end) : '-'}</td>
+      <td>${MEAL_LABELS[v.meal_period||'lunch']}</td>
       <td style="text-align:center;">${v.rank}</td>
       <td>${set?set.set_name:'-'}</td>
     </tr>`;
@@ -413,18 +429,19 @@ function renderRaw(){
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <select id="rawFilterLoc" style="flex:1; min-width:180px;">${locOptions}</select>
         <select id="rawFilterSch" style="flex:1; min-width:220px;">${schOptions}</select>
+        <select id="rawFilterMeal" style="flex:1; min-width:140px;">${mealOptions}</select>
       </div>
     </div>
     <div class="card">
       <div class="sec-title" style="margin-bottom:12px;">ทั้งหมด ${state.rawVotes.length} รายการ (${new Set(state.rawVotes.map(v=>v.voter_key)).size} คน)</div>
       <div class="table-scroll"><table class="data-table">
-        <thead><tr><th>เวลาโหวต</th><th>ชื่อ-นามสกุล</th><th>หน่วยงาน</th><th>จุดบริการ</th><th>ร้าน</th><th>สัปดาห์บริการ</th><th>อันดับ</th><th>เซทเมนูที่เลือก</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="8" class="empty-state">ไม่มีข้อมูลตามเงื่อนไขที่เลือก</td></tr>'}</tbody>
+        <thead><tr><th>เวลาโหวต</th><th>ชื่อ-นามสกุล</th><th>หน่วยงาน</th><th>จุดบริการ</th><th>ร้าน</th><th>สัปดาห์บริการ</th><th>มื้ออาหาร</th><th>อันดับ</th><th>เซทเมนูที่เลือก</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="9" class="empty-state">ไม่มีข้อมูลตามเงื่อนไขที่เลือก</td></tr>'}</tbody>
       </table></div>
     </div>`;
 }
 function downloadRawCsv(){
-  let csv = 'เวลาโหวต,ชื่อ-นามสกุล,หน่วยงาน,จุดบริการ,ร้าน,สัปดาห์บริการ,อันดับ,เซทเมนูที่เลือก\n';
+  let csv = 'เวลาโหวต,ชื่อ-นามสกุล,หน่วยงาน,จุดบริการ,ร้าน,สัปดาห์บริการ,มื้ออาหาร,อันดับ,เซทเมนูที่เลือก\n';
   state.rawVotes.forEach(v => {
     const sch = state.allSchedule.find(s=>s.id===v.schedule_id);
     const loc = sch ? state.locations.find(l=>l.id===sch.location_id) : null;
@@ -432,7 +449,7 @@ function downloadRawCsv(){
     const set = state.allSets.find(s=>s.id===v.menu_set_id);
     const wk = sch ? (fmtDate(sch.service_week_start)+'-'+fmtDate(sch.service_week_end)) : '';
     const esc = s => `"${String(s==null?'':s).replace(/"/g,'""')}"`;
-    csv += [esc(fmtDateTime(v.voted_at)), esc(v.voter_name), esc(v.unit), esc(loc?loc.short_name:''), esc(ven?ven.name:''), esc(wk), v.rank, esc(set?set.set_name:'')].join(',') + '\n';
+    csv += [esc(fmtDateTime(v.voted_at)), esc(v.voter_name), esc(v.unit), esc(loc?loc.short_name:''), esc(ven?ven.name:''), esc(wk), esc(MEAL_LABELS[v.meal_period||'lunch']), v.rank, esc(set?set.set_name:'')].join(',') + '\n';
   });
   const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -508,6 +525,8 @@ function wireInputs(){
   if(rawLoc) rawLoc.onchange = e => { state.rawLocationFilter = e.target.value; state.rawScheduleFilter=''; loadRawVotes().then(render); };
   const rawSch = document.getElementById('rawFilterSch');
   if(rawSch) rawSch.onchange = e => { state.rawScheduleFilter = e.target.value; loadRawVotes().then(render); };
+  const rawMeal = document.getElementById('rawFilterMeal');
+  if(rawMeal) rawMeal.onchange = e => { state.rawMealFilter = e.target.value; loadRawVotes().then(render); };
 }
 
 boot();
