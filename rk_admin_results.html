@@ -183,6 +183,32 @@ textarea{resize:vertical; line-height:1.5;}
 .thumb-sm svg{width:20px; height:20px;}
 .chip-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
 .chip{display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:var(--ivory-dim); color:var(--ink-soft); font-size:11.5px; font-weight:600;}
+.vendor-logo-big-wrap{width:100%; height:110px; margin:2px 0 16px; border-radius:12px; background:#fff; padding:8px; box-shadow:0 4px 14px rgba(0,0,0,0.08); border:1px solid rgba(31,45,61,0.08); display:flex; align-items:center; justify-content:center; overflow:hidden; box-sizing:border-box;}
+.vendor-logo-big-wrap img{max-width:100%; max-height:100%; object-fit:contain;}
+
+/* กันข้อความไทยยาวๆ (ไม่มีเว้นวรรค) ทะลุกรอบบนมือถือ */
+.chip, .pill, .bar-name, .sec-title, .sec-sub, .msg-body, .cap, .field-hint, td, th { overflow-wrap:anywhere; word-break:break-word; }
+.chip-row{ max-width:100%; }
+
+/* ตารางแบบ responsive: จอเล็กพับแต่ละแถวเป็นการ์ด แทนตารางแนวนอนที่ต้องเลื่อนซ้าย-ขวา */
+@media (max-width:720px){
+  .table-scroll{ overflow-x:visible; }
+  .data-table{ width:100%; }
+  .data-table thead{ display:none; }
+  .data-table, .data-table tbody, .data-table tr, .data-table td{ display:block; width:100%; }
+  .data-table tr{ margin-bottom:14px; border:1.5px solid rgba(31,45,61,0.12); border-radius:12px; overflow:hidden; background:#fff; }
+  .data-table tr:last-child{ margin-bottom:0; }
+  .data-table td{ padding:9px 12px; border-bottom:1px solid rgba(31,45,61,0.08); text-align:left !important; }
+  .data-table td:last-child{ border-bottom:none; }
+  .data-table td::before{ content:attr(data-label); display:block; font-family:'Prompt',sans-serif; font-weight:700; font-size:10.5px; letter-spacing:.4px; color:var(--ink-soft); margin-bottom:3px; text-transform:uppercase; }
+  .data-table td:empty::before{ content:none; }
+  .admin-topbar{ padding:12px 14px; }
+  .admin-topbar .brand{ font-size:13.5px; }
+  .stat-row{ gap:8px; }
+  .stat-box{ flex:1 1 100%; padding:12px; }
+  .card{ padding:20px 16px; }
+  h1{ font-size:clamp(18px,7vw,23px); }
+}
 
 .spinner{width:22px; height:22px; border-radius:50%; border:3px solid rgba(217,166,40,0.25); border-top-color:var(--gold); animation:spin 0.8s linear infinite; margin:0 auto;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -219,6 +245,22 @@ const THAI_MONTHS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.
 function fmtDate(d){ d=new Date(d); return d.getDate()+' '+THAI_MONTHS[d.getMonth()]+' '+(d.getFullYear()+543); }
 function fmtDateTime(d){ d=new Date(d); const hh=String(d.getHours()).padStart(2,'0'); const mm=String(d.getMinutes()).padStart(2,'0'); return fmtDate(d)+' '+hh+':'+mm+' น.'; }
 function statusLabel(s){ return { draft:'ร่าง', vote_open:'เปิดโหวต', vote_closed:'ปิดโหวตแล้ว', serving:'กำลังบริการ', completed:'เสร็จสิ้น' }[s] || s; }
+function isVotingOpen(row){
+  if(!row) return false;
+  const now = new Date();
+  if(row.status==='vote_closed' || row.status==='completed') return false;
+  if(row.status==='vote_open') return true;
+  return now >= new Date(row.vote_opens_at) && now <= new Date(row.vote_closes_at);
+}
+function currentVendorForLocation(locId){
+  const rows = state.allSchedule.filter(s => String(s.location_id)===String(locId));
+  if(!rows.length) return null;
+  const now = new Date();
+  // เลือกรอบที่ "ตรงกับตอนนี้" ก่อน: กำลังโหวต/กำลังบริการอยู่ ถ้าไม่มีให้ใช้รอบล่าสุดที่ผ่านมา หรือรอบถัดไปที่ใกล้ที่สุด
+  const active = rows.find(isVotingOpen) || rows.find(r=>r.status==='serving');
+  const pick = active || rows.slice().sort((a,b)=> Math.abs(new Date(a.service_week_start)-now) - Math.abs(new Date(b.service_week_start)-now))[0];
+  return pick ? (state.vendors.find(v=>v.id===pick.vendor_id) || null) : null;
+}
 function fbStatusLabel(s){ return { new:'รอตรวจสอบ', acknowledged:'รับทราบแล้ว', resolved:'ดำเนินการแล้ว' }[s] || s; }
 const ICONS = {
   image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
@@ -328,12 +370,16 @@ function computeRanking(meal){
   return Object.values(tally).sort((a,b)=> b.score-a.score || b.rank1-a.rank1);
 }
 function renderResults(){
-  const locBtns = state.locations.map(l => `<button type="button" class="unit-row-btn ${state.resultsLocationId===l.id?'active':''}" onclick="setResultsLocation(${l.id})"><span class="label">${l.short_name}</span></button>`).join('');
+  const locBtns = state.locations.map(l => {
+    const ven = currentVendorForLocation(l.id);
+    return `<button type="button" class="unit-row-btn ${state.resultsLocationId===l.id?'active':''}" onclick="setResultsLocation(${l.id})"><span class="label">${l.short_name} — ${ven ? ven.name : 'ยังไม่มีร้านประจำจุด'}</span></button>`;
+  }).join('');
   const schOptions = state.scheduleList.map(s => {
     const ven = state.vendors.find(v=>v.id===s.vendor_id);
     return `<option value="${s.id}" ${s.id===state.scheduleId?'selected':''}>${fmtDate(s.service_week_start)}–${fmtDate(s.service_week_end)} · ${ven?ven.name:'-'} · ${statusLabel(s.status)}</option>`;
   }).join('');
   const sch = state.scheduleList.find(s=>s.id===state.scheduleId);
+  const schVendor = sch ? state.vendors.find(v=>v.id===sch.vendor_id) : null;
   const mealTabs = MEAL_ORDER.map(m => `<button type="button" class="seg-opt ${state.resultsMeal===m?'active':''}" onclick="setResultsMeal('${m}')">${MEAL_LABELS[m]}</button>`).join('');
   const ranking = computeRanking(state.resultsMeal);
   const mealVotes = state.votes.filter(v => (v.meal_period||'lunch')===state.resultsMeal);
@@ -361,7 +407,12 @@ function renderResults(){
     </div>
     ${sch ? `
     <div class="card">
-      <div class="sec-title" style="margin-bottom:10px;">มื้ออาหาร</div>
+      <div class="sec-head">
+        <div class="sec-icon" style="background:var(--gold); color:#fff;">${ICONS.image}</div>
+        <div><div class="sec-title">${schVendor ? schVendor.name : 'ยังไม่ระบุร้าน'}</div><div class="sec-sub">ร้านประจำรอบนี้ — ${state.locations.find(l=>l.id===state.resultsLocationId)?.short_name || ''}</div></div>
+      </div>
+      ${schVendor&&schVendor.logo_url ? `<div class="vendor-logo-big-wrap"><img src="${schVendor.logo_url}" alt="โลโก้${schVendor.name}"></div>` : ''}
+      <div class="field-label" style="margin-top:6px;">มื้ออาหาร</div>
       <div class="seg-row">${mealTabs}</div>
       <div class="field-hint">มื้อเช้า/มื้อเย็น มีผลเฉพาะกลุ่มที่ 3 หน่วยงาน "แผนกนักเรียนช่าง" — จุดอื่นจะไม่มีผู้โหวตในมื้อเหล่านี้</div>
     </div>
@@ -372,7 +423,7 @@ function renderResults(){
     </div>
     <div class="card">
       <div class="sec-head">
-        <div><div class="sec-title">อันดับเซทเมนู Top 5 จากผลโหวต — ${MEAL_LABELS[state.resultsMeal]}</div><div class="sec-sub">5 เซทที่คะแนนสูงสุด แนะนำส่งให้ร้านจัดเตรียม (ดาวน์โหลด CSV เพื่อดูอันดับทั้งหมด)</div></div>
+        <div><div class="sec-title">อันดับเซทเมนู Top 5 จากผลโหวต — ${schVendor?schVendor.name+' — ':''}${MEAL_LABELS[state.resultsMeal]}</div><div class="sec-sub">5 เซทที่คะแนนสูงสุด แนะนำส่งให้ร้านจัดเตรียม (ดาวน์โหลด CSV เพื่อดูอันดับทั้งหมด)</div></div>
         <button class="btn-small primary" style="margin-left:auto;" onclick="downloadCsv()">ดาวน์โหลด CSV</button>
       </div>
       <ul class="rank-list">${rows || '<div class="empty-state">ยังไม่มีผู้โหวตในมื้อนี้</div>'}</ul>
@@ -426,15 +477,15 @@ function renderRaw(){
     const ven = sch ? state.vendors.find(ve=>ve.id===sch.vendor_id) : null;
     const set = state.allSets.find(s=>s.id===v.menu_set_id);
     return `<tr>
-      <td>${fmtDateTime(v.voted_at)}</td>
-      <td>${v.voter_name||'-'}</td>
-      <td>${v.unit||'-'}</td>
-      <td>${loc?loc.short_name:'-'}</td>
-      <td>${ven?ven.name:'-'}</td>
-      <td>${sch? fmtDate(sch.service_week_start)+'–'+fmtDate(sch.service_week_end) : '-'}</td>
-      <td>${MEAL_LABELS[v.meal_period||'lunch']}</td>
-      <td style="text-align:center;">${v.rank}</td>
-      <td>${set?set.set_name:'-'}</td>
+      <td data-label="เวลาโหวต">${fmtDateTime(v.voted_at)}</td>
+      <td data-label="ชื่อ-นามสกุล">${v.voter_name||'-'}</td>
+      <td data-label="หน่วยงาน">${v.unit||'-'}</td>
+      <td data-label="จุดบริการ">${loc?loc.short_name:'-'}</td>
+      <td data-label="ร้าน">${ven?ven.name:'-'}</td>
+      <td data-label="สัปดาห์บริการ">${sch? fmtDate(sch.service_week_start)+'–'+fmtDate(sch.service_week_end) : '-'}</td>
+      <td data-label="มื้ออาหาร">${MEAL_LABELS[v.meal_period||'lunch']}</td>
+      <td data-label="อันดับ" style="text-align:center;">${v.rank}</td>
+      <td data-label="เซทเมนูที่เลือก">${set?set.set_name:'-'}</td>
     </tr>`;
   }).join('');
   return `

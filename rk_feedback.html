@@ -179,6 +179,36 @@ textarea{resize:vertical; line-height:1.5;}
 .rank-list .bar-name{font-size:13.5px; font-weight:700; margin-bottom:4px; display:flex; justify-content:space-between; gap:6px;}
 .rank-list .bar-bg{background:var(--ivory-dim); border-radius:6px; height:10px; overflow:hidden;}
 .rank-list .bar-fill{height:100%; background:linear-gradient(90deg,var(--gold-light),var(--gold)); border-radius:6px;}
+.thumb-sm{width:44px; height:44px; border-radius:8px; background:var(--ivory-dim) center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0;}
+.thumb-sm svg{width:20px; height:20px;}
+.chip-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+.chip{display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:var(--ivory-dim); color:var(--ink-soft); font-size:11.5px; font-weight:600;}
+.vendor-logo-big-wrap{width:100%; height:110px; margin:2px 0 16px; border-radius:12px; background:#fff; padding:8px; box-shadow:0 4px 14px rgba(0,0,0,0.08); border:1px solid rgba(31,45,61,0.08); display:flex; align-items:center; justify-content:center; overflow:hidden; box-sizing:border-box;}
+.vendor-logo-big-wrap img{max-width:100%; max-height:100%; object-fit:contain;}
+
+/* กันข้อความไทยยาวๆ (ไม่มีเว้นวรรค) ทะลุกรอบบนมือถือ */
+.chip, .pill, .bar-name, .sec-title, .sec-sub, .msg-body, .cap, .field-hint, td, th { overflow-wrap:anywhere; word-break:break-word; }
+.chip-row{ max-width:100%; }
+
+/* ตารางแบบ responsive: จอเล็กพับแต่ละแถวเป็นการ์ด แทนตารางแนวนอนที่ต้องเลื่อนซ้าย-ขวา */
+@media (max-width:720px){
+  .table-scroll{ overflow-x:visible; }
+  .data-table{ width:100%; }
+  .data-table thead{ display:none; }
+  .data-table, .data-table tbody, .data-table tr, .data-table td{ display:block; width:100%; }
+  .data-table tr{ margin-bottom:14px; border:1.5px solid rgba(31,45,61,0.12); border-radius:12px; overflow:hidden; background:#fff; }
+  .data-table tr:last-child{ margin-bottom:0; }
+  .data-table td{ padding:9px 12px; border-bottom:1px solid rgba(31,45,61,0.08); text-align:left !important; }
+  .data-table td:last-child{ border-bottom:none; }
+  .data-table td::before{ content:attr(data-label); display:block; font-family:'Prompt',sans-serif; font-weight:700; font-size:10.5px; letter-spacing:.4px; color:var(--ink-soft); margin-bottom:3px; text-transform:uppercase; }
+  .data-table td:empty::before{ content:none; }
+  .admin-topbar{ padding:12px 14px; }
+  .admin-topbar .brand{ font-size:13.5px; }
+  .stat-row{ gap:8px; }
+  .stat-box{ flex:1 1 100%; padding:12px; }
+  .card{ padding:20px 16px; }
+  h1{ font-size:clamp(18px,7vw,23px); }
+}
 
 .spinner{width:22px; height:22px; border-radius:50%; border:3px solid rgba(217,166,40,0.25); border-top-color:var(--gold); animation:spin 0.8s linear infinite; margin:0 auto;}
 @keyframes spin{to{transform:rotate(360deg);}}
