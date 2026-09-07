@@ -220,6 +220,9 @@ function fmtDate(d){ d=new Date(d); return d.getDate()+' '+THAI_MONTHS[d.getMont
 function fmtDateTime(d){ d=new Date(d); const hh=String(d.getHours()).padStart(2,'0'); const mm=String(d.getMinutes()).padStart(2,'0'); return fmtDate(d)+' '+hh+':'+mm+' น.'; }
 function statusLabel(s){ return { draft:'ร่าง', vote_open:'เปิดโหวต', vote_closed:'ปิดโหวตแล้ว', serving:'กำลังบริการ', completed:'เสร็จสิ้น' }[s] || s; }
 function fbStatusLabel(s){ return { new:'รอตรวจสอบ', acknowledged:'รับทราบแล้ว', resolved:'ดำเนินการแล้ว' }[s] || s; }
+const ICONS = {
+  image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+};
 const MEAL_LABELS = { breakfast:'มื้อเช้า', lunch:'มื้อกลางวัน', dinner:'มื้อเย็น' };
 const MEAL_ORDER = ['breakfast','lunch','dinner'];
 const CATEGORIES = [
@@ -336,11 +339,13 @@ function renderResults(){
   const mealVotes = state.votes.filter(v => (v.meal_period||'lunch')===state.resultsMeal);
   const voters = new Set(mealVotes.map(v=>v.voter_key)).size;
   const maxScore = ranking[0]?.score || 1;
-  const rows = ranking.map((r,i) => `
+  const top5 = ranking.slice(0, 5);
+  const rows = top5.map((r,i) => `
     <li>
       <span class="pos">${i+1}</span>
+      <div class="thumb-sm" ${r.set.image_url?`style="background-image:url('${r.set.image_url}')"`:''}>${r.set.image_url?'':ICONS.image}</div>
       <span class="bar-wrap">
-        <div class="bar-name"><span>${i<5?'⭐ ':''}${r.set.set_name}</span><span>${r.score} คะแนน (${r.count} โหวต)</span></div>
+        <div class="bar-name"><span>${r.set.set_name}</span><span>${r.score} คะแนน (${r.count} โหวต)</span></div>
         <div class="bar-bg"><div class="bar-fill" style="width:${maxScore? (r.score/maxScore*100):0}%"></div></div>
       </span>
     </li>`).join('');
@@ -367,7 +372,7 @@ function renderResults(){
     </div>
     <div class="card">
       <div class="sec-head">
-        <div><div class="sec-title">อันดับเซทเมนูจากผลโหวต — ${MEAL_LABELS[state.resultsMeal]}</div><div class="sec-sub">⭐ = อันดับ Top 5 ที่แนะนำส่งให้ร้านจัดเตรียม</div></div>
+        <div><div class="sec-title">อันดับเซทเมนู Top 5 จากผลโหวต — ${MEAL_LABELS[state.resultsMeal]}</div><div class="sec-sub">5 เซทที่คะแนนสูงสุด แนะนำส่งให้ร้านจัดเตรียม (ดาวน์โหลด CSV เพื่อดูอันดับทั้งหมด)</div></div>
         <button class="btn-small primary" style="margin-left:auto;" onclick="downloadCsv()">ดาวน์โหลด CSV</button>
       </div>
       <ul class="rank-list">${rows || '<div class="empty-state">ยังไม่มีผู้โหวตในมื้อนี้</div>'}</ul>
