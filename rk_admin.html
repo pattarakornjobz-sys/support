@@ -179,6 +179,10 @@ textarea{resize:vertical; line-height:1.5;}
 .rank-list .bar-name{font-size:13.5px; font-weight:700; margin-bottom:4px; display:flex; justify-content:space-between; gap:6px;}
 .rank-list .bar-bg{background:var(--ivory-dim); border-radius:6px; height:10px; overflow:hidden;}
 .rank-list .bar-fill{height:100%; background:linear-gradient(90deg,var(--gold-light),var(--gold)); border-radius:6px;}
+.thumb-sm{width:44px; height:44px; border-radius:8px; background:var(--ivory-dim) center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0;}
+.thumb-sm svg{width:20px; height:20px;}
+.chip-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+.chip{display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:var(--ivory-dim); color:var(--ink-soft); font-size:11.5px; font-weight:600;}
 
 .spinner{width:22px; height:22px; border-radius:50%; border:3px solid rgba(217,166,40,0.25); border-top-color:var(--gold); animation:spin 0.8s linear infinite; margin:0 auto;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -238,6 +242,7 @@ const EXTRA_MEAL_UNIT = 'แผนกนักเรียนช่าง';
 let state = {
   tab: 'vendors',
   vendors: [], sets: [], schedule: [], locations: [],
+  allSets: [], scheduleSets: [],
   selectedVendorId: null,
   modal: null,
   scheduleForm: null,
@@ -246,7 +251,7 @@ let state = {
 
 async function boot(){
   try{
-    const [{ data: vendors, error:e1 }, { data: locations, error:e2 }] = await Promise.all([
+    const [{ data: vendors, error:e1 }, { data: locations, error:e2 } ] = await Promise.all([
       sb.from('rk_vendors').select('*').order('sort_order').order('created_at'),
       sb.from('rk_locations').select('*').order('sort_order'),
     ]);
@@ -271,9 +276,57 @@ async function loadMenuSets(){
   state.sets = data || [];
 }
 async function loadSchedule(){
-  const { data, error } = await sb.from('rk_schedule').select('*').order('service_week_start', { ascending:false });
-  if(error) throw error;
+  const [{ data, error }, { data: allSets, error: e2 }, { data: scheduleSets, error: e3 }] = await Promise.all([
+    sb.from('rk_schedule').select('*').order('service_week_start', { ascending:false }),
+    sb.from('rk_menu_sets').select('id,vendor_id,set_name,meal_period,active'),
+    sb.from('rk_schedule_sets').select('*'),
+  ]);
+  if(error) throw error; if(e2) throw e2; if(e3) throw e3;
   state.schedule = data || [];
+  state.allSets = allSets || [];
+  state.scheduleSets = scheduleSets || [];
+}
+function shuffleArr(arr){
+  for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+  return arr;
+}
+async function rollRandomSets(id){
+  const row = state.schedule.find(s=>s.id===id);
+  if(!row) return;
+  const n = row.random_set_count;
+  if(!n || n < 5){ alert('รอบนี้ยังไม่ได้กำหนดจำนวนเซทที่จะสุ่ม (ต้องอย่างน้อย 5 เซท) — กดปุ่ม "แก้ไข" เพื่อกำหนดค่านี้แล้วบันทึกก่อน'); return; }
+  const already = state.scheduleSets.some(r=>r.schedule_id===id);
+  if(!confirm(already ? 'สุ่มเซทเปิดโหวตใหม่สำหรับรอบนี้? เซทที่เปิดอยู่เดิมจะถูกแทนที่ (ถ้ามีคนโหวตไปแล้ว โหวตเดิมจะยังอยู่แต่อาจไม่ตรงกับเซทที่เปิดใหม่)' : 'สุ่มเลือกเซทเปิดโหวตสำหรับรอบนี้เลยหรือไม่?')) return;
+  try{
+    const { data: activeSets, error: e1 } = await sb.from('rk_menu_sets').select('*').eq('vendor_id', row.vendor_id).eq('active', true);
+    if(e1) throw e1;
+    const byMeal = { breakfast:[], lunch:[], dinner:[] };
+    (activeSets||[]).forEach(s => { const m = s.meal_period||'lunch'; if(byMeal[m]) byMeal[m].push(s); });
+    let chosen = [];
+    Object.keys(byMeal).forEach(meal => {
+      const pool = byMeal[meal];
+      if(!pool.length) return;
+      const picked = pool.length <= n ? pool : shuffleArr(pool.slice()).slice(0, n);
+      picked.forEach(s => chosen.push({ schedule_id: id, menu_set_id: s.id, meal_period: meal }));
+    });
+    const { error: delErr } = await sb.from('rk_schedule_sets').delete().eq('schedule_id', id);
+    if(delErr) throw delErr;
+    if(chosen.length){
+      const { error: insErr } = await sb.from('rk_schedule_sets').insert(chosen);
+      if(insErr) throw insErr;
+    }
+    await loadSchedule(); render();
+  }catch(e){ alert('สุ่มไม่สำเร็จ: '+e.message); }
+}
+async function clearRandomSets(id){
+  if(!confirm('ยกเลิกการสุ่ม และเปิดโหวตทุกเซทที่ Active ตามปกติสำหรับรอบนี้?')) return;
+  try{
+    const { error: delErr } = await sb.from('rk_schedule_sets').delete().eq('schedule_id', id);
+    if(delErr) throw delErr;
+    const { error: updErr } = await sb.from('rk_schedule').update({ random_set_count: null }).eq('id', id);
+    if(updErr) throw updErr;
+    await loadSchedule(); render();
+  }catch(e){ alert('ยกเลิกไม่สำเร็จ: '+e.message); }
 }
 
 function setTab(t){ state.tab=t; render(); }
@@ -383,7 +436,7 @@ async function deleteSet(id){
 
 /* ---------------- Schedule tab ---------------- */
 function blankScheduleForm(){
-  return { location_id: state.locations[0]?.id || null, vendor_id: state.vendors[0]?.id || '', service_week_start:'', vote_opens_at:'', vote_closes_at:'', service_week_end:'' };
+  return { location_id: state.locations[0]?.id || null, vendor_id: state.vendors[0]?.id || '', service_week_start:'', vote_opens_at:'', vote_closes_at:'', service_week_end:'', random_set_count: null, status: 'draft' };
 }
 function computeWindowFromStart(startStr){
   if(!startStr) return { end:'', opens:'', closes:'' };
@@ -401,15 +454,28 @@ function renderSchedule(){
     const loc = state.locations.find(l=>l.id===r.location_id);
     const ven = state.vendors.find(v=>v.id===r.vendor_id);
     const openNow = isVotingOpen(r);
+    const mySchedSets = state.scheduleSets.filter(ss=>ss.schedule_id===r.id);
+    const randomInfo = r.random_set_count
+      ? (mySchedSets.length
+          ? `<span class="pill vote_open">สุ่มเปิด ${r.random_set_count} เซท/มื้อ — เลือกไว้แล้ว ${mySchedSets.length} เซท</span>`
+          : `<span class="pill draft">ตั้งสุ่ม ${r.random_set_count} เซท/มื้อ — ยังไม่ได้กดสุ่ม</span>`)
+      : `<span class="pill draft">เปิดทุกเซท (ไม่สุ่ม)</span>`;
+    const previewChips = mySchedSets.length ? `<div class="chip-row">${mySchedSets.map(ss=>{
+      const set = state.allSets.find(s=>s.id===ss.menu_set_id);
+      return `<span class="chip">${MEAL_LABELS[ss.meal_period||'lunch']}: ${set?set.set_name:'(ไม่พบเซท)'}</span>`;
+    }).join('')}</div>` : '';
     return `<tr>
       <td>${loc? loc.short_name : '-'}</td>
       <td>${ven? ven.name : '-'}</td>
       <td>${fmtDate(r.service_week_start)} – ${fmtDate(r.service_week_end)}</td>
       <td>${fmtDateTime(r.vote_opens_at)}<br>ถึง ${fmtDateTime(r.vote_closes_at)}</td>
-      <td><span class="pill ${r.status}">${statusLabel(r.status)}</span>${openNow?' <span class="pill vote_open">กำลังโหวตอยู่</span>':''}</td>
+      <td><span class="pill ${r.status}">${statusLabel(r.status)}</span>${openNow?' <span class="pill vote_open">กำลังโหวตอยู่</span>':''}<br><div style="margin-top:6px;">${randomInfo}</div>${previewChips}</td>
       <td style="white-space:nowrap;">
+        <button class="btn-small" onclick="editSchedule('${r.id}')">แก้ไข</button>
         <button class="btn-small" onclick="setScheduleStatus('${r.id}','vote_open')">เปิดโหวตทันที</button>
         <button class="btn-small" onclick="setScheduleStatus('${r.id}','vote_closed')">ปิดโหวตทันที</button>
+        ${r.random_set_count ? `<button class="btn-small primary" onclick="rollRandomSets('${r.id}')">${mySchedSets.length?'สุ่มใหม่':'สุ่มเซทเปิดโหวต'}</button>` : ''}
+        ${mySchedSets.length ? `<button class="btn-small" onclick="clearRandomSets('${r.id}')">ยกเลิกการสุ่ม</button>` : ''}
         <button class="btn-small danger" onclick="deleteSchedule('${r.id}')">ลบ</button>
       </td>
     </tr>`;
@@ -440,17 +506,35 @@ function renderSchedule(){
         <div class="field-label">ปิดโหวต</div>
         <input type="datetime-local" id="schCloses" value="${f.vote_closes_at}">
       </div>` : ''}
+      <div class="field-block" style="border-left-color:var(--gold);">
+        <div class="field-label">จำนวนเซทที่จะสุ่มเปิดโหวต (ไม่บังคับ)</div>
+        <div class="field-hint">เว้นว่าง = เปิดโหวตทุกเซทที่ Active ทั้งหมดตามปกติ หรือกำหนดจำนวน (อย่างน้อย 5 เซท) เพื่อให้ระบบสุ่มเลือกเซทมาเปิดโหวตเท่านั้น — สุ่มแยกอิสระต่อมื้ออาหาร ถ้าเซทของมื้อนั้นมีน้อยกว่าจำนวนที่กำหนด จะเปิดให้หมดทุกเซทของมื้อนั้นโดยไม่ต้องสุ่ม หลังบันทึกแล้วต้องกดปุ่ม "สุ่มเซทเปิดโหวต" ที่ตารางด้านล่างอีกครั้งเพื่อให้ระบบสุ่มจริง</div>
+        <input type="number" id="schRandomCount" min="5" placeholder="เช่น 7 (เว้นว่าง = เปิดทุกเซท)" value="${f.random_set_count||''}">
+      </div>
       <button class="submit-btn" onclick="saveSchedule()">บันทึกตารางหมุนเวียน</button>
     </div>
     <div class="card">
       <div class="sec-title" style="margin-bottom:12px;">ตารางหมุนเวียนทั้งหมด</div>
       <div class="table-scroll"><table class="data-table">
-        <thead><tr><th>จุด</th><th>ร้าน</th><th>สัปดาห์บริการ</th><th>ช่วงเวลาโหวต</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+        <thead><tr><th>จุด</th><th>ร้าน</th><th>สัปดาห์บริการ</th><th>ช่วงเวลาโหวต</th><th>สถานะ / การสุ่ม</th><th>จัดการ</th></tr></thead>
         <tbody>${rows || '<tr><td colspan="6" class="empty-state">ยังไม่มีตารางหมุนเวียน</td></tr>'}</tbody>
       </table></div>
     </div>`;
 }
 function setScheduleLocation(id){ state.scheduleForm.location_id = id; render(); }
+function editSchedule(id){
+  const r = state.schedule.find(s=>s.id===id);
+  if(!r) return;
+  state.scheduleForm = {
+    location_id: r.location_id, vendor_id: r.vendor_id,
+    service_week_start: r.service_week_start, service_week_end: r.service_week_end,
+    vote_opens_at: toDatetimeLocalValue(new Date(r.vote_opens_at)),
+    vote_closes_at: toDatetimeLocalValue(new Date(r.vote_closes_at)),
+    random_set_count: r.random_set_count || null,
+    status: r.status || 'draft',
+  };
+  render();
+}
 function onScheduleStartChange(v){
   const f = state.scheduleForm;
   f.service_week_start = v;
@@ -466,12 +550,17 @@ async function saveSchedule(){
   if(opensEl) f.vote_opens_at = opensEl.value;
   if(closesEl) f.vote_closes_at = closesEl.value;
   if(!f.location_id || !f.vendor_id){ alert('กรุณาเลือกจุดและร้าน'); return; }
+  const randomCountEl = document.getElementById('schRandomCount');
+  const rawRandom = randomCountEl ? randomCountEl.value.trim() : '';
+  let randomCount = rawRandom ? parseInt(rawRandom, 10) : null;
+  if(randomCount !== null && (isNaN(randomCount) || randomCount < 5)){ alert('จำนวนเซทที่จะสุ่ม ต้องไม่น้อยกว่า 5 เซท (หรือเว้นว่างไว้เพื่อเปิดโหวตทุกเซท)'); return; }
+  f.random_set_count = randomCount;
   try{
     const { error } = await sb.from('rk_schedule').upsert({
       location_id: f.location_id, vendor_id: f.vendor_id,
       service_week_start: f.service_week_start, service_week_end: f.service_week_end,
       vote_opens_at: new Date(f.vote_opens_at).toISOString(), vote_closes_at: new Date(f.vote_closes_at).toISOString(),
-      status: 'draft',
+      status: f.status || 'draft', random_set_count: f.random_set_count,
     }, { onConflict: 'location_id,service_week_start' });
     if(error) throw error;
     state.scheduleForm = blankScheduleForm();

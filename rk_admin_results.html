@@ -179,6 +179,10 @@ textarea{resize:vertical; line-height:1.5;}
 .rank-list .bar-name{font-size:13.5px; font-weight:700; margin-bottom:4px; display:flex; justify-content:space-between; gap:6px;}
 .rank-list .bar-bg{background:var(--ivory-dim); border-radius:6px; height:10px; overflow:hidden;}
 .rank-list .bar-fill{height:100%; background:linear-gradient(90deg,var(--gold-light),var(--gold)); border-radius:6px;}
+.thumb-sm{width:44px; height:44px; border-radius:8px; background:var(--ivory-dim) center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0;}
+.thumb-sm svg{width:20px; height:20px;}
+.chip-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+.chip{display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:var(--ivory-dim); color:var(--ink-soft); font-size:11.5px; font-weight:600;}
 
 .spinner{width:22px; height:22px; border-radius:50%; border:3px solid rgba(217,166,40,0.25); border-top-color:var(--gold); animation:spin 0.8s linear infinite; margin:0 auto;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -270,12 +274,20 @@ async function loadVotesForSchedule(){
   if(!state.scheduleId) return;
   const sch = state.scheduleList.find(s=>s.id===state.scheduleId);
   if(!sch) return;
-  const [{ data: sets, error:e1 }, { data: votes, error:e2 }] = await Promise.all([
+  const [{ data: sets, error:e1 }, { data: votes, error:e2 }, { data: scheduleSets, error:e3 }] = await Promise.all([
     sb.from('rk_menu_sets').select('*').eq('vendor_id', sch.vendor_id).eq('active', true),
     sb.from('rk_votes').select('*').eq('schedule_id', state.scheduleId),
+    sb.from('rk_schedule_sets').select('*').eq('schedule_id', state.scheduleId),
   ]);
-  if(e1) throw e1; if(e2) throw e2;
-  state.sets = sets || []; state.votes = votes || [];
+  if(e1) throw e1; if(e2) throw e2; if(e3) throw e3;
+  let filteredSets = sets || [];
+  // ถ้ารอบนี้ใช้ระบบสุ่มเปิดเซท (มีแถวใน rk_schedule_sets) ให้แสดง/นับผลเฉพาะเซทที่เปิดโหวตจริงในรอบนั้น
+  if(scheduleSets && scheduleSets.length){
+    const allowedByMeal = { breakfast:new Set(), lunch:new Set(), dinner:new Set() };
+    scheduleSets.forEach(r => { const m = r.meal_period||'lunch'; if(allowedByMeal[m]) allowedByMeal[m].add(r.menu_set_id); });
+    filteredSets = filteredSets.filter(s => { const m = s.meal_period||'lunch'; return !allowedByMeal[m].size || allowedByMeal[m].has(s.id); });
+  }
+  state.sets = filteredSets; state.votes = votes || [];
 }
 async function loadFeedback(){
   let q = sb.from('rk_feedback').select('*').order('created_at', { ascending:false }).limit(200);

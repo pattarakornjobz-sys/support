@@ -179,6 +179,10 @@ textarea{resize:vertical; line-height:1.5;}
 .rank-list .bar-name{font-size:13.5px; font-weight:700; margin-bottom:4px; display:flex; justify-content:space-between; gap:6px;}
 .rank-list .bar-bg{background:var(--ivory-dim); border-radius:6px; height:10px; overflow:hidden;}
 .rank-list .bar-fill{height:100%; background:linear-gradient(90deg,var(--gold-light),var(--gold)); border-radius:6px;}
+.thumb-sm{width:44px; height:44px; border-radius:8px; background:var(--ivory-dim) center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0;}
+.thumb-sm svg{width:20px; height:20px;}
+.chip-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+.chip{display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:var(--ivory-dim); color:var(--ink-soft); font-size:11.5px; font-weight:600;}
 
 .spinner{width:22px; height:22px; border-radius:50%; border:3px solid rgba(217,166,40,0.25); border-top-color:var(--gold); animation:spin 0.8s linear infinite; margin:0 auto;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -366,6 +370,18 @@ async function startVoting(){
     state.setsByMeal = { breakfast:[], lunch:[], dinner:[] };
     (sets||[]).forEach(s => { const m = s.meal_period||'lunch'; if(state.setsByMeal[m]) state.setsByMeal[m].push(s); });
 
+    // ถ้าแอดมินตั้งระบบสุ่มเปิดเซทไว้สำหรับรอบนี้ (มีแถวใน rk_schedule_sets) ให้จำกัดเซทที่แสดง
+    // เหลือเฉพาะที่ถูกสุ่มเลือกไว้เท่านั้น — ถ้าไม่มีแถวเลย (ไม่ได้ใช้ระบบสุ่ม) แสดงทุกเซทที่ active ตามปกติ
+    const { data: scheduleSets, error: ssErr } = await sb.from('rk_schedule_sets').select('*').eq('schedule_id', openRow.id);
+    if(ssErr) throw ssErr;
+    if(scheduleSets && scheduleSets.length){
+      const allowedByMeal = { breakfast:new Set(), lunch:new Set(), dinner:new Set() };
+      scheduleSets.forEach(r => { const m = r.meal_period||'lunch'; if(allowedByMeal[m]) allowedByMeal[m].add(r.menu_set_id); });
+      Object.keys(state.setsByMeal).forEach(m => {
+        if(allowedByMeal[m].size) state.setsByMeal[m] = state.setsByMeal[m].filter(s => allowedByMeal[m].has(s.id));
+      });
+    }
+
     // ตรวจสอบว่าชื่อ-นามสกุล + หน่วยงานนี้ (ไม่สนใจเบราว์เซอร์/อุปกรณ์) โหวตในรอบนี้ไปแล้วหรือยัง
     // ถ้าโหวตไปแล้ว ห้ามโหวตซ้ำและห้ามแก้ไข — แสดงผลโหวตเดิมแบบล็อกไว้เท่านั้น
     const unitLabel = state.unit===OTHER_UNIT ? loc.short_name : state.unit;
@@ -446,7 +462,11 @@ function renderMealBlock(meal){
   }).join('');
   const chosenList = sel.map((id,i) => {
     const s = sets.find(x=>x.id===id);
-    return `<li><span class="pos">${i+1}</span><span class="bar-wrap"><div class="bar-name">${s?s.set_name:''} <button class="link-btn" onclick="removeSelected('${meal}','${id}')">ลบ</button></div></span></li>`;
+    return `<li>
+      <span class="pos">${i+1}</span>
+      <div class="thumb-sm" ${s&&s.image_url?`style="background-image:url('${s.image_url}')"`:''}>${s&&s.image_url?'':ICONS.image}</div>
+      <span class="bar-wrap"><div class="bar-name">${s?s.set_name:''} <button class="link-btn" onclick="removeSelected('${meal}','${id}')">ลบ</button></div></span>
+    </li>`;
   }).join('');
   return `
     <div class="card">
@@ -527,7 +547,11 @@ function renderDone(el){
   const mealSections = mealsToShow().filter(m => state.selectedByMeal[m].length).map(meal => {
     const list = state.selectedByMeal[meal].map((id,i) => {
       const s = state.setsByMeal[meal].find(x=>x.id===id);
-      return `<li><span class="pos">${i+1}</span><span class="bar-wrap"><div class="bar-name">${s?s.set_name:''}</div></span></li>`;
+      return `<li>
+        <span class="pos">${i+1}</span>
+        <div class="thumb-sm" ${s&&s.image_url?`style="background-image:url('${s.image_url}')"`:''}>${s&&s.image_url?'':ICONS.image}</div>
+        <span class="bar-wrap"><div class="bar-name">${s?s.set_name:''}</div></span>
+      </li>`;
     }).join('');
     return `<div class="sec-title" style="margin:14px 0 4px;">${MEAL_LABELS[meal]}</div><ul class="rank-list">${list}</ul>`;
   }).join('');
