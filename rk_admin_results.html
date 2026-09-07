@@ -271,7 +271,7 @@ async function loadVotesForSchedule(){
   const sch = state.scheduleList.find(s=>s.id===state.scheduleId);
   if(!sch) return;
   const [{ data: sets, error:e1 }, { data: votes, error:e2 }] = await Promise.all([
-    sb.from('rk_menu_sets').select('*').eq('vendor_id', sch.vendor_id),
+    sb.from('rk_menu_sets').select('*').eq('vendor_id', sch.vendor_id).eq('active', true),
     sb.from('rk_votes').select('*').eq('schedule_id', state.scheduleId),
   ]);
   if(e1) throw e1; if(e2) throw e2;

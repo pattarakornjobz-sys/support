@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>โหวตเมนูอาหาร ครัวหมุนเวียน</title>
+<title>โหวตเมนู - ครัวหมุนเวียน</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
@@ -240,6 +240,7 @@ function isVotingOpen(row){
   if(row.status==='vote_open') return true;
   return now >= new Date(row.vote_opens_at) && now <= new Date(row.vote_closes_at);
 }
+function normName(s){ return (s||'').toString().replace(/\s+/g,' ').trim().toLowerCase(); }
 function getVoterKey(){
   let k = localStorage.getItem('rk_voter_key');
   if(!k){ k = (crypto.randomUUID ? crypto.randomUUID() : ('vk-'+Date.now()+'-'+Math.random().toString(16).slice(2))); localStorage.setItem('rk_voter_key', k); }
@@ -267,6 +268,7 @@ let state = {
   selectedByMeal: { breakfast:[], lunch:[], dinner:[] },
   submitting: false,
   upcoming: null,
+  alreadyVoted: false,
 };
 const voterKey = getVoterKey();
 
@@ -364,11 +366,26 @@ async function startVoting(){
     state.setsByMeal = { breakfast:[], lunch:[], dinner:[] };
     (sets||[]).forEach(s => { const m = s.meal_period||'lunch'; if(state.setsByMeal[m]) state.setsByMeal[m].push(s); });
 
-    const { data: mine, error: myErr } = await sb.from('rk_votes').select('*')
-      .eq('schedule_id', openRow.id).eq('voter_key', voterKey).order('rank');
-    if(myErr) throw myErr;
+    // ตรวจสอบว่าชื่อ-นามสกุล + หน่วยงานนี้ (ไม่สนใจเบราว์เซอร์/อุปกรณ์) โหวตในรอบนี้ไปแล้วหรือยัง
+    // ถ้าโหวตไปแล้ว ห้ามโหวตซ้ำและห้ามแก้ไข — แสดงผลโหวตเดิมแบบล็อกไว้เท่านั้น
+    const unitLabel = state.unit===OTHER_UNIT ? loc.short_name : state.unit;
+    const { data: existingVotes, error: exErr } = await sb.from('rk_votes').select('*').eq('schedule_id', openRow.id);
+    if(exErr) throw exErr;
+    const already = (existingVotes||[]).filter(v => normName(v.voter_name)===normName(name) && normName(v.unit)===normName(unitLabel));
+    if(already.length){
+      const byMeal = { breakfast:[], lunch:[], dinner:[] };
+      already.forEach(v => { const m = v.meal_period||'lunch'; if(byMeal[m]) byMeal[m].push(v); });
+      Object.keys(byMeal).forEach(m => byMeal[m].sort((a,b)=>a.rank-b.rank));
+      state.selectedByMeal = {
+        breakfast: byMeal.breakfast.map(v=>v.menu_set_id),
+        lunch: byMeal.lunch.map(v=>v.menu_set_id),
+        dinner: byMeal.dinner.map(v=>v.menu_set_id),
+      };
+      state.alreadyVoted = true;
+      state.step = 'done'; renderApp(); return;
+    }
     state.selectedByMeal = { breakfast:[], lunch:[], dinner:[] };
-    (mine||[]).forEach(v => { const m = v.meal_period||'lunch'; if(state.selectedByMeal[m]) state.selectedByMeal[m].push(v.menu_set_id); });
+    state.alreadyVoted = false;
 
     state.step = 'vote'; renderApp();
   }catch(e){
@@ -471,16 +488,24 @@ function renderVote(el){
 async function submitVote(){
   state.submitting = true; state.error=''; renderApp();
   try{
-    const { error: delErr } = await sb.from('rk_votes').delete()
-      .eq('schedule_id', state.schedule.id).eq('voter_key', voterKey);
-    if(delErr) throw delErr;
     const unitLabel = state.unit===OTHER_UNIT ? state.loc.short_name : state.unit;
+    const name = state.voterName.trim();
+    // กันเหนียวกรณีกดส่งซ้ำ/เปิดหลายแท็บพร้อมกัน — เช็คอีกครั้งก่อนบันทึกจริงว่ามีคน
+    // ชื่อ-นามสกุล + หน่วยงานเดียวกันโหวตรอบนี้ไปแล้วหรือยัง (ไม่อนุญาตให้แก้ไข/โหวตซ้ำ)
+    const { data: existingVotes, error: exErr } = await sb.from('rk_votes').select('voter_name,unit').eq('schedule_id', state.schedule.id);
+    if(exErr) throw exErr;
+    const dup = (existingVotes||[]).some(v => normName(v.voter_name)===normName(name) && normName(v.unit)===normName(unitLabel));
+    if(dup){
+      state.alreadyVoted = true; state.submitting = false;
+      state.error = 'ชื่อ-นามสกุลและหน่วยงานนี้ได้ส่งโหวตในรอบนี้ไปแล้ว ไม่สามารถโหวตซ้ำหรือแก้ไขได้';
+      renderApp(); return;
+    }
     let rows = [];
     mealsToShow().forEach(meal => {
       state.selectedByMeal[meal].forEach((menu_set_id, i) => {
         rows.push({
           schedule_id: state.schedule.id, voter_key: voterKey,
-          voter_name: state.voterName.trim(), unit: unitLabel,
+          voter_name: name, unit: unitLabel,
           menu_set_id, meal_period: meal, rank: i+1,
         });
       });
@@ -489,6 +514,7 @@ async function submitVote(){
       const { error: insErr } = await sb.from('rk_votes').insert(rows);
       if(insErr) throw insErr;
     }
+    state.alreadyVoted = false;
     state.step = 'done'; state.submitting=false; renderApp();
   }catch(e){
     console.error(e);
@@ -498,7 +524,6 @@ async function submitVote(){
 }
 
 function renderDone(el){
-  const canEdit = isVotingOpen(state.schedule);
   const mealSections = mealsToShow().filter(m => state.selectedByMeal[m].length).map(meal => {
     const list = state.selectedByMeal[meal].map((id,i) => {
       const s = state.setsByMeal[meal].find(x=>x.id===id);
@@ -506,22 +531,26 @@ function renderDone(el){
     }).join('');
     return `<div class="sec-title" style="margin:14px 0 4px;">${MEAL_LABELS[meal]}</div><ul class="rank-list">${list}</ul>`;
   }).join('');
+  const heading = state.alreadyVoted ? 'ท่านได้โหวตในรอบนี้ไปแล้ว' : 'บันทึกโหวตเรียบร้อยแล้ว';
+  const subMsg = state.alreadyVoted
+    ? `ระบบพบว่าชื่อ-นามสกุลและหน่วยงานนี้ (${state.voterName} — ${state.loc.short_name}) ได้ส่งโหวตในรอบนี้ไปแล้ว นี่คือรายการที่โหวตไว้`
+    : `ขอบคุณ ${state.voterName} — ${state.loc.short_name}`;
   el.innerHTML = `
     <div class="card">
       <div class="success">
         <div class="seal">${ICONS.check}</div>
-        <h2>บันทึกโหวตเรียบร้อยแล้ว</h2>
-        <p>ขอบคุณ ${state.voterName} — ${state.loc.short_name}</p>
+        <h2>${heading}</h2>
+        <p>${subMsg}</p>
       </div>
       ${mealSections}
-      ${canEdit ? `<button class="btn-outline" style="width:100%; margin-top:16px;" onclick="state.step='vote'; renderApp();">แก้ไขโหวต</button>` : `<div class="note">ปิดรับการแก้ไขแล้วเมื่อพ้นเวลาโหวต</div>`}
+      <div class="note" style="margin-top:16px;">ระบบไม่อนุญาตให้แก้ไขโหวตหลังส่งแล้ว หากกรอกข้อมูลผิดพลาดกรุณาแจ้งแอดมินโดยตรง</div>
       <a href="rk_feedback.html" class="btn-outline" style="width:100%; margin-top:10px; display:block; text-align:center; text-decoration:none; box-sizing:border-box;">💬 แจ้งปัญหา / ส่งข้อความถึงแอดมิน</a>
       <div style="text-align:center; margin-top:14px;"><button class="link-btn" onclick="backToLogin()">เปลี่ยนชื่อ / หน่วยงาน</button></div>
     </div>`;
 }
 
 function backToLogin(){
-  state = { ...state, step:'login', error:'', loc:null, schedule:null, vendor:null, setsByMeal:{breakfast:[],lunch:[],dinner:[]}, selectedByMeal:{breakfast:[],lunch:[],dinner:[]} };
+  state = { ...state, step:'login', error:'', loc:null, schedule:null, vendor:null, alreadyVoted:false, setsByMeal:{breakfast:[],lunch:[],dinner:[]}, selectedByMeal:{breakfast:[],lunch:[],dinner:[]} };
   renderApp();
 }
 
