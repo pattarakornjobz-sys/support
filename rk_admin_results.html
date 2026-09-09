@@ -356,6 +356,7 @@ function render(){
 }
 
 /* ---------------- Results tab ---------------- */
+// นับแบบ 1 โหวต = 1 คะแนน (ไม่ถ่วงน้ำหนักตามอันดับที่เลือกอีกต่อไป — วัดผลตรงไปตรงมากว่า)
 function computeRanking(meal){
   const setsForMeal = state.sets.filter(s => (s.meal_period||'lunch')===meal);
   const tally = {};
@@ -363,7 +364,7 @@ function computeRanking(meal){
   state.votes.forEach(v => {
     if((v.meal_period||'lunch')!==meal) return;
     if(!tally[v.menu_set_id]) return;
-    tally[v.menu_set_id].score += (6 - v.rank);
+    tally[v.menu_set_id].score += 1;
     tally[v.menu_set_id].count += 1;
     if(v.rank===1) tally[v.menu_set_id].rank1 += 1;
   });
@@ -391,7 +392,7 @@ function renderResults(){
       <span class="pos">${i+1}</span>
       <div class="thumb-sm" ${r.set.image_url?`style="background-image:url('${r.set.image_url}')"`:''}>${r.set.image_url?'':ICONS.image}</div>
       <span class="bar-wrap">
-        <div class="bar-name"><span>${r.set.set_name}</span><span>${r.score} คะแนน (${r.count} โหวต)</span></div>
+        <div class="bar-name"><span>${r.set.set_name}</span><span>${r.count} โหวต</span></div>
         <div class="bar-bg"><div class="bar-fill" style="width:${maxScore? (r.score/maxScore*100):0}%"></div></div>
       </span>
     </li>`).join('');
@@ -437,8 +438,8 @@ function downloadCsv(){
   const loc = state.locations.find(l=>l.id===state.resultsLocationId);
   const ven = state.vendors.find(v=>v.id===sch?.vendor_id);
   const ranking = computeRanking(state.resultsMeal);
-  let csv = 'อันดับ,ชื่อเซทเมนู,คะแนนถ่วงน้ำหนัก,จำนวนโหวต,จำนวนที่เลือกเป็นอันดับ1\n';
-  ranking.forEach((r,i)=>{ csv += `${i+1},"${r.set.set_name.replace(/"/g,'""')}",${r.score},${r.count},${r.rank1}\n`; });
+  let csv = 'อันดับ,ชื่อเซทเมนู,จำนวนโหวต,จำนวนที่เลือกเป็นอันดับ1\n';
+  ranking.forEach((r,i)=>{ csv += `${i+1},"${r.set.set_name.replace(/"/g,'""')}",${r.count},${r.rank1}\n`; });
   const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -599,4 +600,3 @@ function wireInputs(){
 
 boot();
 </script>
-</body></html>
