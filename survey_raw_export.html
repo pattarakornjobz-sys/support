@@ -189,11 +189,11 @@ async function doExport(){
         'หน่วยงาน': displayUnit(r),
       };
       ALL_CATS.forEach(c => { row[c.label] = r.ratings?.[c.key] ?? ''; });
-      row['11. อาหารคาวที่อยากเพิ่ม'] = r.savory_suggestions || '';
-      row['12. ของหวานที่อยากเพิ่ม'] = r.dessert_suggestions || '';
-      row['13. ของทานเล่นที่อยากเพิ่ม'] = r.snack_suggestions || '';
-      row['14. เมนูอื่นๆที่แนะนำ'] = r.other_menu_suggestions || '';
-      row['15. ข้อเสนอแนะเพิ่มเติม'] = r.additional_comments || '';
+      row['11. เมนูกับข้าวที่อยากให้มีเพิ่มเติม'] = r.savory_suggestions || '';
+      row['12. เมนูขนมหรือผลไม้ที่อยากให้มีเพิ่มเติม'] = r.dessert_suggestions || '';
+      row['13. ข้อเสนอแนะเพิ่มเติม'] = r.additional_comments || '';
+      row['ของทานเล่นที่อยากเพิ่ม (ข้อมูลเก่า เลิกเก็บแล้ว)'] = r.snack_suggestions || '';
+      row['เมนูอื่นๆที่แนะนำ (ข้อมูลเก่า เลิกเก็บแล้ว)'] = r.other_menu_suggestions || '';
       return row;
     });
     const ws = XLSX.utils.json_to_sheet(rows);

@@ -426,7 +426,7 @@ async function exportPDF(){
     p3 += `<div style="height:20px;"></div>`;
   }
   if(s.recentComments.length){
-    p3 += printSectionHead('quill','#FFE8E8','#FF6B6B','ข้อเสนอแนะเพิ่มเติมล่าสุด','ข้อ 15');
+    p3 += printSectionHead('quill','#FFE8E8','#FF6B6B','ข้อเสนอแนะเพิ่มเติมล่าสุด','ข้อ 13');
     p3 += s.recentComments.map(r => `
       <div style="border-left:3px solid #FF6B6B; padding:2px 0 2px 14px; margin-bottom:14px;">
         <div style="font-size:12px; font-weight:700; color:#4451C7; margin-bottom:2px;">${displayUnit(r)}</div>
@@ -551,7 +551,7 @@ function renderDashboard(){
     <div class="card">
       <div class="sec-head">
         <div class="sec-icon" style="background:#FFE8E8; color:var(--l1);">${ICONS.quill}</div>
-        <div><div class="sec-title">ข้อ 15 · ข้อเสนอแนะเพิ่มเติมล่าสุด</div></div>
+        <div><div class="sec-title">ข้อ 13 · ข้อเสนอแนะเพิ่มเติมล่าสุด</div></div>
       </div>
       ${s.recentComments.map(r => `
         <div class="comment-item">

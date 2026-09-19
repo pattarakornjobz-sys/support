@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>แบบประเมินความพึงพอใจ ด้านอาหารและการบริการ</title>
+<title>แบบประเมินความพึงพอใจ ครัวหมุนเวียน</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
@@ -100,10 +100,9 @@
 <body>
 <div class="wrap">
   <div class="header-band">
-  <h1>แบบประเมินความพึงพอใจ<br/>ด้านอาหารและการบริการ</h1>
+  <h1>แบบประเมินความพึงพอใจ<br/>ครัวหมุนเวียน</h1>
   <div class="rule"></div>
   </div>
-  <div class="vendor-note">อาหารจากร้าน Rus Hotel (ครัวกลาง) สวัสดิการเจ้าหน้าที่ เริ่ม 9 ส.ค. 2569 — ความคิดเห็นของท่านช่วยพัฒนาคุณภาพอาหารและบริการให้ดียิ่งขึ้น</div>
   <div id="viewForm"></div>
 </div>
 
@@ -269,13 +268,11 @@ function renderForm(){
     <div class="card">
       <div class="sec-head">
         <div class="sec-icon" style="background:#FFF3D6; color:#92600A;">${ICONS.quill}</div>
-        <div><div class="sec-title">ข้อเสนอแนะเกี่ยวกับเมนูอาหาร</div><div class="sec-sub">ข้อ 11–15</div></div>
+        <div><div class="sec-title">ข้อเสนอแนะเกี่ยวกับเมนูอาหาร</div><div class="sec-sub">ข้อ 11–13</div></div>
       </div>
-      ${fieldBlock('savoryInput','--savory',11,'อาหารคาวที่ท่านอยากให้มีเพิ่มเติม','เช่น อาหารไทย อาหารนานาชาติ หรืออาหารเพื่อสุขภาพ',state.savory)}
-      ${fieldBlock('dessertInput','--dessert',12,'อาหารหวาน/ของหวาน ที่ท่านอยากให้มีเพิ่มเติม','',state.dessert)}
-      ${fieldBlock('snackInput','--snack',13,'ของทานเล่นหรือขนม ที่ท่านอยากให้มีเพิ่มเติม','',state.snack)}
-      ${fieldBlock('otherMenuInput','--othermenu',14,'เมนูอาหารอื่น ๆ ที่ท่านอยากแนะนำ','',state.otherMenu)}
-      ${fieldBlock('additionalInput','--comments',15,'ข้อเสนอแนะเพิ่มเติมเกี่ยวกับอาหารและการบริการ','',state.additionalComments)}
+      ${fieldBlock('savoryInput','--savory',11,'เมนูกับข้าวที่ท่านอยากให้มีเพิ่มเติม','เช่น อาหารไทย อาหารนานาชาติ หรืออาหารเพื่อสุขภาพ',state.savory)}
+      ${fieldBlock('dessertInput','--dessert',12,'เมนูขนมหรือผลไม้ที่ท่านอยากให้มีเพิ่มเติม','',state.dessert)}
+      ${fieldBlock('additionalInput','--comments',13,'ข้อเสนอแนะเพิ่มเติมเกี่ยวกับอาหารและการบริการ','',state.additionalComments)}
     </div>
 
     ${state.error ? `<div class="error">${state.error}</div>` : ''}
@@ -287,8 +284,6 @@ function renderForm(){
 
   document.getElementById('savoryInput').oninput = e => state.savory = e.target.value;
   document.getElementById('dessertInput').oninput = e => state.dessert = e.target.value;
-  document.getElementById('snackInput').oninput = e => state.snack = e.target.value;
-  document.getElementById('otherMenuInput').oninput = e => state.otherMenu = e.target.value;
   document.getElementById('additionalInput').oninput = e => state.additionalComments = e.target.value;
   const otherUnitEl = document.getElementById('otherUnitInput');
   if(otherUnitEl) otherUnitEl.oninput = e => state.otherUnitName = e.target.value;
@@ -326,8 +321,6 @@ async function handleSubmit(){
       ratings: state.ratings,
       savory_suggestions: state.savory.trim(),
       dessert_suggestions: state.dessert.trim(),
-      snack_suggestions: state.snack.trim(),
-      other_menu_suggestions: state.otherMenu.trim(),
       additional_comments: state.additionalComments.trim(),
     });
     if(error) throw error;
