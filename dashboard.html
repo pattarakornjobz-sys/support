@@ -199,7 +199,7 @@ let dash = { loading:false, error:'', responses:[], wishFilter:'all', dateFilter
 async function loadDashboard(){
   dash.loading = true; dash.error = ''; renderDashboard();
   try{
-    const { data, error } = await sb.from(TABLE).select('*').order('created_at', { ascending:false });
+    const { data, error } = await sb.from(TABLE).select('*').order('created_at', { ascending:false }).range(0, 4999);
     if(error) throw error;
     dash.responses = data || [];
     document.getElementById('updatedAt').textContent = 'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH');

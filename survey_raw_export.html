@@ -172,7 +172,7 @@ async function doExport(){
   msgEl.innerHTML = '';
   try{
     const { from, to } = getRange();
-    let q = sb.from('food_survey_responses').select('*').order('created_at', { ascending:true });
+    let q = sb.from('food_survey_responses').select('*').order('created_at', { ascending:true }).range(0, 4999);
     if(from) q = q.gte('created_at', from + 'T00:00:00');
     if(to) q = q.lte('created_at', to + 'T23:59:59');
     const { data, error } = await q;
