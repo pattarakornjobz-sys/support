@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>สรุปผลความพึงพอใจ ด้านอาหารและการบริการ</title>
+<title>สรุปผลความพึงพอใจ ครัวหมุนเวียน</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
@@ -125,10 +125,9 @@
 <body>
 <div class="wrap">
   <div class="header-band">
-  <h1>สรุปผลความพึงพอใจ<br/>ด้านอาหารและการบริการ</h1>
+  <h1>สรุปผลความพึงพอใจ<br/>ครัวหมุนเวียน</h1>
   <div class="rule"></div>
   </div>
-  <div class="vendor-note">อาหารจากร้าน Rus Hotel (ครัวกลาง) สวัสดิการเจ้าหน้าที่ เริ่ม 9 ส.ค. 2569 — รายงานสำหรับผู้บริหาร</div>
   <div id="updatedAt" class="updated"></div>
   <div id="viewDashboard"></div>
 </div>
@@ -340,7 +339,7 @@ function printPageShell(bodyHtml, pageNum, totalPages){
   div.innerHTML = `
     <div style="flex:1;">${bodyHtml}</div>
     <div style="margin-top:20px; padding-top:14px; border-top:1px solid rgba(31,45,61,0.12); display:flex; justify-content:space-between; font-size:10.5px; color:#5B6B85;">
-      <span>รายงานความพึงพอใจ ด้านอาหารและการบริการ — ร้าน Rus Hotel ครัวกลาง</span>
+      <span>รายงานความพึงพอใจ ครัวหมุนเวียน</span>
       <span>หน้า ${pageNum}/${totalPages}</span>
     </div>`;
   return div;
@@ -348,10 +347,9 @@ function printPageShell(bodyHtml, pageNum, totalPages){
 
 function printReportHeader(s){
   return `
-    <div style="border-top:4px solid #3B9AE1; margin-bottom:22px;"></div>
-    <div style="text-align:center; color:#3B9AE1; font-size:12px; letter-spacing:2px; font-weight:700; margin-bottom:8px;">รายงานสำหรับผู้บริหาร</div>
-    <div style="text-align:center; font-family:'Prompt',sans-serif; font-weight:900; font-size:24px; margin-bottom:8px;">สรุปผลความพึงพอใจ ด้านอาหารและการบริการ</div>
-    <div style="text-align:center; font-size:12.5px; color:#5B6B85; margin-bottom:16px;">อาหารจากร้าน Rus Hotel ผู้ดำเนินการครัวกลาง — สวัสดิการเจ้าหน้าที่ เริ่ม 9 ส.ค. 2569</div>
+    <div style="border-top:4px solid #D9A628; margin-bottom:22px;"></div>
+    <div style="text-align:center; color:#D9A628; font-size:12px; letter-spacing:2px; font-weight:700; margin-bottom:8px;">รายงานสำหรับผู้บริหาร</div>
+    <div style="text-align:center; font-family:'Prompt',sans-serif; font-weight:900; font-size:24px; margin-bottom:16px;">สรุปผลความพึงพอใจ ครัวหมุนเวียน</div>
     <div style="display:flex; justify-content:center; gap:28px; font-size:12.5px; font-weight:600; margin-bottom:28px; padding-bottom:20px; border-bottom:1px solid rgba(31,45,61,0.12);">
       <span>ช่วงเวลา: ${dateRangeLabel()}</span>
       <span>จำนวนแบบประเมิน: ${s.total} ฉบับ</span>
@@ -373,9 +371,9 @@ async function exportPDF(){
   const scoreColor = catColor(s.overallAvg);
   let p1 = printReportHeader(s);
   p1 += `<div style="display:flex; gap:28px; align-items:center; margin-bottom:32px;">
-    <div style="width:150px;height:150px;border-radius:50%;border:3px solid #3B9AE1;box-shadow:0 0 0 6px rgba(217,166,40,0.12); display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;">
+    <div style="width:150px;height:150px;border-radius:50%;border:3px solid #D9A628;box-shadow:0 0 0 6px rgba(217,166,40,0.12); display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;">
       <div style="font-size:48px; font-weight:700;">${s.overallAvg.toFixed(1)}</div>
-      <div style="font-size:12px; font-weight:700; letter-spacing:1px; color:#3B9AE1; text-transform:uppercase;">${stampLabel(s.overallAvg)}</div>
+      <div style="font-size:12px; font-weight:700; letter-spacing:1px; color:#D9A628; text-transform:uppercase;">${stampLabel(s.overallAvg)}</div>
     </div>
     <div style="flex:1;">
       <div style="font-family:'Prompt',sans-serif; font-weight:700; font-size:17px; margin-bottom:10px;">คะแนนความพึงพอใจโดยรวม</div>
@@ -413,10 +411,10 @@ async function exportPDF(){
 
   // ---------- Page 3: wishlist + comments ----------
   const topWish = s.wishlists.all.slice(0,10);
-  const rankColors = ['#3B9AE1','#B7B6AA','#B5732E'];
+  const rankColors = ['#D9A628','#B7B6AA','#B5732E'];
   let p3 = '';
   if(topWish.length){
-    p3 += printSectionHead('quill','#FFF3D6','#92600A','เมนูที่มีผู้เสนอมากที่สุด','ข้อ 11–14 รวมทุกหมวด');
+    p3 += printSectionHead('quill','#FFF3D6','#92600A','เมนูที่มีผู้เสนอมากที่สุด','รวมทุกหมวดเมนู');
     p3 += topWish.map((w,i) => `
       <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
         <div style="width:24px;height:24px;border-radius:50%;background:${rankColors[i]||'#5B6B85'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div>
@@ -606,7 +604,7 @@ function renderDashboard(){
     <div class="card">
       <div class="sec-head">
         <div class="sec-icon" style="background:#FFF3D6; color:#92600A;">${ICONS.quill}</div>
-        <div><div class="sec-title">เมนูที่มีผู้เสนอมากที่สุด (ข้อ 11-14)</div></div>
+        <div><div class="sec-title">เมนูที่มีผู้เสนอมากที่สุด</div></div>
       </div>
       <div class="wish-tabs">${wishTabs}</div>
       ${wishHtml}
