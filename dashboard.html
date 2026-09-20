@@ -148,7 +148,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
 const UNITS = [
   'อาคารเรียน-รู้-เรื่องโขน',
-  'แผนกนักเรียนศิลปาชีพ',
+  'แผนกนักเรียนช่าง',
   'พิพิธภัณฑ์ศิลป์แผ่นดิน',
   'โครงการก่อสร้างศิลปาชีพ ตำบลเกาะเกิด',
   'อาคารศิลปาชีพ ตำบลช้างใหญ่',
@@ -176,10 +176,9 @@ const SERVICE_CATS = [
 ];
 const ALL_CATS = [...FOOD_CATS, ...SERVICE_CATS];
 const WISH_FIELDS = [
-  { key:'savory_suggestions', label:'อาหารคาว' },
-  { key:'dessert_suggestions', label:'ของหวาน' },
-  { key:'snack_suggestions', label:'ของทานเล่น' },
-  { key:'other_menu_suggestions', label:'เมนูอื่น ๆ' },
+  { key:'savory_suggestions', keys:['savory_suggestions'], label:'เมนูกับข้าว' },
+  { key:'dessert_suggestions', keys:['dessert_suggestions'], label:'ขนม/ผลไม้' },
+  { key:'legacy_other', keys:['snack_suggestions','other_menu_suggestions'], label:'เมนูอื่นๆ' },
 ];
 
 const ICONS = {
@@ -273,13 +272,8 @@ function computeStats(responses){
     });
     return Object.values(freq).sort((a,b)=>b.count-a.count).slice(0,10);
   }
-  const wishlists = {
-    all: tally(WISH_FIELDS.map(f=>f.key)),
-    savory_suggestions: tally(['savory_suggestions']),
-    dessert_suggestions: tally(['dessert_suggestions']),
-    snack_suggestions: tally(['snack_suggestions']),
-    other_menu_suggestions: tally(['other_menu_suggestions']),
-  };
+  const wishlists = { all: tally(WISH_FIELDS.flatMap(f=>f.keys)) };
+  WISH_FIELDS.forEach(f => { wishlists[f.key] = tally(f.keys); });
 
   const recentComments = responses.filter(r => r.additional_comments).slice(0,6);
   const bestUnit = unitStats.filter(u=>u.count>0).sort((a,b)=>b.avg-a.avg)[0];
