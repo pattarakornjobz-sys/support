@@ -181,6 +181,12 @@ textarea{resize:vertical; line-height:1.5;}
 .rank-list .bar-fill{height:100%; background:linear-gradient(90deg,var(--gold-light),var(--gold)); border-radius:6px;}
 .thumb-sm{width:44px; height:44px; border-radius:8px; background:var(--ivory-dim) center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0;}
 .thumb-sm svg{width:20px; height:20px;}
+.thumb-sm.clickable{cursor:zoom-in; transition:transform .12s ease; -webkit-tap-highlight-color:transparent;}
+.thumb-sm.clickable:hover, .thumb-sm.clickable:active{transform:scale(1.06);}
+.lightbox-overlay{position:fixed; inset:0; background:rgba(15,20,28,0.88); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px; cursor:zoom-out; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);}
+.lightbox-overlay[hidden]{display:none !important;}
+.lightbox-overlay img{max-width:min(92vw,640px); max-height:78vh; width:auto; height:auto; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.5); background:#fff; object-fit:contain;}
+.lightbox-caption{margin-top:14px; color:#fff; font-family:'Prompt',sans-serif; font-weight:700; font-size:15px; text-align:center; max-width:90vw;}
 .chip-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
 .chip{display:inline-flex; align-items:center; padding:4px 10px; border-radius:99px; background:var(--ivory-dim); color:var(--ink-soft); font-size:11.5px; font-weight:600;}
 .vendor-logo-big-wrap{width:100%; height:110px; margin:2px 0 16px; border-radius:12px; background:#fff; padding:8px; box-shadow:0 4px 14px rgba(0,0,0,0.08); border:1px solid rgba(31,45,61,0.08); display:flex; align-items:center; justify-content:center; overflow:hidden; box-sizing:border-box;}
@@ -233,6 +239,10 @@ textarea{resize:vertical; line-height:1.5;}
     </div>
   </div>
   <div id="app"></div>
+  <div id="lightbox" class="lightbox-overlay" hidden onclick="closeLightbox()">
+    <img id="lightboxImg" src="" alt="">
+    <div id="lightboxCaption" class="lightbox-caption"></div>
+  </div>
 </div>
 
 <script>
@@ -390,7 +400,7 @@ function renderResults(){
   const rows = top5.map((r,i) => `
     <li>
       <span class="pos">${i+1}</span>
-      <div class="thumb-sm" ${r.set.image_url?`style="background-image:url('${r.set.image_url}')"`:''}>${r.set.image_url?'':ICONS.image}</div>
+      <div class="thumb-sm ${r.set.image_url?'clickable':''}" ${r.set.image_url?`style="background-image:url('${r.set.image_url}')" onclick="openLightbox('${r.set.image_url.replace(/'/g,"\\'")}','${r.set.set_name.replace(/'/g,"\\'")}')"`:''}>${r.set.image_url?'':ICONS.image}</div>
       <span class="bar-wrap">
         <div class="bar-name"><span>${r.set.set_name}</span><span>${r.count} โหวต</span></div>
         <div class="bar-bg"><div class="bar-fill" style="width:${maxScore? (r.score/maxScore*100):0}%"></div></div>
@@ -597,6 +607,17 @@ function wireInputs(){
   const rawMeal = document.getElementById('rawFilterMeal');
   if(rawMeal) rawMeal.onchange = e => { state.rawMealFilter = e.target.value; loadRawVotes().then(render); };
 }
+
+function openLightbox(url, caption){
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightboxCaption').textContent = caption || '';
+  document.getElementById('lightbox').hidden = false;
+}
+function closeLightbox(){
+  document.getElementById('lightbox').hidden = true;
+  document.getElementById('lightboxImg').src = '';
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeLightbox(); });
 
 boot();
 </script>
