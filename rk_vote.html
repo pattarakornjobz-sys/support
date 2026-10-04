@@ -228,7 +228,7 @@ textarea{resize:vertical; line-height:1.5;}
     <h1>โหวตเมนูอาหาร<br/>ครัวหมุนเวียน</h1>
     <div class="rule"></div>
   </div>
-  <div class="vendor-note" id="topNote">เลือกเมนูที่ท่านอยากรับประทานในสัปดาห์หน้า ผลโหวตอันดับ 1–5 จะถูกส่งให้ร้านจัดเตรียมอาหารล่วงหน้า</div>
+  <div class="vendor-note" id="topNote">เลือกเมนูที่ท่านอยากรับประทานในสัปดาห์หน้า โดยโหวตแยกหมวด <b>อาหารคาว</b> และ <b>ขนมหวาน/ผลไม้</b> ผลโหวตอันดับ 1–5 ของแต่ละหมวดจะถูกส่งให้ร้านจัดเตรียมอาหารล่วงหน้า</div>
   <div style="text-align:center; margin-bottom:18px;">
     <a href="rk_feedback.html" class="btn-outline on-dark" style="display:inline-block; text-decoration:none;">💬 แจ้งปัญหา / ส่งข้อความถึงแอดมิน</a>
   </div>
@@ -260,6 +260,10 @@ const LOCATION_INFO = {
 const MEAL_LABELS = { breakfast:'มื้อเช้า', lunch:'มื้อกลางวัน', dinner:'มื้อเย็น' };
 const MEAL_ORDER = ['breakfast','lunch','dinner'];
 const EXTRA_MEAL_UNIT = 'แผนกนักเรียนช่าง';
+const DISH_LABELS = { savory:'อาหารคาว', dessert:'ขนมหวาน/ผลไม้' };
+const DISH_ORDER = ['savory','dessert'];
+function gk(meal, dish){ return meal+'|'+dish; }
+function emptyGroups(){ const o={}; MEAL_ORDER.forEach(m=>DISH_ORDER.forEach(d=>{ o[gk(m,d)]=[]; })); return o; }
 const THAI_MONTHS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 function fmtDate(d){ d=new Date(d); return d.getDate()+' '+THAI_MONTHS[d.getMonth()]+' '+(d.getFullYear()+543); }
 function fmtDateTime(d){ d=new Date(d); const hh=String(d.getHours()).padStart(2,'0'); const mm=String(d.getMinutes()).padStart(2,'0'); return fmtDate(d)+' '+hh+':'+mm+' น.'; }
@@ -281,6 +285,7 @@ const ICONS = {
   building: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4h6v4"/><path d="M8 7h1M11 7h1M14 7h1M8 11h1M11 11h1M14 11h1"/></svg>',
   store: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v10h16V9"/><path d="M9 19v-6h6v6"/></svg>',
   bowl: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18a9 6 0 0 1-18 0Z"/><path d="M12 3c-1 1-1 2 0 3M9 3.8c-.7 1-.7 1.6 0 2.6M15 3.8c.7 1 .7 1.6 0 2.6"/></svg>',
+  dessert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8c-2-3-7-2-7 3 0 5 4 9 7 9s7-4 7-9c0-5-5-6-7-3Z"/><path d="M12 8c0-2 1-4 3-5"/></svg>',
   clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
   image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
 };
@@ -294,8 +299,8 @@ let state = {
   manualCode: '',
   error: '',
   loc: null, schedule: null, vendor: null,
-  setsByMeal: { breakfast:[], lunch:[], dinner:[] },
-  selectedByMeal: { breakfast:[], lunch:[], dinner:[] },
+  setsByGroup: emptyGroups(),
+  selectedByGroup: emptyGroups(),
   submitting: false,
   upcoming: null,
   alreadyVoted: false,
@@ -304,7 +309,8 @@ const voterKey = getVoterKey();
 
 function isExtraMealUnit(){ return state.unit === EXTRA_MEAL_UNIT; }
 function mealsToShow(){ return isExtraMealUnit() ? MEAL_ORDER : ['lunch']; }
-function required(meal){ const n = state.setsByMeal[meal].length; return n ? Math.min(5, n) : 0; }
+function groupsToShow(){ const g=[]; mealsToShow().forEach(m=>DISH_ORDER.forEach(d=>g.push({meal:m, dish:d, key:gk(m,d)}))); return g; }
+function required(key){ const n = state.setsByGroup[key].length; return n ? Math.min(5, n) : 0; }
 
 function renderApp(){
   const el = document.getElementById('app');
@@ -393,18 +399,18 @@ async function startVoting(){
     const { data: sets, error: sErr } = await sb.from('rk_menu_sets').select('*')
       .eq('vendor_id', openRow.vendor_id).eq('active', true).order('sort_order').order('set_no');
     if(sErr) throw sErr;
-    state.setsByMeal = { breakfast:[], lunch:[], dinner:[] };
-    (sets||[]).forEach(s => { const m = s.meal_period||'lunch'; if(state.setsByMeal[m]) state.setsByMeal[m].push(s); });
+    state.setsByGroup = emptyGroups();
+    (sets||[]).forEach(s => { const k = gk(s.meal_period||'lunch', s.dish_type||'savory'); if(state.setsByGroup[k]) state.setsByGroup[k].push(s); });
 
     // ถ้าแอดมินตั้งระบบสุ่มเปิดเซทไว้สำหรับรอบนี้ (มีแถวใน rk_schedule_sets) ให้จำกัดเซทที่แสดง
     // เหลือเฉพาะที่ถูกสุ่มเลือกไว้เท่านั้น — ถ้าไม่มีแถวเลย (ไม่ได้ใช้ระบบสุ่ม) แสดงทุกเซทที่ active ตามปกติ
     const { data: scheduleSets, error: ssErr } = await sb.from('rk_schedule_sets').select('*').eq('schedule_id', openRow.id);
     if(ssErr) throw ssErr;
     if(scheduleSets && scheduleSets.length){
-      const allowedByMeal = { breakfast:new Set(), lunch:new Set(), dinner:new Set() };
-      scheduleSets.forEach(r => { const m = r.meal_period||'lunch'; if(allowedByMeal[m]) allowedByMeal[m].add(r.menu_set_id); });
-      Object.keys(state.setsByMeal).forEach(m => {
-        if(allowedByMeal[m].size) state.setsByMeal[m] = state.setsByMeal[m].filter(s => allowedByMeal[m].has(s.id));
+      const allowedByGroup = emptyGroups(); Object.keys(allowedByGroup).forEach(k => allowedByGroup[k] = new Set());
+      scheduleSets.forEach(r => { const k = gk(r.meal_period||'lunch', r.dish_type||'savory'); if(allowedByGroup[k]) allowedByGroup[k].add(r.menu_set_id); });
+      Object.keys(state.setsByGroup).forEach(k => {
+        if(allowedByGroup[k].size) state.setsByGroup[k] = state.setsByGroup[k].filter(s => allowedByGroup[k].has(s.id));
       });
     }
 
@@ -415,18 +421,15 @@ async function startVoting(){
     if(exErr) throw exErr;
     const already = (existingVotes||[]).filter(v => normName(v.voter_name)===normName(name) && normName(v.unit)===normName(unitLabel));
     if(already.length){
-      const byMeal = { breakfast:[], lunch:[], dinner:[] };
-      already.forEach(v => { const m = v.meal_period||'lunch'; if(byMeal[m]) byMeal[m].push(v); });
-      Object.keys(byMeal).forEach(m => byMeal[m].sort((a,b)=>a.rank-b.rank));
-      state.selectedByMeal = {
-        breakfast: byMeal.breakfast.map(v=>v.menu_set_id),
-        lunch: byMeal.lunch.map(v=>v.menu_set_id),
-        dinner: byMeal.dinner.map(v=>v.menu_set_id),
-      };
+      const byGroup = emptyGroups();
+      already.forEach(v => { const k = gk(v.meal_period||'lunch', v.dish_type||'savory'); if(byGroup[k]) byGroup[k].push(v); });
+      Object.keys(byGroup).forEach(k => byGroup[k].sort((a,b)=>a.rank-b.rank));
+      state.selectedByGroup = emptyGroups();
+      Object.keys(byGroup).forEach(k => { state.selectedByGroup[k] = byGroup[k].map(v=>v.menu_set_id); });
       state.alreadyVoted = true;
       state.step = 'done'; renderApp(); return;
     }
-    state.selectedByMeal = { breakfast:[], lunch:[], dinner:[] };
+    state.selectedByGroup = emptyGroups();
     state.alreadyVoted = false;
 
     state.step = 'vote'; renderApp();
@@ -453,34 +456,41 @@ function renderClosed(el){
     </div>`;
 }
 
-function toggleSelect(meal, id){
-  const sel = state.selectedByMeal[meal];
+function toggleSelect(key, id){
+  const sel = state.selectedByGroup[key];
   const i = sel.indexOf(id);
   if(i>=0){ sel.splice(i,1); }
-  else if(sel.length < required(meal)){ sel.push(id); }
+  else if(sel.length < required(key)){ sel.push(id); }
   renderApp();
 }
-function removeSelected(meal, id){ toggleSelect(meal, id); }
+function removeSelected(key, id){ toggleSelect(key, id); }
 
-function renderMealBlock(meal){
-  const sets = state.setsByMeal[meal];
-  const sel = state.selectedByMeal[meal];
-  const req = required(meal);
+function groupTitle(meal, dish){ return MEAL_LABELS[meal]+' · '+DISH_LABELS[dish]; }
+function groupIcon(dish){
+  return dish==='dessert'
+    ? `<div class="sec-icon" style="background:#FFF1D6; color:#B5720A;">${ICONS.dessert}</div>`
+    : `<div class="sec-icon" style="background:var(--food-bg); color:var(--food-text);">${ICONS.bowl}</div>`;
+}
+function renderGroupBlock(g){
+  const { meal, dish, key } = g;
+  const sets = state.setsByGroup[key];
+  const sel = state.selectedByGroup[key];
+  const req = required(key);
   if(!sets.length){
     return `
     <div class="card">
       <div class="sec-head">
-        <div class="sec-icon" style="background:var(--food-bg); color:var(--food-text);">${ICONS.bowl}</div>
-        <div><div class="sec-title">${MEAL_LABELS[meal]}</div><div class="sec-sub">ยังไม่มีเซทเมนูสำหรับมื้อนี้</div></div>
+        ${groupIcon(dish)}
+        <div><div class="sec-title">${groupTitle(meal,dish)}</div><div class="sec-sub">ยังไม่มีเซทเมนูสำหรับหมวดนี้</div></div>
       </div>
-      <div class="empty-state">ร้านยังไม่ได้เพิ่มเซทเมนูสำหรับ${MEAL_LABELS[meal]} — ข้ามมื้อนี้ไปก่อนได้ ไม่กระทบมื้ออื่น</div>
+      <div class="empty-state">ร้านยังไม่ได้เพิ่มเซทเมนู${DISH_LABELS[dish]}สำหรับ${MEAL_LABELS[meal]} — ข้ามหมวดนี้ไปก่อนได้ ไม่กระทบหมวดอื่น</div>
     </div>`;
   }
   const setCards = sets.map(s => {
     const idx = sel.indexOf(s.id);
     const selected = idx>=0;
     return `
-    <div class="item-card ${selected?'selected':''}" onclick="toggleSelect('${meal}','${s.id}')">
+    <div class="item-card ${selected?'selected':''}" onclick="toggleSelect('${key}','${s.id}')">
       ${selected? `<div class="rank-badge">${idx+1}</div>` : ''}
       <div class="thumb" ${s.image_url?`style="background-image:url('${s.image_url}')"`:''}>${s.image_url?'':ICONS.image}</div>
       <div class="cap">${s.set_name}</div>
@@ -491,14 +501,14 @@ function renderMealBlock(meal){
     return `<li>
       <span class="pos">${i+1}</span>
       <div class="thumb-sm" ${s&&s.image_url?`style="background-image:url('${s.image_url}')"`:''}>${s&&s.image_url?'':ICONS.image}</div>
-      <span class="bar-wrap"><div class="bar-name">${s?s.set_name:''} <button class="link-btn" onclick="removeSelected('${meal}','${id}')">ลบ</button></div></span>
+      <span class="bar-wrap"><div class="bar-name">${s?s.set_name:''} <button class="link-btn" onclick="removeSelected('${key}','${id}')">ลบ</button></div></span>
     </li>`;
   }).join('');
   return `
     <div class="card">
       <div class="sec-head">
-        <div class="sec-icon" style="background:var(--food-bg); color:var(--food-text);">${ICONS.bowl}</div>
-        <div><div class="sec-title">${MEAL_LABELS[meal]}</div><div class="sec-sub">เลือกแล้ว ${sel.length}/${req}</div></div>
+        ${groupIcon(dish)}
+        <div><div class="sec-title">${groupTitle(meal,dish)}</div><div class="sec-sub">เลือกแล้ว ${sel.length}/${req}</div></div>
       </div>
       <div class="card-grid">${setCards}</div>
       ${sel.length ? `<ul class="rank-list" style="margin-top:14px;">${chosenList}</ul>` : ''}
@@ -507,9 +517,11 @@ function renderMealBlock(meal){
 
 function renderVote(el){
   const loc = state.loc, v = state.vendor, sch = state.schedule;
-  const meals = mealsToShow();
-  const allReady = meals.every(m => required(m)===0 || state.selectedByMeal[m].length===required(m));
-  const summary = meals.map(m => `${MEAL_LABELS[m]} ${state.selectedByMeal[m].length}/${required(m)}`).join(' · ');
+  const groups = groupsToShow();
+  const allReady = groups.every(g => required(g.key)===0 || state.selectedByGroup[g.key].length===required(g.key));
+  const totalNeed = groups.reduce((n,g)=>n+required(g.key),0);
+  const totalChosen = groups.reduce((n,g)=>n+state.selectedByGroup[g.key].length,0);
+  const summary = `เลือกแล้ว ${totalChosen}/${totalNeed}`;
 
   el.innerHTML = `
     <div class="card">
@@ -521,10 +533,10 @@ function renderVote(el){
         </div>
       </div>
       ${v&&v.logo_url ? `<div class="vendor-logo-big-wrap"><img src="${v.logo_url}" alt="โลโก้${v.name}"></div>` : ''}
-      <div class="info-box">${ICONS.clock} เปิดโหวตถึง ${fmtDateTime(sch.vote_closes_at)} — เลือกเซทที่ท่านต้องการอันดับ 1–5 ในแต่ละมื้อ (แตะเลือกตามลำดับที่อยากได้ก่อน)${isExtraMealUnit() ? ' — หน่วยงานของท่านโหวตได้ทั้งมื้อเช้า กลางวัน และเย็น' : ''}</div>
+      <div class="info-box">${ICONS.clock} เปิดโหวตถึง ${fmtDateTime(sch.vote_closes_at)} — เลือกเซทที่ท่านต้องการอันดับ 1–5 แยกเป็นหมวดอาหารคาว และหมวดขนมหวาน/ผลไม้ ในแต่ละมื้อ (แตะเลือกตามลำดับที่อยากได้ก่อน)${isExtraMealUnit() ? ' — หน่วยงานของท่านโหวตได้ทั้งมื้อเช้า กลางวัน และเย็น' : ''}</div>
       ${state.error ? `<div class="error">${state.error}</div>` : ''}
     </div>
-    ${meals.map(renderMealBlock).join('')}
+    ${groups.map(renderGroupBlock).join('')}
     <button class="submit-btn" ${!allReady || state.submitting ? 'disabled':''} onclick="submitVote()">
       ${state.submitting ? 'กำลังส่งโหวต…' : ('ส่งโหวต ('+summary+')')}
     </button>
@@ -548,12 +560,12 @@ async function submitVote(){
       renderApp(); return;
     }
     let rows = [];
-    mealsToShow().forEach(meal => {
-      state.selectedByMeal[meal].forEach((menu_set_id, i) => {
+    groupsToShow().forEach(g => {
+      state.selectedByGroup[g.key].forEach((menu_set_id, i) => {
         rows.push({
           schedule_id: state.schedule.id, voter_key: voterKey,
           voter_name: name, unit: unitLabel,
-          menu_set_id, meal_period: meal, rank: i+1,
+          menu_set_id, meal_period: g.meal, dish_type: g.dish, rank: i+1,
         });
       });
     });
@@ -571,16 +583,16 @@ async function submitVote(){
 }
 
 function renderDone(el){
-  const mealSections = mealsToShow().filter(m => state.selectedByMeal[m].length).map(meal => {
-    const list = state.selectedByMeal[meal].map((id,i) => {
-      const s = state.setsByMeal[meal].find(x=>x.id===id);
+  const mealSections = groupsToShow().filter(g => state.selectedByGroup[g.key].length).map(g => {
+    const list = state.selectedByGroup[g.key].map((id,i) => {
+      const s = state.setsByGroup[g.key].find(x=>x.id===id);
       return `<li>
         <span class="pos">${i+1}</span>
         <div class="thumb-sm" ${s&&s.image_url?`style="background-image:url('${s.image_url}')"`:''}>${s&&s.image_url?'':ICONS.image}</div>
         <span class="bar-wrap"><div class="bar-name">${s?s.set_name:''}</div></span>
       </li>`;
     }).join('');
-    return `<div class="sec-title" style="margin:14px 0 4px;">${MEAL_LABELS[meal]}</div><ul class="rank-list">${list}</ul>`;
+    return `<div class="sec-title" style="margin:14px 0 4px;">${groupTitle(g.meal,g.dish)}</div><ul class="rank-list">${list}</ul>`;
   }).join('');
   const heading = state.alreadyVoted ? 'ท่านได้โหวตในรอบนี้ไปแล้ว' : 'บันทึกโหวตเรียบร้อยแล้ว';
   const subMsg = state.alreadyVoted
@@ -601,7 +613,7 @@ function renderDone(el){
 }
 
 function backToLogin(){
-  state = { ...state, step:'login', error:'', loc:null, schedule:null, vendor:null, alreadyVoted:false, setsByMeal:{breakfast:[],lunch:[],dinner:[]}, selectedByMeal:{breakfast:[],lunch:[],dinner:[]} };
+  state = { ...state, step:'login', error:'', loc:null, schedule:null, vendor:null, alreadyVoted:false, setsByGroup:emptyGroups(), selectedByGroup:emptyGroups() };
   renderApp();
 }
 

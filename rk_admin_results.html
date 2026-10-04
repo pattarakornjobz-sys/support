@@ -277,6 +277,8 @@ const ICONS = {
 };
 const MEAL_LABELS = { breakfast:'มื้อเช้า', lunch:'มื้อกลางวัน', dinner:'มื้อเย็น' };
 const MEAL_ORDER = ['breakfast','lunch','dinner'];
+const DISH_LABELS = { savory:'อาหารคาว', dessert:'ขนมหวาน/ผลไม้' };
+const DISH_ORDER = ['savory','dessert'];
 const CATEGORIES = [
   { key:'food_quality', label:'คุณภาพอาหาร' },
   { key:'service', label:'การบริการ' },
@@ -288,12 +290,12 @@ const CATEGORIES = [
 let state = {
   tab: 'results',
   locations: [], vendors: [],
-  resultsLocationId: null, scheduleList: [], scheduleId: null, resultsMeal: 'lunch',
+  resultsLocationId: null, scheduleList: [], scheduleId: null, resultsMeal: 'lunch', resultsDish: 'savory',
   votes: [], sets: [],
   fbLocationFilter: '', fbStatusFilter: '', fbCategoryFilter: '',
   feedback: [], replyDrafts: {},
   allSchedule: [], allSets: [],
-  rawLocationFilter: '', rawScheduleFilter: '', rawMealFilter: '', rawVotes: [],
+  rawLocationFilter: '', rawScheduleFilter: '', rawMealFilter: '', rawDishFilter: '', rawVotes: [],
   loading: true, error:'',
 };
 
@@ -338,9 +340,10 @@ async function loadVotesForSchedule(){
   let filteredSets = sets || [];
   // ถ้ารอบนี้ใช้ระบบสุ่มเปิดเซท (มีแถวใน rk_schedule_sets) ให้แสดง/นับผลเฉพาะเซทที่เปิดโหวตจริงในรอบนั้น
   if(scheduleSets && scheduleSets.length){
-    const allowedByMeal = { breakfast:new Set(), lunch:new Set(), dinner:new Set() };
-    scheduleSets.forEach(r => { const m = r.meal_period||'lunch'; if(allowedByMeal[m]) allowedByMeal[m].add(r.menu_set_id); });
-    filteredSets = filteredSets.filter(s => { const m = s.meal_period||'lunch'; return !allowedByMeal[m].size || allowedByMeal[m].has(s.id); });
+    const allowedByGroup = {};
+    MEAL_ORDER.forEach(m => DISH_ORDER.forEach(d => { allowedByGroup[m+'|'+d] = new Set(); }));
+    scheduleSets.forEach(r => { const k = (r.meal_period||'lunch')+'|'+(r.dish_type||'savory'); if(allowedByGroup[k]) allowedByGroup[k].add(r.menu_set_id); });
+    filteredSets = filteredSets.filter(s => { const k = (s.meal_period||'lunch')+'|'+(s.dish_type||'savory'); return !allowedByGroup[k] || !allowedByGroup[k].size || allowedByGroup[k].has(s.id); });
   }
   state.sets = filteredSets; state.votes = votes || [];
 }
@@ -367,12 +370,12 @@ function render(){
 
 /* ---------------- Results tab ---------------- */
 // นับแบบ 1 โหวต = 1 คะแนน (ไม่ถ่วงน้ำหนักตามอันดับที่เลือกอีกต่อไป — วัดผลตรงไปตรงมากว่า)
-function computeRanking(meal){
-  const setsForMeal = state.sets.filter(s => (s.meal_period||'lunch')===meal);
+function computeRanking(meal, dish){
+  const setsForMeal = state.sets.filter(s => (s.meal_period||'lunch')===meal && (s.dish_type||'savory')===dish);
   const tally = {};
   setsForMeal.forEach(s => tally[s.id] = { set:s, score:0, count:0, rank1:0 });
   state.votes.forEach(v => {
-    if((v.meal_period||'lunch')!==meal) return;
+    if((v.meal_period||'lunch')!==meal || (v.dish_type||'savory')!==dish) return;
     if(!tally[v.menu_set_id]) return;
     tally[v.menu_set_id].score += 1;
     tally[v.menu_set_id].count += 1;
@@ -392,8 +395,10 @@ function renderResults(){
   const sch = state.scheduleList.find(s=>s.id===state.scheduleId);
   const schVendor = sch ? state.vendors.find(v=>v.id===sch.vendor_id) : null;
   const mealTabs = MEAL_ORDER.map(m => `<button type="button" class="seg-opt ${state.resultsMeal===m?'active':''}" onclick="setResultsMeal('${m}')">${MEAL_LABELS[m]}</button>`).join('');
-  const ranking = computeRanking(state.resultsMeal);
-  const mealVotes = state.votes.filter(v => (v.meal_period||'lunch')===state.resultsMeal);
+  const dishTabs = DISH_ORDER.map(d => `<button type="button" class="seg-opt ${state.resultsDish===d?'active':''}" onclick="setResultsDish('${d}')">${DISH_LABELS[d]}</button>`).join('');
+  const groupLabel = MEAL_LABELS[state.resultsMeal]+' · '+DISH_LABELS[state.resultsDish];
+  const ranking = computeRanking(state.resultsMeal, state.resultsDish);
+  const mealVotes = state.votes.filter(v => (v.meal_period||'lunch')===state.resultsMeal && (v.dish_type||'savory')===state.resultsDish);
   const voters = new Set(mealVotes.map(v=>v.voter_key)).size;
   const maxScore = ranking[0]?.score || 1;
   const top5 = ranking.slice(0, 5);
@@ -425,35 +430,38 @@ function renderResults(){
       ${schVendor&&schVendor.logo_url ? `<div class="vendor-logo-big-wrap"><img src="${schVendor.logo_url}" alt="โลโก้${schVendor.name}"></div>` : ''}
       <div class="field-label" style="margin-top:6px;">มื้ออาหาร</div>
       <div class="seg-row">${mealTabs}</div>
+      <div class="field-label" style="margin-top:6px;">หมวดเมนู</div>
+      <div class="seg-row">${dishTabs}</div>
       <div class="field-hint">มื้อเช้า/มื้อเย็น มีผลเฉพาะกลุ่มที่ 3 หน่วยงาน "แผนกนักเรียนช่าง" — จุดอื่นจะไม่มีผู้โหวตในมื้อเหล่านี้</div>
     </div>
     <div class="stat-row">
-      <div class="stat-box"><div class="num">${voters}</div><div class="lbl">จำนวนผู้โหวต (${MEAL_LABELS[state.resultsMeal]})</div></div>
-      <div class="stat-box"><div class="num">${state.sets.filter(s=>(s.meal_period||'lunch')===state.resultsMeal).length}</div><div class="lbl">เซทเมนู${MEAL_LABELS[state.resultsMeal]}</div></div>
+      <div class="stat-box"><div class="num">${voters}</div><div class="lbl">จำนวนผู้โหวต (${groupLabel})</div></div>
+      <div class="stat-box"><div class="num">${state.sets.filter(s=>(s.meal_period||'lunch')===state.resultsMeal && (s.dish_type||'savory')===state.resultsDish).length}</div><div class="lbl">เซทเมนู ${groupLabel}</div></div>
       <div class="stat-box"><div class="num">${statusLabel(sch.status)}</div><div class="lbl">สถานะรอบ</div></div>
     </div>
     <div class="card">
       <div class="sec-head">
-        <div><div class="sec-title">อันดับเซทเมนู Top 5 จากผลโหวต — ${schVendor?schVendor.name+' — ':''}${MEAL_LABELS[state.resultsMeal]}</div><div class="sec-sub">5 เซทที่คะแนนสูงสุด แนะนำส่งให้ร้านจัดเตรียม (ดาวน์โหลด CSV เพื่อดูอันดับทั้งหมด)</div></div>
+        <div><div class="sec-title">อันดับเซทเมนู Top 5 จากผลโหวต — ${schVendor?schVendor.name+' — ':''}${groupLabel}</div><div class="sec-sub">5 เซทที่คะแนนสูงสุด แนะนำส่งให้ร้านจัดเตรียม (ดาวน์โหลด CSV เพื่อดูอันดับทั้งหมด)</div></div>
         <button class="btn-small primary" style="margin-left:auto;" onclick="downloadCsv()">ดาวน์โหลด CSV</button>
       </div>
-      <ul class="rank-list">${rows || '<div class="empty-state">ยังไม่มีผู้โหวตในมื้อนี้</div>'}</ul>
+      <ul class="rank-list">${rows || '<div class="empty-state">ยังไม่มีผู้โหวตในมื้อ/หมวดนี้</div>'}</ul>
     </div>` : ''}
   `;
 }
 function setResultsLocation(id){ state.resultsLocationId=id; loadScheduleList().then(render); }
 function setResultsMeal(m){ state.resultsMeal=m; render(); }
+function setResultsDish(d){ state.resultsDish=d; render(); }
 function downloadCsv(){
   const sch = state.scheduleList.find(s=>s.id===state.scheduleId);
   const loc = state.locations.find(l=>l.id===state.resultsLocationId);
   const ven = state.vendors.find(v=>v.id===sch?.vendor_id);
-  const ranking = computeRanking(state.resultsMeal);
+  const ranking = computeRanking(state.resultsMeal, state.resultsDish);
   let csv = 'อันดับ,ชื่อเซทเมนู,จำนวนโหวต,จำนวนที่เลือกเป็นอันดับ1\n';
   ranking.forEach((r,i)=>{ csv += `${i+1},"${r.set.set_name.replace(/"/g,'""')}",${r.count},${r.rank1}\n`; });
   const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `ผลโหวต_${MEAL_LABELS[state.resultsMeal]}_${loc?loc.short_name:''}_${ven?ven.name:''}_${sch?sch.service_week_start:''}.csv`;
+  a.href = url; a.download = `ผลโหวต_${MEAL_LABELS[state.resultsMeal]}_${DISH_LABELS[state.resultsDish].replace('/','-')}_${loc?loc.short_name:''}_${ven?ven.name:''}_${sch?sch.service_week_start:''}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
@@ -472,6 +480,7 @@ async function loadRawVotes(){
   if(error) throw error;
   let rows = data || [];
   if(state.rawMealFilter) rows = rows.filter(v => (v.meal_period||'lunch')===state.rawMealFilter);
+  if(state.rawDishFilter) rows = rows.filter(v => (v.dish_type||'savory')===state.rawDishFilter);
   state.rawVotes = rows;
 }
 function renderRaw(){
@@ -482,6 +491,7 @@ function renderRaw(){
     return `<option value="${s.id}" ${state.rawScheduleFilter===s.id?'selected':''}>${fmtDate(s.service_week_start)}–${fmtDate(s.service_week_end)} · ${ven?ven.name:'-'}</option>`;
   })).join('');
   const mealOptions = ['<option value="">ทุกมื้อ</option>'].concat(MEAL_ORDER.map(m=>`<option value="${m}" ${state.rawMealFilter===m?'selected':''}>${MEAL_LABELS[m]}</option>`)).join('');
+  const dishOptions = ['<option value="">ทุกหมวด</option>'].concat(DISH_ORDER.map(d=>`<option value="${d}" ${state.rawDishFilter===d?'selected':''}>${DISH_LABELS[d]}</option>`)).join('');
   const rows = state.rawVotes.map(v => {
     const sch = state.allSchedule.find(s=>s.id===v.schedule_id);
     const loc = sch ? state.locations.find(l=>l.id===sch.location_id) : null;
@@ -495,6 +505,7 @@ function renderRaw(){
       <td data-label="ร้าน">${ven?ven.name:'-'}</td>
       <td data-label="สัปดาห์บริการ">${sch? fmtDate(sch.service_week_start)+'–'+fmtDate(sch.service_week_end) : '-'}</td>
       <td data-label="มื้ออาหาร">${MEAL_LABELS[v.meal_period||'lunch']}</td>
+      <td data-label="หมวด">${DISH_LABELS[v.dish_type||'savory']}</td>
       <td data-label="อันดับ" style="text-align:center;">${v.rank}</td>
       <td data-label="เซทเมนูที่เลือก">${set?set.set_name:'-'}</td>
     </tr>`;
@@ -509,18 +520,19 @@ function renderRaw(){
         <select id="rawFilterLoc" style="flex:1; min-width:180px;">${locOptions}</select>
         <select id="rawFilterSch" style="flex:1; min-width:220px;">${schOptions}</select>
         <select id="rawFilterMeal" style="flex:1; min-width:140px;">${mealOptions}</select>
+        <select id="rawFilterDish" style="flex:1; min-width:140px;">${dishOptions}</select>
       </div>
     </div>
     <div class="card">
       <div class="sec-title" style="margin-bottom:12px;">ทั้งหมด ${state.rawVotes.length} รายการ (${new Set(state.rawVotes.map(v=>v.voter_key)).size} คน)</div>
       <div class="table-scroll"><table class="data-table">
-        <thead><tr><th>เวลาโหวต</th><th>ชื่อ-นามสกุล</th><th>หน่วยงาน</th><th>จุดบริการ</th><th>ร้าน</th><th>สัปดาห์บริการ</th><th>มื้ออาหาร</th><th>อันดับ</th><th>เซทเมนูที่เลือก</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="9" class="empty-state">ไม่มีข้อมูลตามเงื่อนไขที่เลือก</td></tr>'}</tbody>
+        <thead><tr><th>เวลาโหวต</th><th>ชื่อ-นามสกุล</th><th>หน่วยงาน</th><th>จุดบริการ</th><th>ร้าน</th><th>สัปดาห์บริการ</th><th>มื้ออาหาร</th><th>หมวด</th><th>อันดับ</th><th>เซทเมนูที่เลือก</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="10" class="empty-state">ไม่มีข้อมูลตามเงื่อนไขที่เลือก</td></tr>'}</tbody>
       </table></div>
     </div>`;
 }
 function downloadRawCsv(){
-  let csv = 'เวลาโหวต,ชื่อ-นามสกุล,หน่วยงาน,จุดบริการ,ร้าน,สัปดาห์บริการ,มื้ออาหาร,อันดับ,เซทเมนูที่เลือก\n';
+  let csv = 'เวลาโหวต,ชื่อ-นามสกุล,หน่วยงาน,จุดบริการ,ร้าน,สัปดาห์บริการ,มื้ออาหาร,หมวด,อันดับ,เซทเมนูที่เลือก\n';
   state.rawVotes.forEach(v => {
     const sch = state.allSchedule.find(s=>s.id===v.schedule_id);
     const loc = sch ? state.locations.find(l=>l.id===sch.location_id) : null;
@@ -528,7 +540,7 @@ function downloadRawCsv(){
     const set = state.allSets.find(s=>s.id===v.menu_set_id);
     const wk = sch ? (fmtDate(sch.service_week_start)+'-'+fmtDate(sch.service_week_end)) : '';
     const esc = s => `"${String(s==null?'':s).replace(/"/g,'""')}"`;
-    csv += [esc(fmtDateTime(v.voted_at)), esc(v.voter_name), esc(v.unit), esc(loc?loc.short_name:''), esc(ven?ven.name:''), esc(wk), esc(MEAL_LABELS[v.meal_period||'lunch']), v.rank, esc(set?set.set_name:'')].join(',') + '\n';
+    csv += [esc(fmtDateTime(v.voted_at)), esc(v.voter_name), esc(v.unit), esc(loc?loc.short_name:''), esc(ven?ven.name:''), esc(wk), esc(MEAL_LABELS[v.meal_period||'lunch']), esc(DISH_LABELS[v.dish_type||'savory']), v.rank, esc(set?set.set_name:'')].join(',') + '\n';
   });
   const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -606,6 +618,8 @@ function wireInputs(){
   if(rawSch) rawSch.onchange = e => { state.rawScheduleFilter = e.target.value; loadRawVotes().then(render); };
   const rawMeal = document.getElementById('rawFilterMeal');
   if(rawMeal) rawMeal.onchange = e => { state.rawMealFilter = e.target.value; loadRawVotes().then(render); };
+  const rawDish = document.getElementById('rawFilterDish');
+  if(rawDish) rawDish.onchange = e => { state.rawDishFilter = e.target.value; loadRawVotes().then(render); };
 }
 
 function openLightbox(url, caption){
