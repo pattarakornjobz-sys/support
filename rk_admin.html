@@ -264,6 +264,8 @@ const ICONS = {
 };
 const MEAL_LABELS = { breakfast:'มื้อเช้า', lunch:'มื้อกลางวัน', dinner:'มื้อเย็น' };
 const EXTRA_MEAL_UNIT = 'แผนกนักเรียนช่าง';
+// นโยบายใหม่: มี 2 กลุ่มเท่านั้น (point3 เดิมถูกยุบรวมเข้ากลุ่มที่ 2) — ข้อมูลเก่าของ point3 ยังอยู่ใน DB แต่ไม่แสดงในหน้านี้
+const ACTIVE_LOCATION_CODES = ['point1','point2'];
 const DISH_LABELS = { savory:'อาหารคาว', dessert:'ขนมหวาน/ผลไม้' };
 
 let state = {
@@ -284,7 +286,7 @@ async function boot(){
     ]);
     if(e1) throw e1; if(e2) throw e2;
     state.vendors = vendors || [];
-    state.locations = locations || [];
+    state.locations = (locations || []).filter(l => ACTIVE_LOCATION_CODES.includes(l.code));
     if(state.vendors.length) state.selectedVendorId = state.vendors[0].id;
     await loadMenuSets();
     await loadSchedule();
@@ -309,7 +311,8 @@ async function loadSchedule(){
     sb.from('rk_schedule_sets').select('*'),
   ]);
   if(error) throw error; if(e2) throw e2; if(e3) throw e3;
-  state.schedule = data || [];
+  const activeLocIds = new Set(state.locations.map(l=>l.id));
+  state.schedule = (data || []).filter(r => activeLocIds.has(r.location_id));
   state.allSets = allSets || [];
   state.scheduleSets = scheduleSets || [];
 }
@@ -317,11 +320,13 @@ function shuffleArr(arr){
   for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
   return arr;
 }
+function randomCountFor(row, dish){ return dish==='dessert' ? row.random_set_count_dessert : row.random_set_count; }
+function minRandomFor(dish){ return dish==='dessert' ? 1 : 5; }
 async function rollRandomSets(id){
   const row = state.schedule.find(s=>s.id===id);
   if(!row) return;
-  const n = row.random_set_count;
-  if(!n || n < 5){ alert('รอบนี้ยังไม่ได้กำหนดจำนวนเซทที่จะสุ่ม (ต้องอย่างน้อย 5 เซท) — กดปุ่ม "แก้ไข" เพื่อกำหนดค่านี้แล้วบันทึกก่อน'); return; }
+  const nSav = row.random_set_count, nDes = row.random_set_count_dessert;
+  if(!nSav && !nDes){ alert('รอบนี้ยังไม่ได้กำหนดจำนวนเซทที่จะสุ่ม — กดปุ่ม "แก้ไข" เพื่อกำหนดจำนวน (อาหารคาว และ/หรือ ขนมหวาน/ผลไม้) แล้วบันทึกก่อน'); return; }
   const already = state.scheduleSets.some(r=>r.schedule_id===id);
   if(!confirm(already ? 'สุ่มเซทเปิดโหวตใหม่สำหรับรอบนี้? เซทที่เปิดอยู่เดิมจะถูกแทนที่ (ถ้ามีคนโหวตไปแล้ว โหวตเดิมจะยังอยู่แต่อาจไม่ตรงกับเซทที่เปิดใหม่)' : 'สุ่มเลือกเซทเปิดโหวตสำหรับรอบนี้เลยหรือไม่?')) return;
   try{
@@ -336,6 +341,8 @@ async function rollRandomSets(id){
     let chosen = [];
     Object.keys(byGroup).forEach(key => {
       const [meal, dish] = key.split('|');
+      const n = randomCountFor(row, dish);
+      if(!n) return; // หมวดนี้ไม่ได้ตั้งสุ่ม = เปิดทุกเซท (ไม่ต้องมีแถวใน rk_schedule_sets)
       const pool = byGroup[key];
       if(!pool.length) return;
       const picked = pool.length <= n ? pool : shuffleArr(pool.slice()).slice(0, n);
@@ -355,7 +362,7 @@ async function clearRandomSets(id){
   try{
     const { error: delErr } = await sb.from('rk_schedule_sets').delete().eq('schedule_id', id);
     if(delErr) throw delErr;
-    const { error: updErr } = await sb.from('rk_schedule').update({ random_set_count: null }).eq('id', id);
+    const { error: updErr } = await sb.from('rk_schedule').update({ random_set_count: null, random_set_count_dessert: null }).eq('id', id);
     if(updErr) throw updErr;
     await loadSchedule(); render();
   }catch(e){ alert('ยกเลิกไม่สำเร็จ: '+e.message); }
@@ -442,7 +449,7 @@ function renderMenuSets(){
     </div>
     <div class="card">
       <div class="sec-head">
-        <div><div class="sec-title">เซทเมนู — ${MEAL_LABELS[state.menuMealFilter]} · ${DISH_LABELS[state.menuDishFilter]}</div><div class="sec-sub">มื้อเช้า/มื้อเย็น เปิดให้โหวตเฉพาะกลุ่มที่ 3 หน่วยงาน "${EXTRA_MEAL_UNIT}" เท่านั้น ส่วนมื้อกลางวันเป็นมื้อหลักของทุกจุด</div></div>
+        <div><div class="sec-title">เซทเมนู — ${MEAL_LABELS[state.menuMealFilter]} · ${DISH_LABELS[state.menuDishFilter]}</div><div class="sec-sub">มื้อเช้า/มื้อเย็น เปิดให้โหวตเฉพาะหน่วยงาน "${EXTRA_MEAL_UNIT}" (กลุ่มที่ 2) เท่านั้น ส่วนมื้อกลางวันเป็นมื้อหลักของทุกจุด</div></div>
         <button class="btn-small primary" style="margin-left:auto;" ${state.selectedVendorId?'':'disabled'} onclick="openSetModal(null)">+ เพิ่มเซทเมนู</button>
       </div>
       <div class="seg-row">${mealTabs}</div>
@@ -472,7 +479,7 @@ async function deleteSet(id){
 
 /* ---------------- Schedule tab ---------------- */
 function blankScheduleForm(){
-  return { location_id: state.locations[0]?.id || null, vendor_id: state.vendors[0]?.id || '', service_week_start:'', vote_opens_at:'', vote_closes_at:'', service_week_end:'', random_set_count: null, status: 'draft' };
+  return { location_id: state.locations[0]?.id || null, vendor_id: state.vendors[0]?.id || '', service_week_start:'', vote_opens_at:'', vote_closes_at:'', service_week_end:'', random_set_count: null, random_set_count_dessert: null, status: 'draft' };
 }
 function computeWindowFromStart(startStr){
   if(!startStr) return { end:'', opens:'', closes:'' };
@@ -491,11 +498,14 @@ function renderSchedule(){
     const ven = state.vendors.find(v=>v.id===r.vendor_id);
     const openNow = isVotingOpen(r);
     const mySchedSets = state.scheduleSets.filter(ss=>ss.schedule_id===r.id);
-    const randomInfo = r.random_set_count
-      ? (mySchedSets.length
-          ? `<span class="pill vote_open">สุ่มเปิด ${r.random_set_count} เซท/มื้อ/หมวด — เลือกไว้แล้ว ${mySchedSets.length} เซท</span>`
-          : `<span class="pill draft">ตั้งสุ่ม ${r.random_set_count} เซท/มื้อ/หมวด — ยังไม่ได้กดสุ่ม</span>`)
-      : `<span class="pill draft">เปิดทุกเซท (ไม่สุ่ม)</span>`;
+    const rolledOf = d => mySchedSets.filter(ss=>(ss.dish_type||'savory')===d).length;
+    const randomInfo = ['savory','dessert'].map(d => {
+      const n = randomCountFor(r, d);
+      if(!n) return `<span class="pill draft">${DISH_LABELS[d]}: เปิดทุกเซท (ไม่สุ่ม)</span>`;
+      return rolledOf(d)
+        ? `<span class="pill vote_open">${DISH_LABELS[d]}: สุ่ม ${n} เซท/มื้อ — เลือกไว้แล้ว ${rolledOf(d)} เซท</span>`
+        : `<span class="pill draft">${DISH_LABELS[d]}: ตั้งสุ่ม ${n} เซท/มื้อ — ยังไม่ได้กดสุ่ม</span>`;
+    }).join(' ');
     const previewChips = mySchedSets.length ? `<div class="chip-row">${mySchedSets.map(ss=>{
       const set = state.allSets.find(s=>s.id===ss.menu_set_id);
       return `<span class="chip">${MEAL_LABELS[ss.meal_period||'lunch']} (${DISH_LABELS[ss.dish_type||'savory']}): ${set?set.set_name:'(ไม่พบเซท)'}</span>`;
@@ -510,7 +520,7 @@ function renderSchedule(){
         <button class="btn-small" onclick="editSchedule('${r.id}')">แก้ไข</button>
         <button class="btn-small" onclick="setScheduleStatus('${r.id}','vote_open')">เปิดโหวตทันที</button>
         <button class="btn-small" onclick="setScheduleStatus('${r.id}','vote_closed')">ปิดโหวตทันที</button>
-        ${r.random_set_count ? `<button class="btn-small primary" onclick="rollRandomSets('${r.id}')">${mySchedSets.length?'สุ่มใหม่':'สุ่มเซทเปิดโหวต'}</button>` : ''}
+        ${(r.random_set_count || r.random_set_count_dessert) ? `<button class="btn-small primary" onclick="rollRandomSets('${r.id}')">${mySchedSets.length?'สุ่มใหม่':'สุ่มเซทเปิดโหวต'}</button>` : ''}
         ${mySchedSets.length ? `<button class="btn-small" onclick="clearRandomSets('${r.id}')">ยกเลิกการสุ่ม</button>` : ''}
         <button class="btn-small danger" onclick="deleteSchedule('${r.id}')">ลบ</button>
       </td>
@@ -543,9 +553,14 @@ function renderSchedule(){
         <input type="datetime-local" id="schCloses" value="${f.vote_closes_at}">
       </div>` : ''}
       <div class="field-block" style="border-left-color:var(--gold);">
-        <div class="field-label">จำนวนเซทที่จะสุ่มเปิดโหวต (ไม่บังคับ)</div>
-        <div class="field-hint">เว้นว่าง = เปิดโหวตทุกเซทที่ Active ทั้งหมดตามปกติ หรือกำหนดจำนวน (อย่างน้อย 5 เซท) เพื่อให้ระบบสุ่มเลือกเซทมาเปิดโหวตเท่านั้น — สุ่มแยกอิสระต่อมื้ออาหารและต่อหมวด (อาหารคาว / ขนมหวาน/ผลไม้) ถ้าเซทของมื้อ/หมวดนั้นมีน้อยกว่าจำนวนที่กำหนด จะเปิดให้หมดทุกเซทของมื้อ/หมวดนั้นโดยไม่ต้องสุ่ม หลังบันทึกแล้วต้องกดปุ่ม "สุ่มเซทเปิดโหวต" ที่ตารางด้านล่างอีกครั้งเพื่อให้ระบบสุ่มจริง</div>
+        <div class="field-label">สุ่มเปิดโหวต: อาหารคาว (ไม่บังคับ)</div>
+        <div class="field-hint">เว้นว่าง = เปิดโหวตทุกเซทที่ Active หรือกำหนดจำนวน (อย่างน้อย 5 เซท) ให้ระบบสุ่มเลือกมาเปิดโหวต — สุ่มแยกอิสระต่อมื้ออาหาร ถ้าเซทของมื้อนั้นมีน้อยกว่าจำนวนที่กำหนด จะเปิดให้หมดโดยไม่ต้องสุ่ม</div>
         <input type="number" id="schRandomCount" min="5" placeholder="เช่น 7 (เว้นว่าง = เปิดทุกเซท)" value="${f.random_set_count||''}">
+      </div>
+      <div class="field-block" style="border-left-color:#B5720A;">
+        <div class="field-label">สุ่มเปิดโหวต: ขนมหวาน/ผลไม้ (ไม่บังคับ)</div>
+        <div class="field-hint">ใช้หลักการเดียวกับอาหารคาว แต่ตั้งจำนวนแยกกัน (อย่างน้อย 1 เซท เพราะเมนูขนมหวาน/ผลไม้มักมีน้อยกว่า) เว้นว่าง = เปิดทุกเซท — หลังบันทึกแล้วต้องกดปุ่ม "สุ่มเซทเปิดโหวต" ที่ตารางด้านล่างอีกครั้งเพื่อให้ระบบสุ่มจริง (ปุ่มเดียวสุ่มทั้งสองหมวด)</div>
+        <input type="number" id="schRandomCountDessert" min="1" placeholder="เช่น 3 (เว้นว่าง = เปิดทุกเซท)" value="${f.random_set_count_dessert||''}">
       </div>
       <button class="submit-btn" onclick="saveSchedule()">บันทึกตารางหมุนเวียน</button>
     </div>
@@ -567,6 +582,7 @@ function editSchedule(id){
     vote_opens_at: toDatetimeLocalValue(new Date(r.vote_opens_at)),
     vote_closes_at: toDatetimeLocalValue(new Date(r.vote_closes_at)),
     random_set_count: r.random_set_count || null,
+    random_set_count_dessert: r.random_set_count_dessert || null,
     status: r.status || 'draft',
   };
   render();
@@ -586,22 +602,32 @@ async function saveSchedule(){
   if(opensEl) f.vote_opens_at = opensEl.value;
   if(closesEl) f.vote_closes_at = closesEl.value;
   if(!f.location_id || !f.vendor_id){ alert('กรุณาเลือกจุดและร้าน'); return; }
-  const randomCountEl = document.getElementById('schRandomCount');
-  const rawRandom = randomCountEl ? randomCountEl.value.trim() : '';
-  let randomCount = rawRandom ? parseInt(rawRandom, 10) : null;
-  if(randomCount !== null && (isNaN(randomCount) || randomCount < 5)){ alert('จำนวนเซทที่จะสุ่ม ต้องไม่น้อยกว่า 5 เซท (หรือเว้นว่างไว้เพื่อเปิดโหวตทุกเซท)'); return; }
-  f.random_set_count = randomCount;
+  const readCount = (elId, min, label) => {
+    const el = document.getElementById(elId);
+    const raw = el ? el.value.trim() : '';
+    if(!raw) return { ok:true, val:null };
+    const n = parseInt(raw, 10);
+    if(isNaN(n) || n < min){ alert('จำนวนเซทที่จะสุ่ม ('+label+') ต้องไม่น้อยกว่า '+min+' เซท (หรือเว้นว่างไว้เพื่อเปิดโหวตทุกเซท)'); return { ok:false }; }
+    return { ok:true, val:n };
+  };
+  const cSav = readCount('schRandomCount', 5, 'อาหารคาว'); if(!cSav.ok) return;
+  const cDes = readCount('schRandomCountDessert', 1, 'ขนมหวาน/ผลไม้'); if(!cDes.ok) return;
+  f.random_set_count = cSav.val;
+  f.random_set_count_dessert = cDes.val;
   try{
     const { error } = await sb.from('rk_schedule').upsert({
       location_id: f.location_id, vendor_id: f.vendor_id,
       service_week_start: f.service_week_start, service_week_end: f.service_week_end,
       vote_opens_at: new Date(f.vote_opens_at).toISOString(), vote_closes_at: new Date(f.vote_closes_at).toISOString(),
-      status: f.status || 'draft', random_set_count: f.random_set_count,
+      status: f.status || 'draft', random_set_count: f.random_set_count, random_set_count_dessert: f.random_set_count_dessert,
     }, { onConflict: 'location_id,service_week_start' });
     if(error) throw error;
     state.scheduleForm = blankScheduleForm();
     await loadSchedule(); render();
-  }catch(e){ alert('บันทึกไม่สำเร็จ: ' + e.message); }
+  }catch(e){
+    const hint = /random_set_count_dessert/.test(e.message||'') ? '\n\n(ยังไม่ได้เพิ่มคอลัมน์ random_set_count_dessert ใน rk_schedule — รัน SQL migration ก่อน)' : '';
+    alert('บันทึกไม่สำเร็จ: ' + e.message + hint);
+  }
 }
 async function setScheduleStatus(id, status){
   const { error } = await sb.from('rk_schedule').update({ status }).eq('id', id);
@@ -645,7 +671,7 @@ function renderModal(){
           <select id="mMeal">
             ${Object.keys(MEAL_LABELS).map(k=>`<option value="${k}" ${d.meal_period===k?'selected':''}>${MEAL_LABELS[k]}</option>`).join('')}
           </select>
-          <div class="field-hint" style="margin-top:-6px;">มื้อเช้า/มื้อเย็น จะแสดงให้โหวตเฉพาะกลุ่มที่ 3 หน่วยงาน "${EXTRA_MEAL_UNIT}" เท่านั้น</div>
+          <div class="field-hint" style="margin-top:-6px;">มื้อเช้า/มื้อเย็น จะแสดงให้โหวตเฉพาะหน่วยงาน "${EXTRA_MEAL_UNIT}" (กลุ่มที่ 2) เท่านั้น</div>
         </div>
         <div class="field-block" style="border-left-color:var(--gold);">
           <div class="field-label">หมวดเมนู</div>

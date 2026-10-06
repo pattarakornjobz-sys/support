@@ -279,6 +279,9 @@ const MEAL_LABELS = { breakfast:'มื้อเช้า', lunch:'มื้อ�
 const MEAL_ORDER = ['breakfast','lunch','dinner'];
 const DISH_LABELS = { savory:'อาหารคาว', dessert:'ขนมหวาน/ผลไม้' };
 const DISH_ORDER = ['savory','dessert'];
+// นโยบายใหม่: 2 กลุ่ม (point3 เดิมถูกยุบรวมเข้ากลุ่มที่ 2) — ปุ่มเลือกกลุ่มแสดงเฉพาะกลุ่มปัจจุบัน แต่ข้อมูลเก่าของ point3 ยังค้นดูได้ในแท็บข้อมูลดิบ/กล่องข้อความ
+const ACTIVE_LOCATION_CODES = ['point1','point2'];
+function locLabel(l){ return l ? (ACTIVE_LOCATION_CODES.includes(l.code) ? l.short_name : l.short_name+' (เดิม)') : '-'; }
 const CATEGORIES = [
   { key:'food_quality', label:'คุณภาพอาหาร' },
   { key:'service', label:'การบริการ' },
@@ -289,7 +292,7 @@ const CATEGORIES = [
 
 let state = {
   tab: 'results',
-  locations: [], vendors: [],
+  locations: [], allLocations: [], vendors: [],
   resultsLocationId: null, scheduleList: [], scheduleId: null, resultsMeal: 'lunch', resultsDish: 'savory',
   votes: [], sets: [],
   fbLocationFilter: '', fbStatusFilter: '', fbCategoryFilter: '',
@@ -308,7 +311,7 @@ async function boot(){
       sb.from('rk_menu_sets').select('*'),
     ]);
     if(e1) throw e1; if(e2) throw e2; if(e3) throw e3; if(e4) throw e4;
-    state.locations = locations || []; state.vendors = vendors || [];
+    state.allLocations = locations || []; state.locations = state.allLocations.filter(l => ACTIVE_LOCATION_CODES.includes(l.code)); state.vendors = vendors || [];
     state.allSchedule = allSchedule || []; state.allSets = allSets || [];
     state.resultsLocationId = state.locations[0]?.id || null;
     state.fbLocationFilter = '';
@@ -425,14 +428,14 @@ function renderResults(){
     <div class="card">
       <div class="sec-head">
         <div class="sec-icon" style="background:var(--gold); color:#fff;">${ICONS.image}</div>
-        <div><div class="sec-title">${schVendor ? schVendor.name : 'ยังไม่ระบุร้าน'}</div><div class="sec-sub">ร้านประจำรอบนี้ — ${state.locations.find(l=>l.id===state.resultsLocationId)?.short_name || ''}</div></div>
+        <div><div class="sec-title">${schVendor ? schVendor.name : 'ยังไม่ระบุร้าน'}</div><div class="sec-sub">ร้านประจำรอบนี้ — ${state.allLocations.find(l=>l.id===state.resultsLocationId)?.short_name || ''}</div></div>
       </div>
       ${schVendor&&schVendor.logo_url ? `<div class="vendor-logo-big-wrap"><img src="${schVendor.logo_url}" alt="โลโก้${schVendor.name}"></div>` : ''}
       <div class="field-label" style="margin-top:6px;">มื้ออาหาร</div>
       <div class="seg-row">${mealTabs}</div>
       <div class="field-label" style="margin-top:6px;">หมวดเมนู</div>
       <div class="seg-row">${dishTabs}</div>
-      <div class="field-hint">มื้อเช้า/มื้อเย็น มีผลเฉพาะกลุ่มที่ 3 หน่วยงาน "แผนกนักเรียนช่าง" — จุดอื่นจะไม่มีผู้โหวตในมื้อเหล่านี้</div>
+      <div class="field-hint">มื้อเช้า/มื้อเย็น มีผลเฉพาะหน่วยงาน "แผนกนักเรียนช่าง" (กลุ่มที่ 2) — หน่วยงานอื่นจะไม่มีผู้โหวตในมื้อเหล่านี้</div>
     </div>
     <div class="stat-row">
       <div class="stat-box"><div class="num">${voters}</div><div class="lbl">จำนวนผู้โหวต (${groupLabel})</div></div>
@@ -441,8 +444,8 @@ function renderResults(){
     </div>
     <div class="card">
       <div class="sec-head">
-        <div><div class="sec-title">อันดับเซทเมนู Top 5 จากผลโหวต — ${schVendor?schVendor.name+' — ':''}${groupLabel}</div><div class="sec-sub">5 เซทที่คะแนนสูงสุด แนะนำส่งให้ร้านจัดเตรียม (ดาวน์โหลด CSV เพื่อดูอันดับทั้งหมด)</div></div>
-        <button class="btn-small primary" style="margin-left:auto;" onclick="downloadCsv()">ดาวน์โหลด CSV</button>
+        <div><div class="sec-title">อันดับเซทเมนู Top 5 จากผลโหวต — ${schVendor?schVendor.name+' — ':''}${groupLabel}</div><div class="sec-sub">5 เซทที่คะแนนสูงสุดของมื้อ/หมวดที่เลือก แนะนำส่งให้ร้านจัดเตรียม (ดาวน์โหลด CSV จะได้อันดับของทุกมื้อ ทั้งอาหารคาวและขนมหวาน/ผลไม้ ในไฟล์เดียว)</div></div>
+        <button class="btn-small primary" style="margin-left:auto;" onclick="downloadCsv()">ดาวน์โหลด CSV (ทุกหมวด)</button>
       </div>
       <ul class="rank-list">${rows || '<div class="empty-state">ยังไม่มีผู้โหวตในมื้อ/หมวดนี้</div>'}</ul>
     </div>` : ''}
@@ -451,18 +454,32 @@ function renderResults(){
 function setResultsLocation(id){ state.resultsLocationId=id; loadScheduleList().then(render); }
 function setResultsMeal(m){ state.resultsMeal=m; render(); }
 function setResultsDish(d){ state.resultsDish=d; render(); }
-function downloadCsv(){
-  const sch = state.scheduleList.find(s=>s.id===state.scheduleId);
-  const loc = state.locations.find(l=>l.id===state.resultsLocationId);
-  const ven = state.vendors.find(v=>v.id===sch?.vendor_id);
-  const ranking = computeRanking(state.resultsMeal, state.resultsDish);
-  let csv = 'อันดับ,ชื่อเซทเมนู,จำนวนโหวต,จำนวนที่เลือกเป็นอันดับ1\n';
-  ranking.forEach((r,i)=>{ csv += `${i+1},"${r.set.set_name.replace(/"/g,'""')}",${r.count},${r.rank1}\n`; });
-  const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' });
+function csvEsc(v){ return `"${String(v==null?'':v).replace(/"/g,'""')}"`; }
+function triggerDownload(csv, filename){
+  const blob = new Blob(['\ufeff'+csv], { type:'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `ผลโหวต_${MEAL_LABELS[state.resultsMeal]}_${DISH_LABELS[state.resultsDish].replace('/','-')}_${loc?loc.short_name:''}_${ven?ven.name:''}_${sch?sch.service_week_start:''}.csv`;
+  a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+// ดาวน์โหลดผลโหวตของกลุ่ม+รอบที่เลือก "ทุกมื้อ ทุกหมวด" ในไฟล์เดียว (อาหารคาว + ขนมหวาน/ผลไม้) พร้อมระบุ Top 5 ที่ส่งให้ร้าน
+function downloadCsv(){
+  const sch = state.scheduleList.find(s=>s.id===state.scheduleId);
+  const loc = state.allLocations.find(l=>l.id===state.resultsLocationId);
+  const ven = state.vendors.find(v=>v.id===sch?.vendor_id);
+  const wk = sch ? (fmtDate(sch.service_week_start)+' - '+fmtDate(sch.service_week_end)) : '';
+  let csv = 'กลุ่ม,ร้าน,สัปดาห์บริการ,มื้ออาหาร,หมวด,อันดับ,ชื่อเซทเมนู,จำนวนโหวต,จำนวนที่เลือกเป็นอันดับ1,Top5ส่งร้าน\n';
+  let any = false;
+  MEAL_ORDER.forEach(m => DISH_ORDER.forEach(d => {
+    const ranking = computeRanking(m, d);
+    if(!ranking.length) return;
+    any = true;
+    ranking.forEach((r,i)=>{
+      csv += [csvEsc(loc?loc.short_name:''), csvEsc(ven?ven.name:''), csvEsc(wk), csvEsc(MEAL_LABELS[m]), csvEsc(DISH_LABELS[d]), i+1, csvEsc(r.set.set_name), r.count, r.rank1, csvEsc(i<5 && r.count>0 ? 'ใช่' : '')].join(',') + '\n';
+    });
+  }));
+  if(!any){ alert('ยังไม่มีเซทเมนูในรอบนี้ให้ดาวน์โหลด'); return; }
+  triggerDownload(csv, `ผลโหวต_${loc?loc.short_name:''}_${ven?ven.name:''}_${sch?sch.service_week_start:''}.csv`);
 }
 
 /* ---------------- Raw data tab (ใครโหวตอะไร มาจากหน่วยงานอะไร) ---------------- */
@@ -484,7 +501,7 @@ async function loadRawVotes(){
   state.rawVotes = rows;
 }
 function renderRaw(){
-  const locOptions = ['<option value="">ทุกจุดบริการ</option>'].concat(state.locations.map(l=>`<option value="${l.id}" ${String(state.rawLocationFilter)===String(l.id)?'selected':''}>${l.short_name}</option>`)).join('');
+  const locOptions = ['<option value="">ทุกจุดบริการ</option>'].concat(state.allLocations.map(l=>`<option value="${l.id}" ${String(state.rawLocationFilter)===String(l.id)?'selected':''}>${locLabel(l)}</option>`)).join('');
   const schedulesForFilter = state.rawLocationFilter ? state.allSchedule.filter(s=>String(s.location_id)===String(state.rawLocationFilter)) : state.allSchedule;
   const schOptions = ['<option value="">ทุกสัปดาห์</option>'].concat(schedulesForFilter.map(s=>{
     const ven = state.vendors.find(v=>v.id===s.vendor_id);
@@ -494,14 +511,14 @@ function renderRaw(){
   const dishOptions = ['<option value="">ทุกหมวด</option>'].concat(DISH_ORDER.map(d=>`<option value="${d}" ${state.rawDishFilter===d?'selected':''}>${DISH_LABELS[d]}</option>`)).join('');
   const rows = state.rawVotes.map(v => {
     const sch = state.allSchedule.find(s=>s.id===v.schedule_id);
-    const loc = sch ? state.locations.find(l=>l.id===sch.location_id) : null;
+    const loc = sch ? state.allLocations.find(l=>l.id===sch.location_id) : null;
     const ven = sch ? state.vendors.find(ve=>ve.id===sch.vendor_id) : null;
     const set = state.allSets.find(s=>s.id===v.menu_set_id);
     return `<tr>
       <td data-label="เวลาโหวต">${fmtDateTime(v.voted_at)}</td>
       <td data-label="ชื่อ-นามสกุล">${v.voter_name||'-'}</td>
       <td data-label="หน่วยงาน">${v.unit||'-'}</td>
-      <td data-label="จุดบริการ">${loc?loc.short_name:'-'}</td>
+      <td data-label="จุดบริการ">${locLabel(loc)}</td>
       <td data-label="ร้าน">${ven?ven.name:'-'}</td>
       <td data-label="สัปดาห์บริการ">${sch? fmtDate(sch.service_week_start)+'–'+fmtDate(sch.service_week_end) : '-'}</td>
       <td data-label="มื้ออาหาร">${MEAL_LABELS[v.meal_period||'lunch']}</td>
@@ -535,30 +552,31 @@ function downloadRawCsv(){
   let csv = 'เวลาโหวต,ชื่อ-นามสกุล,หน่วยงาน,จุดบริการ,ร้าน,สัปดาห์บริการ,มื้ออาหาร,หมวด,อันดับ,เซทเมนูที่เลือก\n';
   state.rawVotes.forEach(v => {
     const sch = state.allSchedule.find(s=>s.id===v.schedule_id);
-    const loc = sch ? state.locations.find(l=>l.id===sch.location_id) : null;
+    const loc = sch ? state.allLocations.find(l=>l.id===sch.location_id) : null;
     const ven = sch ? state.vendors.find(ve=>ve.id===sch.vendor_id) : null;
     const set = state.allSets.find(s=>s.id===v.menu_set_id);
     const wk = sch ? (fmtDate(sch.service_week_start)+'-'+fmtDate(sch.service_week_end)) : '';
     const esc = s => `"${String(s==null?'':s).replace(/"/g,'""')}"`;
-    csv += [esc(fmtDateTime(v.voted_at)), esc(v.voter_name), esc(v.unit), esc(loc?loc.short_name:''), esc(ven?ven.name:''), esc(wk), esc(MEAL_LABELS[v.meal_period||'lunch']), esc(DISH_LABELS[v.dish_type||'savory']), v.rank, esc(set?set.set_name:'')].join(',') + '\n';
+    csv += [esc(fmtDateTime(v.voted_at)), esc(v.voter_name), esc(v.unit), esc(loc?locLabel(loc):''), esc(ven?ven.name:''), esc(wk), esc(MEAL_LABELS[v.meal_period||'lunch']), esc(DISH_LABELS[v.dish_type||'savory']), v.rank, esc(set?set.set_name:'')].join(',') + '\n';
   });
   const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `ข้อมูลดิบการโหวต_${new Date().toISOString().slice(0,10)}.csv`;
+  a.href = url; const fLoc = state.allLocations.find(l=>String(l.id)===String(state.rawLocationFilter));
+  a.download = `ข้อมูลดิบการโหวต${fLoc?'_'+fLoc.short_name:'_ทุกกลุ่ม'}_${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
 /* ---------------- Feedback tab ---------------- */
 function renderFeedback(){
-  const locOptions = ['<option value="">ทุกจุดบริการ</option>'].concat(state.locations.map(l=>`<option value="${l.id}" ${String(state.fbLocationFilter)===String(l.id)?'selected':''}>${l.short_name}</option>`)).join('');
+  const locOptions = ['<option value="">ทุกจุดบริการ</option>'].concat(state.allLocations.map(l=>`<option value="${l.id}" ${String(state.fbLocationFilter)===String(l.id)?'selected':''}>${locLabel(l)}</option>`)).join('');
   const statusOptions = ['<option value="">ทุกสถานะ</option>', ['new','รอตรวจสอบ'], ['acknowledged','รับทราบแล้ว'], ['resolved','ดำเนินการแล้ว']].map(o=>{
     if(typeof o==='string') return o;
     return `<option value="${o[0]}" ${state.fbStatusFilter===o[0]?'selected':''}>${o[1]}</option>`;
   }).join('');
   const catOptions = ['<option value="">ทุกหมวดหมู่</option>'].concat(CATEGORIES.map(c=>`<option value="${c.key}" ${state.fbCategoryFilter===c.key?'selected':''}>${c.label}</option>`)).join('');
   const items = state.feedback.map(f => {
-    const loc = state.locations.find(l=>l.id===f.location_id);
+    const loc = state.allLocations.find(l=>l.id===f.location_id);
     const draft = state.replyDrafts[f.id] !== undefined ? state.replyDrafts[f.id] : (f.admin_reply||'');
     return `
     <div class="msg-item">
@@ -566,7 +584,7 @@ function renderFeedback(){
         <span class="msg-name">${f.anonymous ? 'ไม่ประสงค์ออกนาม' : (f.voter_name||'-')} ${f.unit && !f.anonymous? '· '+f.unit : ''}</span>
         <span class="pill ${f.status}">${fbStatusLabel(f.status)}</span>
       </div>
-      <div class="msg-meta">${loc?loc.short_name:'-'} · ${CATEGORIES.find(c=>c.key===f.category)?.label||f.category} · ${fmtDateTime(f.created_at)}</div>
+      <div class="msg-meta">${locLabel(loc)} · ${CATEGORIES.find(c=>c.key===f.category)?.label||f.category} · ${fmtDateTime(f.created_at)}</div>
       <div class="msg-body" style="margin-top:6px;">${f.message}</div>
       <div class="field-block" style="border-left-color:var(--service); margin-top:10px; margin-bottom:6px;">
         <div class="field-label" style="font-size:12.5px;">คำตอบ / บันทึกจากแอดมิน</div>
