@@ -312,7 +312,11 @@ const voterKey = getVoterKey();
 function isExtraMealUnit(){ return state.unit === EXTRA_MEAL_UNIT; }
 function mealsToShow(){ return isExtraMealUnit() ? MEAL_ORDER : ['lunch']; }
 function groupsToShow(){ const g=[]; mealsToShow().forEach(m=>DISH_ORDER.forEach(d=>g.push({meal:m, dish:d, key:gk(m,d)}))); return g; }
-function required(key){ const n = state.setsByGroup[key].length; return n ? Math.min(5, n) : 0; }
+// จำนวนอันดับที่ให้โหวตต่อหมวด: กลุ่ม 1 และ 5 = 7 อันดับ, กลุ่มอื่น (2,3,4) = 5 อันดับเหมือนเดิม
+const RANK_LIMIT_BY_LOC = { g1: 7, g5: 7 };
+const DEFAULT_RANK_LIMIT = 5;
+function rankLimit(){ return (state.loc && RANK_LIMIT_BY_LOC[state.loc.code]) || DEFAULT_RANK_LIMIT; }
+function required(key){ const n = state.setsByGroup[key].length; return n ? Math.min(rankLimit(), n) : 0; }
 
 function renderApp(){
   const el = document.getElementById('app');
@@ -381,6 +385,8 @@ async function startVoting(){
     const loc = LOCATIONS_BY_CODE[code];
     if(!loc) throw new Error('ไม่พบข้อมูลจุดบริการ');
     state.loc = loc;
+    const _tn = document.getElementById('topNote');
+    if(_tn && rankLimit() !== DEFAULT_RANK_LIMIT) _tn.innerHTML = _tn.innerHTML.replace('1–5', '1–' + rankLimit());
 
     const { data: rows, error: schErr } = await sb.from('rk_schedule')
       .select('*').eq('location_id', loc.id).order('service_week_start', { ascending:false }).limit(12);
@@ -535,7 +541,7 @@ function renderVote(el){
         </div>
       </div>
       ${v&&v.logo_url ? `<div class="vendor-logo-big-wrap"><img src="${v.logo_url}" alt="โลโก้${v.name}"></div>` : ''}
-      <div class="info-box">${ICONS.clock} เปิดโหวตถึง ${fmtDateTime(sch.vote_closes_at)} — เลือกเซทที่ท่านต้องการอันดับ 1–5 แยกเป็นหมวดอาหารคาว และหมวดขนมหวาน/ผลไม้ ในแต่ละมื้อ (แตะเลือกตามลำดับที่อยากได้ก่อน)${isExtraMealUnit() ? ' — หน่วยงานของท่านโหวตได้ทั้งมื้อเช้า กลางวัน และเย็น' : ''}</div>
+      <div class="info-box">${ICONS.clock} เปิดโหวตถึง ${fmtDateTime(sch.vote_closes_at)} — เลือกเซทที่ท่านต้องการอันดับ 1–${rankLimit()} แยกเป็นหมวดอาหารคาว และหมวดขนมหวาน/ผลไม้ ในแต่ละมื้อ (แตะเลือกตามลำดับที่อยากได้ก่อน)${isExtraMealUnit() ? ' — หน่วยงานของท่านโหวตได้ทั้งมื้อเช้า กลางวัน และเย็น' : ''}</div>
       ${state.error ? `<div class="error">${state.error}</div>` : ''}
     </div>
     ${groups.map(renderGroupBlock).join('')}
