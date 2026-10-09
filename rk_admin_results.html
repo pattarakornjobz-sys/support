@@ -546,6 +546,16 @@ body.tab-feedback .admin-nav{display:none !important;}
   document.addEventListener('focusin', function(){ setTimeout(pin, 300); });
 })();
 </script>
+<style>
+.unit-row-btn.grp-btn{height:auto; min-height:64px; padding:10px 14px; align-items:flex-start;}
+.grp-btn .label{display:flex; flex-direction:column; gap:2px; text-align:left; white-space:normal;}
+.grp-btn .label b{font:600 20px/1.2 var(--font-heading);}
+.grp-btn .grp-units{font-size:15px; font-weight:400; line-height:1.45; color:var(--color-neutral-800);}
+.grp-btn.active .grp-units{color:var(--color-accent-800);}
+</style>
+<style>
+.ven-logo{width:88px; height:88px; flex:none; background:#fff center/contain no-repeat; border:1px solid var(--color-divider); cursor:zoom-in;}
+</style>
 </head>
 <body>
 <div class="scroll-area">
@@ -625,6 +635,14 @@ const DISH_LABELS = { savory:'อาหารคาว', dessert:'ขนมห�
 const DISH_ORDER = ['savory','dessert'];
 // 5 กลุ่ม (g1–g5) ตรงกับหน้าโหวต — ข้อมูลรอบเก่า (point1/point2) ยังดูได้ในข้อมูลดิบ
 const ACTIVE_LOCATION_CODES = ['g1','g2','g3','g4','g5'];
+const GROUP_UNITS = {
+  g1: ['อาคารเรียน-รู้-เรื่องโขน','แผนกนักเรียนช่าง'],
+  g2: ['อาคารศิลปาชีพ ตำบลช้างใหญ่'],
+  g3: ['อาคารเก็บผลิตภัณฑ์ศิลปาชีพ'],
+  g4: ['พิพิธภัณฑ์ศิลป์แผ่นดิน'],
+  g5: ['โครงการก่อสร้างศิลปาชีพ ตำบลเกาะเกิด'],
+};
+function groupUnits(l){ return l && GROUP_UNITS[l.code] ? GROUP_UNITS[l.code].join(' / ') : ''; }
 function locLabel(l){ return l ? (ACTIVE_LOCATION_CODES.includes(l.code) ? l.short_name : l.short_name+' (เดิม)') : '-'; }
 const CATEGORIES = [
   { key:'food_quality', label:'คุณภาพอาหาร' },
@@ -742,8 +760,7 @@ function computeRanking(meal, dish){
 }
 function renderResults(){
   const locBtns = state.locations.map(l => {
-    const ven = currentVendorForLocation(l.id);
-    return `<button type="button" class="unit-row-btn ${state.resultsLocationId===l.id?'active':''}" onclick="setResultsLocation(${l.id})"><span class="label">${l.short_name} — ${ven ? ven.name : 'ยังไม่มีร้านประจำจุด'}</span></button>`;
+    return `<button type="button" class="unit-row-btn grp-btn ${state.resultsLocationId===l.id?'active':''}" onclick="setResultsLocation(${l.id})"><span class="label"><b>${l.short_name}</b><span class="grp-units">${groupUnits(l)}</span></span></button>`;
   }).join('');
   const schOptions = state.scheduleList.map(s => {
     const ven = state.vendors.find(v=>v.id===s.vendor_id);
@@ -797,10 +814,9 @@ function renderResults(){
     ${sch ? `
     <div class="card">
       <div class="sec-head">
-        <div class="sec-icon" style="background:var(--gold); color:#fff;">${ICONS.image}</div>
-        <div><div class="sec-title">${schVendor ? schVendor.name : 'ยังไม่ระบุร้าน'}</div><div class="sec-sub">ร้านประจำรอบนี้ — ${state.allLocations.find(l=>l.id===state.resultsLocationId)?.short_name || ''}</div></div>
+        ${schVendor&&schVendor.logo_url ? `<div class="ven-logo" onclick="openLightbox('${esc(schVendor.logo_url)}','${esc(schVendor.name)}')" style="background-image:url('${schVendor.logo_url}')"></div>` : `<div class="sec-icon" style="background:var(--gold); color:#fff;">${ICONS.image}</div>`}
+        <div><div class="sec-title">${schVendor ? schVendor.name : 'ยังไม่ระบุร้าน'}</div><div class="sec-sub">ร้านประจำรอบนี้ — ${(()=>{const l=state.allLocations.find(l=>l.id===state.resultsLocationId);return l?l.short_name+' · '+groupUnits(l):'';})()}</div></div>
       </div>
-      ${schVendor&&schVendor.logo_url ? `<div class="vendor-logo-big-wrap"><img src="${schVendor.logo_url}" alt="โลโก้${schVendor.name}"></div>` : ''}
       <div class="field-label" style="margin-top:6px;">มื้ออาหาร</div>
       <div class="seg-row">${mealTabs}</div>
       <div class="field-label" style="margin-top:6px;">หมวดเมนู</div>
@@ -814,7 +830,7 @@ function renderResults(){
     </div>
     <div class="card">
       <div class="sec-head">
-        <div><div class="sec-title">อันดับเซทเมนู Top 5 จากผลโหวต — ${schVendor?schVendor.name+' — ':''}${groupLabel}</div><div class="sec-sub">5 เซทที่คะแนนสูงสุดของมื้อ/หมวดที่เลือก แนะนำส่งให้ร้านจัดเตรียม (ดาวน์โหลด CSV จะได้อันดับของทุกมื้อ ทั้งอาหารคาวและขนมหวาน/ผลไม้ ในไฟล์เดียว)</div></div>
+        <div><div class="sec-title">อันดับเซทเมนู Top 5 — ${(()=>{const l=state.allLocations.find(l=>l.id===state.resultsLocationId);return l?l.short_name+' ('+groupUnits(l)+') — ':'';})()}${groupLabel}</div><div class="sec-sub">5 เซทที่คะแนนสูงสุดของมื้อ/หมวดที่เลือก แนะนำส่งให้ร้านจัดเตรียม (ดาวน์โหลด CSV จะได้อันดับของทุกมื้อ ทั้งอาหารคาวและขนมหวาน/ผลไม้ ในไฟล์เดียว)</div></div>
         <button class="btn-small primary" style="margin-left:auto;" onclick="downloadCsv()">ดาวน์โหลด CSV (ทุกหมวด)</button>
       </div>
       ${rows ? `<div class="res-list">${rows}</div>` : '<div class="empty-state">ยังไม่มีผู้โหวตในมื้อ/หมวดนี้</div>'}
