@@ -1,0 +1,50 @@
+{
+  "name": "ครัวหมุนเวียน — ระบบโหวตเมนูอาหาร",
+  "short_name": "ครัวหมุนเวียน",
+  "description": "ระบบโหวตเมนูอาหารครัวหมุนเวียน พร้อมหลังบ้านจัดการร้านค้า เซทเมนู ตารางหมุนเวียน และผลโหวตสำหรับแอดมิน/ผู้บริหาร",
+  "start_url": "./rk_vote.html",
+  "scope": "./",
+  "id": "/rk-crowd-kitchen",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0B2545",
+  "theme_color": "#0B2545",
+  "lang": "th",
+  "dir": "ltr",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "โหวตเมนูอาหาร",
+      "short_name": "โหวต",
+      "description": "ไปหน้าโหวตเมนูอาหารประจำสัปดาห์",
+      "url": "./rk_vote.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "ผลโหวต & กล่องข้อความ",
+      "short_name": "ผลโหวต",
+      "description": "ดูผลโหวต ข้อมูลดิบ และกล่องข้อความ (สำหรับแอดมิน/ผู้บริหาร)",
+      "url": "./rk_admin_results.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "หลังบ้าน",
+      "short_name": "หลังบ้าน",
+      "description": "จัดการร้านค้า เซทเมนู ตารางหมุนเวียน",
+      "url": "./rk_admin.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "แจ้งปัญหา",
+      "short_name": "แจ้งปัญหา",
+      "description": "ส่งข้อความ/แจ้งปัญหาถึงแอดมิน",
+      "url": "./rk_feedback.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

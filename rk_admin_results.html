@@ -2,7 +2,15 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B2545">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ครัวหมุนเวียน">
 <title>ผลโหวต & กล่องข้อความ - ครัวหมุนเวียน</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Kanit:wght@400;500;600;700;800&display=swap">
@@ -26,7 +34,12 @@ body{
     radial-gradient(circle at 20% 0%, rgba(217,166,40,0.18), transparent 45%),
     radial-gradient(circle at 90% 90%, rgba(255,255,255,0.06), transparent 50%);
   padding:30px 12px 60px;
-  font-size:16px; line-height:1.6; min-height:100vh;
+  padding-left:max(12px, env(safe-area-inset-left));
+  padding-right:max(12px, env(safe-area-inset-right));
+  padding-bottom:max(60px, calc(env(safe-area-inset-bottom) + 24px));
+  font-size:16px; line-height:1.6;
+  min-height:100vh; min-height:100dvh;
+  -webkit-tap-highlight-color:transparent;
 }
 .wrap{max-width:648px; margin:0 auto; padding:26px 16px 30px;}
 .wrap.wide{max-width:1080px;}
@@ -50,9 +63,11 @@ h1{font-family:'Prompt',sans-serif; font-size:clamp(20px, 6vw, 26px); font-weigh
 .sec-sub{font-size:12.5px; color:var(--ink-soft); margin-top:1px;}
 .divider{border-top:1px solid rgba(31,45,61,0.12); margin:20px 0;}
 .unit-row-btn{
-  display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:13px 14px; border-radius:8px;
+  display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:13px 14px; min-height:48px; box-sizing:border-box;
+  border-radius:8px;
   border:1.5px solid rgba(31,45,61,0.14); background:rgba(255,255,255,0.5); cursor:pointer; font-family:inherit;
   margin-bottom:9px; transition:transform .15s, box-shadow .15s, background .15s, border-color .15s;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent; -webkit-appearance:none; appearance:none;
 }
 .unit-row-btn:hover{transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.1);}
 .unit-row-btn .icon{width:32px; height:32px; border-radius:50%; background:var(--ivory-dim); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--ink-soft);}
@@ -64,17 +79,25 @@ h1{font-family:'Prompt',sans-serif; font-size:clamp(20px, 6vw, 26px); font-weigh
 .field-block{border-left:3px solid var(--accent, var(--gold)); padding-left:14px; margin-bottom:20px;}
 .field-label{display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; margin-bottom:4px; line-height:1.4;}
 .field-hint{font-size:12.5px; color:var(--ink-soft); margin-bottom:8px;}
-input[type=text], input[type=tel], input[type=number], input[type=date], input[type=time], select, textarea{
+input[type=text], input[type=tel], input[type=number], input[type=date], input[type=time], input[type=password], select, textarea{
   width:100%; padding:12px 14px; border-radius:8px; border:1.5px solid rgba(31,45,61,0.16); background:rgba(255,255,255,0.6);
-  font-family:inherit; font-size:14.5px; color:var(--ink); margin-top:-2px; margin-bottom:9px;
+  font-family:inherit; font-size:16px; color:var(--ink); margin-top:-2px; margin-bottom:9px;
+  -webkit-appearance:none; appearance:none; -webkit-tap-highlight-color:transparent;
 }
 input:focus, select:focus, textarea:focus{outline:none; box-shadow:0 0 0 3px rgba(217,166,40,0.2); border-color:var(--gold);}
-textarea{resize:vertical; line-height:1.5;}
+/* select ถูกเอา native appearance ออกไปเพื่อให้หน้าตาเหมือนกันทั้ง iOS/Android จึงต้องเติมลูกศรเองไม่ให้ดูเหมือนช่องว่างเฉยๆ */
+select{
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235B6B85' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat:no-repeat; background-position:right 12px center; background-size:16px; padding-right:38px;
+}
+textarea{resize:vertical; line-height:1.5; -webkit-appearance:none; appearance:none;}
 .submit-btn{
   width:100%; padding:16px; border-radius:8px; border:1px solid var(--gold-dim);
   background:linear-gradient(180deg,#4FA8DE,#2E86D6); color:var(--ivory); font-weight:700; font-size:16.5px;
   cursor:pointer; letter-spacing:1px; font-family:inherit; box-shadow:0 10px 24px rgba(217,166,40,0.35);
   transition:transform .15s, box-shadow .15s;
+  min-height:50px; touch-action:manipulation; -webkit-tap-highlight-color:transparent; -webkit-appearance:none; appearance:none;
+  -webkit-user-select:none; user-select:none;
 }
 .submit-btn:hover{transform:translateY(-2px); box-shadow:0 14px 30px rgba(217,166,40,0.45);}
 .submit-btn:disabled{background:#B9C6D4; box-shadow:none; cursor:default; transform:none;}
@@ -87,14 +110,14 @@ textarea{resize:vertical; line-height:1.5;}
 .success .seal svg{width:34px; height:34px; color:var(--food);}
 .success h2{font-family:'Prompt',sans-serif; font-weight:700; font-size:21px; color:var(--ink); margin:0 0 8px;}
 .success p{font-size:15px; margin:0 0 22px; color:var(--ink-soft);}
-.btn-outline{padding:12px 22px; border-radius:8px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-weight:700; font-size:15px; cursor:pointer; font-family:inherit; transition:background .15s;}
+.btn-outline{padding:12px 22px; min-height:44px; border-radius:8px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-weight:700; font-size:15px; cursor:pointer; font-family:inherit; transition:background .15s; touch-action:manipulation; -webkit-tap-highlight-color:transparent; box-sizing:border-box;}
 .btn-outline:hover{background:rgba(31,45,61,0.06);}
 .btn-outline.on-dark{border-color:var(--gold-light); color:var(--gold-light);}
 .btn-outline.on-dark:hover{background:rgba(217,166,40,0.1);}
-.btn-small{padding:7px 13px; border-radius:6px; border:1.5px solid rgba(31,45,61,0.18); background:#fff; color:var(--ink); font-weight:600; font-size:12.5px; cursor:pointer; font-family:inherit;}
+.btn-small{padding:9px 13px; min-height:36px; border-radius:6px; border:1.5px solid rgba(31,45,61,0.18); background:#fff; color:var(--ink); font-weight:600; font-size:12.5px; cursor:pointer; font-family:inherit; touch-action:manipulation; -webkit-tap-highlight-color:transparent; box-sizing:border-box;}
 .btn-small.danger{border-color:rgba(255,107,107,0.4); color:#D64550;}
 .btn-small.primary{border-color:var(--gold); background:var(--gold); color:#fff;}
-.link-btn{background:none; border:none; color:var(--service-text); font-weight:600; font-size:13.5px; cursor:pointer; font-family:inherit; padding:0;}
+.link-btn{background:none; border:none; color:var(--service-text); font-weight:600; font-size:13.5px; cursor:pointer; font-family:inherit; padding:10px 0; touch-action:manipulation; -webkit-tap-highlight-color:transparent;}
 
 /* pills / badges */
 .pill{display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:99px; font-size:11.5px; font-weight:700; letter-spacing:.3px;}
@@ -125,7 +148,7 @@ textarea{resize:vertical; line-height:1.5;}
 
 /* grid cards (vendors, menu sets) */
 .card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px;}
-.item-card{background:#fff; border:1.5px solid rgba(31,45,61,0.1); border-radius:14px; overflow:hidden; cursor:pointer; transition:transform .15s, box-shadow .15s, border-color .15s; position:relative;}
+.item-card{background:#fff; border:1.5px solid rgba(31,45,61,0.1); border-radius:14px; overflow:hidden; cursor:pointer; transition:transform .15s, box-shadow .15s, border-color .15s; position:relative; touch-action:manipulation; -webkit-tap-highlight-color:transparent;}
 .item-card:hover{transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,0.1);}
 .item-card .thumb{width:100%; aspect-ratio:1; background:var(--ivory-dim) center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:var(--ink-soft);}
 .item-card .thumb svg{width:30px; height:30px;}
@@ -151,7 +174,7 @@ textarea{resize:vertical; line-height:1.5;}
 
 /* segmented category selector */
 .seg-row{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;}
-.seg-opt{padding:9px 14px; border-radius:99px; border:1.5px solid rgba(31,45,61,0.16); background:#fff; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; color:var(--ink-soft);}
+.seg-opt{padding:10px 14px; min-height:40px; box-sizing:border-box; border-radius:99px; border:1.5px solid rgba(31,45,61,0.16); background:#fff; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; color:var(--ink-soft); touch-action:manipulation; -webkit-tap-highlight-color:transparent; -webkit-appearance:none; appearance:none;}
 .seg-opt.active{background:var(--ink); border-color:var(--ink); color:#fff;}
 
 /* chat / feedback list */
@@ -279,9 +302,9 @@ const MEAL_LABELS = { breakfast:'มื้อเช้า', lunch:'มื้อ�
 const MEAL_ORDER = ['breakfast','lunch','dinner'];
 const DISH_LABELS = { savory:'อาหารคาว', dessert:'ขนมหวาน/ผลไม้' };
 const DISH_ORDER = ['savory','dessert'];
-// นโยบายใหม่: 5 กลุ่มแยกกัน (รหัส g1–g5) — กลุ่มเดิม point1–point3 ยังอยู่ใน DB เป็นประวัติ ไม่แสดงเป็นตัวเลือก แต่ดูข้อมูลย้อนหลังได้
-const ACTIVE_LOCATION_CODES = ['g1','g2','g3','g4','g5'];
-function locLabel(l){ return l ? l.short_name : '-'; }
+// นโยบายใหม่: 2 กลุ่ม (point3 เดิมถูกยุบรวมเข้ากลุ่มที่ 2) — ปุ่มเลือกกลุ่มแสดงเฉพาะกลุ่มปัจจุบัน แต่ข้อมูลเก่าของ point3 ยังค้นดูได้ในแท็บข้อมูลดิบ/กล่องข้อความ
+const ACTIVE_LOCATION_CODES = ['point1','point2'];
+function locLabel(l){ return l ? (ACTIVE_LOCATION_CODES.includes(l.code) ? l.short_name : l.short_name+' (เดิม)') : '-'; }
 const CATEGORIES = [
   { key:'food_quality', label:'คุณภาพอาหาร' },
   { key:'service', label:'การบริการ' },
@@ -435,7 +458,7 @@ function renderResults(){
       <div class="seg-row">${mealTabs}</div>
       <div class="field-label" style="margin-top:6px;">หมวดเมนู</div>
       <div class="seg-row">${dishTabs}</div>
-      <div class="field-hint">มื้อเช้า/มื้อเย็น มีผลเฉพาะหน่วยงาน "แผนกนักเรียนช่าง" (กลุ่มที่ 1) — หน่วยงานอื่นจะไม่มีผู้โหวตในมื้อเหล่านี้</div>
+      <div class="field-hint">มื้อเช้า/มื้อเย็น มีผลเฉพาะหน่วยงาน "แผนกนักเรียนช่าง" (กลุ่มที่ 2) — หน่วยงานอื่นจะไม่มีผู้โหวตในมื้อเหล่านี้</div>
     </div>
     <div class="stat-row">
       <div class="stat-box"><div class="num">${voters}</div><div class="lbl">จำนวนผู้โหวต (${groupLabel})</div></div>
@@ -653,3 +676,13 @@ document.addEventListener('keydown', e => { if(e.key==='Escape') closeLightbox()
 
 boot();
 </script>
+<script>
+// ติดตั้งเป็นแอป (PWA) ได้ทั้ง Android (ปุ่ม "ติดตั้งแอป" ในเมนู Chrome) และ iPhone (ปุ่มแชร์ > เพิ่มไปยังหน้าจอโฮม)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch((e) => console.warn('SW register failed:', e));
+  });
+}
+</script>
+</body>
+</html>
