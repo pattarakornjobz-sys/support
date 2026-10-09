@@ -3,7 +3,7 @@
 // แต่ "ข้อมูลจริง" ทุกอย่าง (โหวต เมนู ผลสรุป ข้อความ) ที่ไปดึงจาก Supabase จะปล่อยให้วิ่งผ่านเน็ตสดเสมอ
 // ไม่แคชเด็ดขาด — ป้องกันแอดมิน/ผู้บริหารเห็นผลโหวตเก่าค้างจากแคช
 
-const CACHE_NAME = 'rk-app-shell-v2';
+const CACHE_NAME = 'rk-app-shell-v3';
 const APP_SHELL = [
   './rk_vote.html',
   './rk_admin.html',
@@ -17,6 +17,12 @@ const APP_SHELL = [
   './icon-maskable-512.png',
   './apple-touch-icon.png',
   './favicon.png',
+  './icon-admin-192.png',
+  './icon-admin-512.png',
+  './icon-admin-maskable-192.png',
+  './icon-admin-maskable-512.png',
+  './apple-touch-icon-admin.png',
+  './favicon-admin.png',
 ];
 
 self.addEventListener('install', (event) => {
