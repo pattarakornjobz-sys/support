@@ -491,7 +491,44 @@ input:focus,select:focus,textarea:focus{box-shadow:none; border-color:var(--colo
 .photo-view img{max-width:100%; max-height:72vh; object-fit:contain;}
 .photo-view .cap{font:600 26px/1.2 var(--font-heading); text-align:center;}
 .photo-view button{min-height:54px; padding:0 30px; font:600 20px var(--font-heading); background:transparent; color:#fff; border:1px solid #fff; cursor:pointer;}
+
+/* fix: แถบล่างหลุดจอ — ล็อกไว้ที่ขอบล่างของจอเสมอ และกันตัวหน้าเลื่อนเอง */
+html,body{height:100%; overflow:hidden; overscroll-behavior:none;}
+body{position:fixed; inset:0; height:auto;}
+.scroll-area{position:absolute; top:0; left:0; right:0; bottom:calc(62px + env(safe-area-inset-bottom)); padding-top:calc(16px + env(safe-area-inset-top)); overscroll-behavior:contain;}
+.bottom-nav{position:fixed !important; left:0; right:0; bottom:0; height:calc(62px + env(safe-area-inset-bottom)); padding-bottom:env(safe-area-inset-bottom); z-index:40;}
+.bottom-nav .bn-item{min-height:62px;}
+.admin-topbar{padding:12px 16px; margin-bottom:16px;}
+.admin-nav{display:none !important;}
+/* ตารางทุกตารางในหลังบ้าน แสดงเป็นการ์ดรายการ อ่านง่ายทุกขนาดจอ */
+.table-scroll{overflow:visible !important; border:none !important;}
+.data-table{display:block; width:100%; min-width:0 !important; border-collapse:separate;}
+.data-table thead{display:none !important;}
+.data-table tbody{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr)); gap:14px;}
+.data-table tr{display:flex !important; flex-direction:column; gap:0; padding:12px 14px !important; margin:0 !important; border:1px solid var(--color-divider) !important; background:transparent !important;}
+.data-table tr:hover td{background:transparent !important;}
+.data-table td{display:grid !important; grid-template-columns:104px minmax(0,1fr); gap:10px; align-items:baseline; padding:7px 0 !important; border:none !important; border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent) !important; white-space:normal !important; text-align:left !important; font-size:15px; line-height:1.5; word-break:normal; overflow-wrap:anywhere;}
+.data-table td::before{content:attr(data-label); display:block !important; position:static !important; width:auto !important; font:600 13px/1.5 var(--font-body) !important; color:var(--color-accent-700) !important;}
+.data-table td:first-child{font:600 20px/1.25 var(--font-heading); padding-top:0 !important;}
+.data-table td:first-child::before{padding-top:4px;}
+.data-table td[data-label="จัดการ"]{display:flex !important; flex-wrap:wrap; gap:8px; border-bottom:none !important; padding-top:12px !important;}
+.data-table td[data-label="จัดการ"]::before{display:none !important;}
+.data-table td[data-label="จัดการ"] .btn-small{flex:1 1 auto; min-height:44px; margin:0 !important; font-size:14px;}
+.data-table td .pill,.data-table td .chip{display:inline-block; margin:0 4px 4px 0;}
+.data-table td[colspan]{display:block !important; grid-template-columns:none;}
+.data-table td[colspan]::before{display:none !important;}
 </style>
+<script>
+(function(){
+  function pin(){ if(window.scrollY||document.documentElement.scrollTop||document.body.scrollTop){ window.scrollTo(0,0); document.documentElement.scrollTop=0; document.body.scrollTop=0; } }
+  window.addEventListener('scroll', pin, {passive:true});
+  window.addEventListener('load', pin);
+  window.addEventListener('pageshow', pin);
+  window.addEventListener('hashchange', pin);
+  window.addEventListener('resize', pin);
+  document.addEventListener('focusin', function(){ setTimeout(pin, 300); });
+})();
+</script>
 </head>
 <body>
 <div class="scroll-area">
@@ -667,7 +704,7 @@ async function clearRandomSets(id){
   }catch(e){ alert('ยกเลิกไม่สำเร็จ: '+e.message); }
 }
 
-function setTab(t){ state.tab=t; render(); }
+function setTab(t){ if(!['vendors','menusets','schedule'].includes(t)) return; state.tab=t; render(); }
 
 function render(){
   ['vendors','menusets','schedule'].forEach(t => document.getElementById('nav-'+t).classList.toggle('current', state.tab===t));
@@ -1057,6 +1094,19 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').catch((e) => console.warn('SW register failed:', e));
   });
 }
+</script>
+
+<script>
+// bottom-nav ลิงก์ไปไฟล์เดียวกัน (#hash) — สลับแท็บทันทีแทนการไม่ทำอะไร
+document.addEventListener('click', function(e){
+  var a = e.target.closest && e.target.closest('.bottom-nav a'); if(!a) return;
+  var u = new URL(a.href, location.href);
+  if(u.pathname === location.pathname && typeof setTab === 'function'){
+    e.preventDefault(); var t = u.hash.replace('#','');
+    if(t){ history.replaceState(null,'',u.hash); setTab(t); var s=document.querySelector('.scroll-area'); if(s) s.scrollTop=0; }
+  }
+});
+window.addEventListener('hashchange', function(){ var t=location.hash.replace('#',''); if(t && typeof setTab==='function') setTab(t); });
 </script>
 </body>
 </html>

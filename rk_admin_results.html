@@ -497,7 +497,55 @@ input:focus,select:focus,textarea:focus{box-shadow:none; border-color:var(--colo
 .photo-view img{max-width:100%; max-height:72vh; object-fit:contain;}
 .photo-view .cap{font:600 26px/1.2 var(--font-heading); text-align:center;}
 .photo-view button{min-height:54px; padding:0 30px; font:600 20px var(--font-heading); background:transparent; color:#fff; border:1px solid #fff; cursor:pointer;}
+
+/* fix: แถบล่างหลุดจอ — ล็อกไว้ที่ขอบล่างของจอเสมอ และกันตัวหน้าเลื่อนเอง */
+html,body{height:100%; overflow:hidden; overscroll-behavior:none;}
+body{position:fixed; inset:0; height:auto;}
+.scroll-area{position:absolute; top:0; left:0; right:0; bottom:calc(62px + env(safe-area-inset-bottom)); padding-top:calc(16px + env(safe-area-inset-top)); overscroll-behavior:contain;}
+.bottom-nav{position:fixed !important; left:0; right:0; bottom:0; height:calc(62px + env(safe-area-inset-bottom)); padding-bottom:env(safe-area-inset-bottom); z-index:40;}
+.bottom-nav .bn-item{min-height:62px;}
+.admin-topbar{padding:12px 16px; margin-bottom:16px;}
+
+.admin-nav #nav-feedback,.admin-nav a:not([id]){display:none !important;}
+.admin-nav{width:100%; display:grid !important; grid-template-columns:1fr 1fr; gap:0 !important; border:1px solid var(--color-accent-700);}
+.admin-nav a{text-align:center; padding:10px 8px !important; font-size:15px !important; min-height:44px;}
+body.tab-feedback .admin-nav{display:none !important;}
+.res-list{display:flex; flex-direction:column; gap:22px; margin-top:6px;}
+.res-card{position:relative; border:1px solid var(--color-divider);}
+.res-card.first{border:2px solid var(--warm-500); background:var(--warm-100);}
+.res-photo{position:relative; aspect-ratio:4/3; background:var(--color-neutral-900) center/contain no-repeat; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; color:var(--warm-700); font-size:15px;}
+.res-photo.noimg{background-color:var(--warm-100);}
+.res-photo.clickable{cursor:zoom-in;}
+.res-photo svg{width:44px; height:44px; stroke-width:1.5;}
+.res-rank{position:absolute; left:0; top:0; padding:6px 16px 8px; background:var(--color-accent-900); color:var(--color-bg); display:flex; flex-direction:column; align-items:center; line-height:1; font:600 44px var(--font-heading);}
+.res-card.first .res-rank{background:var(--warm-500); color:var(--warm-900);}
+.res-rank small{font:600 13px var(--font-body);}
+.res-body{padding:14px 16px 16px; display:flex; flex-direction:column; gap:10px;}
+.res-top{display:flex; align-items:flex-end; gap:12px;}
+.res-name{flex:1; min-width:0; font-weight:700; font-size:24px; line-height:1.25;}
+.res-count{flex:none; text-align:right; font:600 40px/1 var(--font-heading); color:var(--color-accent-800);}
+.res-card.first .res-count{color:var(--warm-700);}
+.res-count small{display:block; font:500 14px var(--font-body); color:var(--color-neutral-700);}
+.res-bar{height:14px; background:var(--color-neutral-200);}
+.res-bar i{display:block; height:100%; background:var(--color-accent);}
+.res-card.first .res-bar i{background:var(--warm-500);}
+.res-meta{font-size:15px; color:var(--color-neutral-700);}
+.stat-box .num{font-size:36px;}
+.stat-box .lbl{font-size:14px;}
+@media (min-width:900px){ .res-list{display:grid; grid-template-columns:repeat(2,minmax(0,1fr));} .res-card.first{grid-column:1 / -1;} .res-card.first .res-photo{aspect-ratio:16/9;} }
+
 </style>
+<script>
+(function(){
+  function pin(){ if(window.scrollY||document.documentElement.scrollTop||document.body.scrollTop){ window.scrollTo(0,0); document.documentElement.scrollTop=0; document.body.scrollTop=0; } }
+  window.addEventListener('scroll', pin, {passive:true});
+  window.addEventListener('load', pin);
+  window.addEventListener('pageshow', pin);
+  window.addEventListener('hashchange', pin);
+  window.addEventListener('resize', pin);
+  document.addEventListener('focusin', function(){ setTimeout(pin, 300); });
+})();
+</script>
 </head>
 <body>
 <div class="scroll-area">
@@ -659,12 +707,13 @@ async function loadFeedback(){
   state.feedback = data || [];
 }
 
-function setTab(t){ state.tab=t; render(); }
+function setTab(t){ if(!['results','raw','feedback'].includes(t)) return; state.tab=t; render(); }
 
 function render(){
   ['results','raw','feedback'].forEach(t => document.getElementById('nav-'+t).classList.toggle('current', state.tab===t));
   document.getElementById('bn-results').classList.toggle('active', state.tab==='results' || state.tab==='raw');
   document.getElementById('bn-feedback').classList.toggle('active', state.tab==='feedback');
+  document.body.classList.toggle('tab-feedback', state.tab==='feedback');
   const el = document.getElementById('app');
   if(state.loading){ el.innerHTML='<div class="card"><div class="spinner"></div></div>'; return; }
   const body = state.tab==='results' ? renderResults() : state.tab==='raw' ? renderRaw() : renderFeedback();
@@ -680,7 +729,11 @@ function computeRanking(meal, dish){
   setsForMeal.forEach(s => tally[s.id] = { set:s, score:0, count:0, rank1:0 });
   state.votes.forEach(v => {
     if((v.meal_period||'lunch')!==meal || (v.dish_type||'savory')!==dish) return;
-    if(!tally[v.menu_set_id]) return;
+    if(!tally[v.menu_set_id]){
+      // โหวตอ้างถึงเซทที่ไม่อยู่ในรายการปัจจุบัน (ถูกปิด/สุ่มใหม่/ลบ) — ยังต้องนับ ไม่ทิ้งคะแนน
+      const s = state.allSets.find(x => String(x.id)===String(v.menu_set_id)) || { id:v.menu_set_id, set_name:'เซทที่ถูกลบแล้ว', image_url:null };
+      tally[v.menu_set_id] = { set:s, score:0, count:0, rank1:0 };
+    }
     tally[v.menu_set_id].score += 1;
     tally[v.menu_set_id].count += 1;
     if(v.rank===1) tally[v.menu_set_id].rank1 += 1;
@@ -706,7 +759,7 @@ function renderResults(){
   const voters = new Set(mealVotes.map(v=>v.voter_key)).size;
   const maxScore = ranking[0]?.score || 1;
   const top5 = ranking.slice(0, 5);
-  const rows = top5.map((r,i) => `
+  const rowsOld = top5.map((r,i) => `
     <li>
       <span class="pos">${i+1}</span>
       <div class="thumb-sm ${r.set.image_url?'clickable':''}" ${r.set.image_url?`style="background-image:url('${r.set.image_url}')" onclick="openLightbox('${r.set.image_url.replace(/'/g,"\\'")}','${r.set.set_name.replace(/'/g,"\\'")}')"`:''}>${r.set.image_url?'':ICONS.image}</div>
@@ -715,6 +768,22 @@ function renderResults(){
         <div class="bar-bg"><div class="bar-fill" style="width:${maxScore? (r.score/maxScore*100):0}%"></div></div>
       </span>
     </li>`).join('');
+  const esc = s => String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const rows = top5.map((r,i) => {
+    const img = r.set.image_url;
+    const pct = maxScore ? Math.round(r.score/maxScore*100) : 0;
+    return `<div class="res-card ${i===0&&r.count>0?'first':''}">
+      <div class="res-photo ${img?'clickable':'noimg'}" ${img?`style="background-image:url('${img}')" onclick="openLightbox('${esc(img)}','${esc(r.set.set_name)}')"`:''}>
+        ${img?'':ICONS.image+'<span>ยังไม่มีรูป</span>'}
+        <div class="res-rank"><small>อันดับ</small>${i+1}</div>
+      </div>
+      <div class="res-body">
+        <div class="res-top"><div class="res-name">${r.set.set_name}</div><div class="res-count">${r.count}<small>โหวต</small></div></div>
+        <div class="res-bar"><i style="width:${pct}%"></i></div>
+        <div class="res-meta">เลือกเป็นอันดับ 1: ${r.rank1} คน${voters?` · ${Math.round(r.count/voters*100)}% ของผู้โหวต`:''}</div>
+      </div>
+    </div>`;
+  }).join('');
   return `
     <div class="card">
       <div class="sec-title" style="margin-bottom:10px;">เลือกจุดบริการและรอบสัปดาห์</div>
@@ -748,7 +817,7 @@ function renderResults(){
         <div><div class="sec-title">อันดับเซทเมนู Top 5 จากผลโหวต — ${schVendor?schVendor.name+' — ':''}${groupLabel}</div><div class="sec-sub">5 เซทที่คะแนนสูงสุดของมื้อ/หมวดที่เลือก แนะนำส่งให้ร้านจัดเตรียม (ดาวน์โหลด CSV จะได้อันดับของทุกมื้อ ทั้งอาหารคาวและขนมหวาน/ผลไม้ ในไฟล์เดียว)</div></div>
         <button class="btn-small primary" style="margin-left:auto;" onclick="downloadCsv()">ดาวน์โหลด CSV (ทุกหมวด)</button>
       </div>
-      <ul class="rank-list">${rows || '<div class="empty-state">ยังไม่มีผู้โหวตในมื้อ/หมวดนี้</div>'}</ul>
+      ${rows ? `<div class="res-list">${rows}</div>` : '<div class="empty-state">ยังไม่มีผู้โหวตในมื้อ/หมวดนี้</div>'}
     </div>` : ''}
   `;
 }
@@ -961,6 +1030,19 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').catch((e) => console.warn('SW register failed:', e));
   });
 }
+</script>
+
+<script>
+// bottom-nav ลิงก์ไปไฟล์เดียวกัน (#hash) — สลับแท็บทันทีแทนการไม่ทำอะไร
+document.addEventListener('click', function(e){
+  var a = e.target.closest && e.target.closest('.bottom-nav a'); if(!a) return;
+  var u = new URL(a.href, location.href);
+  if(u.pathname === location.pathname && typeof setTab === 'function'){
+    e.preventDefault(); var t = u.hash.replace('#','');
+    if(t){ history.replaceState(null,'',u.hash); setTab(t); var s=document.querySelector('.scroll-area'); if(s) s.scrollTop=0; }
+  }
+});
+window.addEventListener('hashchange', function(){ var t=location.hash.replace('#',''); if(t && typeof setTab==='function') setTab(t); });
 </script>
 </body>
 </html>
