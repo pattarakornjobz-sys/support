@@ -3,7 +3,7 @@
 // แต่ "ข้อมูลจริง" ทุกอย่าง (โหวต เมนู ผลสรุป ข้อความ) ที่ไปดึงจาก Supabase จะปล่อยให้วิ่งผ่านเน็ตสดเสมอ
 // ไม่แคชเด็ดขาด — ป้องกันแอดมิน/ผู้บริหารเห็นผลโหวตเก่าค้างจากแคช
 
-const CACHE_NAME = 'rk-app-shell-v3';
+const CACHE_NAME = 'rk-app-shell-v4';
 const APP_SHELL = [
   './rk_vote.html',
   './rk_admin.html',
@@ -54,7 +54,9 @@ self.addEventListener('fetch', (event) => {
   // ไฟล์เปลือกแอปของเราเอง (หน้า html/ไอคอน/manifest): network-first แล้วอัปเดตแคชเงียบๆ
   // ถ้าออฟไลน์จริงๆค่อย fallback ไปแคชที่เคยเก็บไว้ (เปิดแอปได้ แต่ข้อมูลในหน้าจะยังไม่อัปเดตจนกว่าเน็ตจะกลับมา)
   event.respondWith(
-    fetch(req)
+    // cache:'no-store' กันเบราว์เซอร์/โฮสต์แอบคืน HTTP cache เก่าให้ fetch() เฉยๆ
+    // (ถ้าไม่กันไว้ ต่อให้โค้ดเป็น network-first ก็อาจได้ไฟล์เก่าค้างอยู่ดี — นี่คือสาเหตุหลักที่หน้าแอดมินไม่อัปเดตตามโค้ดใหม่)
+    fetch(req, { cache: 'no-store' })
       .then((res) => {
         const resClone = res.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
