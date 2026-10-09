@@ -1,0 +1,36 @@
+{
+  "name": "ครัวหมุนเวียน — แอดมิน/ผู้บริหาร",
+  "short_name": "ครัวหมุนเวียน แอดมิน",
+  "description": "หลังบ้านระบบครัวหมุนเวียน: ผลโหวต ข้อมูลดิบ กล่องข้อความ จัดการร้านค้า เซทเมนู และตารางหมุนเวียน",
+  "start_url": "./rk_admin_results.html",
+  "scope": "./",
+  "id": "/rk-crowd-kitchen-admin",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0B2545",
+  "theme_color": "#0B2545",
+  "lang": "th",
+  "dir": "ltr",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "ผลโหวต & กล่องข้อความ",
+      "short_name": "ผลโหวต",
+      "description": "ดูผลโหวต ข้อมูลดิบ และกล่องข้อความ",
+      "url": "./rk_admin_results.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "หลังบ้าน",
+      "short_name": "หลังบ้าน",
+      "description": "จัดการร้านค้า เซทเมนู ตารางหมุนเวียน",
+      "url": "./rk_admin.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

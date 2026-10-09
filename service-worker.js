@@ -3,13 +3,14 @@
 // แต่ "ข้อมูลจริง" ทุกอย่าง (โหวต เมนู ผลสรุป ข้อความ) ที่ไปดึงจาก Supabase จะปล่อยให้วิ่งผ่านเน็ตสดเสมอ
 // ไม่แคชเด็ดขาด — ป้องกันแอดมิน/ผู้บริหารเห็นผลโหวตเก่าค้างจากแคช
 
-const CACHE_NAME = 'rk-app-shell-v1';
+const CACHE_NAME = 'rk-app-shell-v2';
 const APP_SHELL = [
   './rk_vote.html',
   './rk_admin.html',
   './rk_admin_results.html',
   './rk_feedback.html',
   './manifest.json',
+  './manifest-admin.json',
   './icon-192.png',
   './icon-512.png',
   './icon-maskable-192.png',
@@ -53,6 +54,7 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
         return res;
       })
-      .catch(() => caches.match(req).then((cached) => cached || caches.match('./rk_vote.html')))
+      // ออฟไลน์จริงๆ: คืนไฟล์เดิมที่ขอจากแคช (ไม่เดาส่งไปหน้าอื่น เช่นหน้าแอดมินต้องไม่ถูกเด้งไปหน้าโหวต)
+      .catch(() => caches.match(req))
   );
 });
