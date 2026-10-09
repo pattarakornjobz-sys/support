@@ -623,8 +623,8 @@ const MEAL_LABELS = { breakfast:'มื้อเช้า', lunch:'มื้อ�
 const MEAL_ORDER = ['breakfast','lunch','dinner'];
 const DISH_LABELS = { savory:'อาหารคาว', dessert:'ขนมหวาน/ผลไม้' };
 const DISH_ORDER = ['savory','dessert'];
-// นโยบายใหม่: 2 กลุ่ม (point3 เดิมถูกยุบรวมเข้ากลุ่มที่ 2) — ปุ่มเลือกกลุ่มแสดงเฉพาะกลุ่มปัจจุบัน แต่ข้อมูลเก่าของ point3 ยังค้นดูได้ในแท็บข้อมูลดิบ/กล่องข้อความ
-const ACTIVE_LOCATION_CODES = ['point1','point2'];
+// 5 กลุ่ม (g1–g5) ตรงกับหน้าโหวต — ข้อมูลรอบเก่า (point1/point2) ยังดูได้ในข้อมูลดิบ
+const ACTIVE_LOCATION_CODES = ['g1','g2','g3','g4','g5'];
 function locLabel(l){ return l ? (ACTIVE_LOCATION_CODES.includes(l.code) ? l.short_name : l.short_name+' (เดิม)') : '-'; }
 const CATEGORIES = [
   { key:'food_quality', label:'คุณภาพอาหาร' },
@@ -805,7 +805,7 @@ function renderResults(){
       <div class="seg-row">${mealTabs}</div>
       <div class="field-label" style="margin-top:6px;">หมวดเมนู</div>
       <div class="seg-row">${dishTabs}</div>
-      <div class="field-hint">มื้อเช้า/มื้อเย็น มีผลเฉพาะหน่วยงาน "แผนกนักเรียนช่าง" (กลุ่มที่ 2) — หน่วยงานอื่นจะไม่มีผู้โหวตในมื้อเหล่านี้</div>
+      <div class="field-hint">มื้อเช้า/มื้อเย็น มีผลเฉพาะหน่วยงาน "แผนกนักเรียนช่าง" (กลุ่มที่ 1) — หน่วยงานอื่นจะไม่มีผู้โหวตในมื้อเหล่านี้</div>
     </div>
     <div class="stat-row">
       <div class="stat-box"><div class="num">${voters}</div><div class="lbl">จำนวนผู้โหวต (${groupLabel})</div></div>

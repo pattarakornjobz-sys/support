@@ -597,8 +597,8 @@ const ICONS = {
 };
 const MEAL_LABELS = { breakfast:'มื้อเช้า', lunch:'มื้อกลางวัน', dinner:'มื้อเย็น' };
 const EXTRA_MEAL_UNIT = 'แผนกนักเรียนช่าง';
-// นโยบายใหม่: มี 2 กลุ่มเท่านั้น (point3 เดิมถูกยุบรวมเข้ากลุ่มที่ 2) — ข้อมูลเก่าของ point3 ยังอยู่ใน DB แต่ไม่แสดงในหน้านี้
-const ACTIVE_LOCATION_CODES = ['point1','point2'];
+// 5 กลุ่ม (g1–g5) ตรงกับหน้าโหวต — ข้อมูลรอบเก่า (point1/point2) ยังดูได้ในข้อมูลดิบ
+const ACTIVE_LOCATION_CODES = ['g1','g2','g3','g4','g5'];
 const DISH_LABELS = { savory:'อาหารคาว', dessert:'ขนมหวาน/ผลไม้' };
 
 let state = {
@@ -786,7 +786,7 @@ function renderMenuSets(){
     </div>
     <div class="card">
       <div class="sec-head">
-        <div><div class="sec-title">เซทเมนู — ${MEAL_LABELS[state.menuMealFilter]} · ${DISH_LABELS[state.menuDishFilter]}</div><div class="sec-sub">มื้อเช้า/มื้อเย็น เปิดให้โหวตเฉพาะหน่วยงาน "${EXTRA_MEAL_UNIT}" (กลุ่มที่ 2) เท่านั้น ส่วนมื้อกลางวันเป็นมื้อหลักของทุกจุด</div></div>
+        <div><div class="sec-title">เซทเมนู — ${MEAL_LABELS[state.menuMealFilter]} · ${DISH_LABELS[state.menuDishFilter]}</div><div class="sec-sub">มื้อเช้า/มื้อเย็น เปิดให้โหวตเฉพาะหน่วยงาน "${EXTRA_MEAL_UNIT}" (กลุ่มที่ 1) เท่านั้น ส่วนมื้อกลางวันเป็นมื้อหลักของทุกจุด</div></div>
         <button class="btn-small primary" style="margin-left:auto;" ${state.selectedVendorId?'':'disabled'} onclick="openSetModal(null)">+ เพิ่มเซทเมนู</button>
       </div>
       <div class="seg-row">${mealTabs}</div>
@@ -1008,7 +1008,7 @@ function renderModal(){
           <select id="mMeal">
             ${Object.keys(MEAL_LABELS).map(k=>`<option value="${k}" ${d.meal_period===k?'selected':''}>${MEAL_LABELS[k]}</option>`).join('')}
           </select>
-          <div class="field-hint" style="margin-top:-6px;">มื้อเช้า/มื้อเย็น จะแสดงให้โหวตเฉพาะหน่วยงาน "${EXTRA_MEAL_UNIT}" (กลุ่มที่ 2) เท่านั้น</div>
+          <div class="field-hint" style="margin-top:-6px;">มื้อเช้า/มื้อเย็น จะแสดงให้โหวตเฉพาะหน่วยงาน "${EXTRA_MEAL_UNIT}" (กลุ่มที่ 1) เท่านั้น</div>
         </div>
         <div class="field-block" style="border-left-color:var(--gold);">
           <div class="field-label">หมวดเมนู</div>
