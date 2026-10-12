@@ -1,6 +1,6 @@
 // ครัวหมุนเวียน — service worker
 // เปลี่ยน CACHE_VERSION ทุกครั้งที่อัปเดตไฟล์หน้าเว็บ เพื่อให้เครื่องผู้ใช้โหลดหน้าใหม่
-const CACHE_VERSION = 'rk-v2-2026-10-12a';
+const CACHE_VERSION = 'rk-v2-2026-10-09g';
 const CORE = [
   'rk_vote.html',
   'rk_feedback.html',
@@ -34,10 +34,10 @@ self.addEventListener('fetch', (event) => {
   // ไม่แคชข้อมูลจาก Supabase / API ภายนอก — ต้องสดเสมอ
   if (url.origin !== self.location.origin) return;
 
-  // หน้า HTML: เอาจากเน็ตก่อน ถ้าออฟไลน์ค่อยใช้แคช (cache:'no-store' กันเบราว์เซอร์/โฮสต์คืน HTTP cache เก่าให้ fetch() เฉยๆ)
+  // หน้า HTML: เอาจากเน็ตก่อน ถ้าออฟไลน์ค่อยใช้แคช
   if (req.mode === 'navigate' || req.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
-      fetch(req, { cache: 'no-store' })
+      fetch(req)
         .then((res) => {
           const copy = res.clone();
           caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
