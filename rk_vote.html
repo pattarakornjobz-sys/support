@@ -2,6 +2,22 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8" />
+<script>
+// ลิงก์นี้อาจถูกแชร์ในไลน์มาก่อนแบบไม่มีพารามิเตอร์ openExternalBrowser=1 ต่อท้าย
+// เลยยังเด้งเข้าเบราว์เซอร์ในตัวไลน์เหมือนเดิม — สคริปต์นี้ตรวจจับว่ากำลังเปิดอยู่ในแอปไลน์
+// แล้วสั่งเด้งออกไปเบราว์เซอร์ของเครื่อง (Chrome/Safari) ให้อัตโนมัติ โดยไม่ต้องเปลี่ยนลิงก์ที่โพสไปแล้วเลย
+(function(){
+  try{
+    var ua = navigator.userAgent || '';
+    var inLine = /\bLine\//i.test(ua);
+    var alreadyTagged = /(^|[?&])openExternalBrowser=1(&|$)/.test(location.search);
+    if(inLine && !alreadyTagged){
+      var sep = location.href.indexOf('?') === -1 ? '?' : '&';
+      location.replace(location.href + sep + 'openExternalBrowser=1');
+    }
+  }catch(e){}
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1d2d3d">

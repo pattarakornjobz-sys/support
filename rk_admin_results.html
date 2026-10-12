@@ -498,18 +498,6 @@ input:focus,select:focus,textarea:focus{box-shadow:none; border-color:var(--colo
 .photo-view .cap{font:600 26px/1.2 var(--font-heading); text-align:center;}
 .photo-view button{min-height:54px; padding:0 30px; font:600 20px var(--font-heading); background:transparent; color:#fff; border:1px solid #fff; cursor:pointer;}
 
-/* fix: แถบล่างหลุดจอ — ล็อกไว้ที่ขอบล่างของจอเสมอ และกันตัวหน้าเลื่อนเอง */
-html,body{height:100%; overflow:hidden; overscroll-behavior:none;}
-body{position:fixed; inset:0; height:auto;}
-.scroll-area{position:absolute; top:0; left:0; right:0; bottom:calc(62px + env(safe-area-inset-bottom)); padding-top:calc(16px + env(safe-area-inset-top)); overscroll-behavior:contain;}
-.bottom-nav{position:fixed !important; left:0; right:0; bottom:0; height:calc(62px + env(safe-area-inset-bottom)); padding-bottom:env(safe-area-inset-bottom); z-index:40;}
-.bottom-nav .bn-item{min-height:62px;}
-.admin-topbar{padding:12px 16px; margin-bottom:16px;}
-
-.admin-nav #nav-feedback,.admin-nav a:not([id]){display:none !important;}
-.admin-nav{width:100%; display:grid !important; grid-template-columns:1fr 1fr; gap:0 !important; border:1px solid var(--color-accent-700);}
-.admin-nav a{text-align:center; padding:10px 8px !important; font-size:15px !important; min-height:44px;}
-body.tab-feedback .admin-nav{display:none !important;}
 .res-list{display:flex; flex-direction:column; gap:22px; margin-top:6px;}
 .res-card{position:relative; border:1px solid var(--color-divider);}
 .res-card.first{border:2px solid var(--warm-500); background:var(--warm-100);}
