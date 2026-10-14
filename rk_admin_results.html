@@ -775,7 +775,8 @@ function renderResults(){
   const mealVotes = state.votes.filter(v => (v.meal_period||'lunch')===state.resultsMeal && (v.dish_type||'savory')===state.resultsDish);
   const voters = new Set(mealVotes.map(v=>v.voter_key)).size;
   const maxScore = ranking[0]?.score || 1;
-  const top5 = ranking.slice(0, 5);
+  const topN = ({g1:7,g5:7})[(state.allLocations.find(l=>l.id===state.resultsLocationId)||{}).code] || 5;
+  const top5 = ranking.slice(0, topN);
   const rowsOld = top5.map((r,i) => `
     <li>
       <span class="pos">${i+1}</span>
@@ -830,7 +831,7 @@ function renderResults(){
     </div>
     <div class="card">
       <div class="sec-head">
-        <div><div class="sec-title">อันดับเซทเมนู Top 5 — ${(()=>{const l=state.allLocations.find(l=>l.id===state.resultsLocationId);return l?l.short_name+' ('+groupUnits(l)+') — ':'';})()}${groupLabel}</div><div class="sec-sub">5 เซทที่คะแนนสูงสุดของมื้อ/หมวดที่เลือก แนะนำส่งให้ร้านจัดเตรียม (ดาวน์โหลด CSV จะได้อันดับของทุกมื้อ ทั้งอาหารคาวและขนมหวาน/ผลไม้ ในไฟล์เดียว)</div></div>
+        <div><div class="sec-title">อันดับเซทเมนู Top ${({g1:7,g5:7})[(state.allLocations.find(l=>l.id===state.resultsLocationId)||{}).code] || 5} — ${(()=>{const l=state.allLocations.find(l=>l.id===state.resultsLocationId);return l?l.short_name+' ('+groupUnits(l)+') — ':'';})()}${groupLabel}</div><div class="sec-sub">5 เซทที่คะแนนสูงสุดของมื้อ/หมวดที่เลือก แนะนำส่งให้ร้านจัดเตรียม (ดาวน์โหลด CSV จะได้อันดับของทุกมื้อ ทั้งอาหารคาวและขนมหวาน/ผลไม้ ในไฟล์เดียว)</div></div>
         <button class="btn-small primary" style="margin-left:auto;" onclick="downloadCsv()">ดาวน์โหลด CSV (ทุกหมวด)</button>
       </div>
       ${rows ? `<div class="res-list">${rows}</div>` : '<div class="empty-state">ยังไม่มีผู้โหวตในมื้อ/หมวดนี้</div>'}
@@ -854,14 +855,14 @@ function downloadCsv(){
   const loc = state.allLocations.find(l=>l.id===state.resultsLocationId);
   const ven = state.vendors.find(v=>v.id===sch?.vendor_id);
   const wk = sch ? (fmtDate(sch.service_week_start)+' - '+fmtDate(sch.service_week_end)) : '';
-  let csv = 'กลุ่ม,ร้าน,สัปดาห์บริการ,มื้ออาหาร,หมวด,อันดับ,ชื่อเซทเมนู,จำนวนโหวต,จำนวนที่เลือกเป็นอันดับ1,Top5ส่งร้าน\n';
+  let csv = 'กลุ่ม,ร้าน,สัปดาห์บริการ,มื้ออาหาร,หมวด,อันดับ,ชื่อเซทเมนู,จำนวนโหวต,จำนวนที่เลือกเป็นอันดับ1,ส่งร้าน (Top '+(({g1:7,g5:7})[loc&&loc.code]||5)+')\n';
   let any = false;
   MEAL_ORDER.forEach(m => DISH_ORDER.forEach(d => {
     const ranking = computeRanking(m, d);
     if(!ranking.length) return;
     any = true;
     ranking.forEach((r,i)=>{
-      csv += [csvEsc(loc?loc.short_name:''), csvEsc(ven?ven.name:''), csvEsc(wk), csvEsc(MEAL_LABELS[m]), csvEsc(DISH_LABELS[d]), i+1, csvEsc(r.set.set_name), r.count, r.rank1, csvEsc(i<5 && r.count>0 ? 'ใช่' : '')].join(',') + '\n';
+      csv += [csvEsc(loc?loc.short_name:''), csvEsc(ven?ven.name:''), csvEsc(wk), csvEsc(MEAL_LABELS[m]), csvEsc(DISH_LABELS[d]), i+1, csvEsc(r.set.set_name), r.count, r.rank1, csvEsc(i<((({g1:7,g5:7})[loc&&loc.code])||5) && r.count>0 ? 'ใช่' : '')].join(',') + '\n';
     });
   }));
   if(!any){ alert('ยังไม่มีเซทเมนูในรอบนี้ให้ดาวน์โหลด'); return; }

@@ -890,9 +890,10 @@ function renderSchedule(){
         <input type="datetime-local" id="schCloses" value="${f.vote_closes_at}">
       </div>` : ''}
       <div class="field-block" style="border-left-color:var(--gold);">
-        <div class="field-label">สุ่มเปิดโหวต: อาหารคาว (ไม่บังคับ)</div>
-        <div class="field-hint">เว้นว่าง = เปิดโหวตทุกเซทที่ Active หรือกำหนดจำนวน (อย่างน้อย 5 เซท) ให้ระบบสุ่มเลือกมาเปิดโหวต — สุ่มแยกอิสระต่อมื้ออาหาร ถ้าเซทของมื้อนั้นมีน้อยกว่าจำนวนที่กำหนด จะเปิดให้หมดโดยไม่ต้องสุ่ม</div>
-        <input type="number" id="schRandomCount" min="5" placeholder="เช่น 7 (เว้นว่าง = เปิดทุกเซท)" value="${f.random_set_count||''}">
+        <div class="field-label">สุ่มเปิดโหวต: อาหารคาว</div>
+        <div class="info-box" style="margin:6px 0 8px;">กลุ่มนี้: เปิดโหวต <b>${openCountFor(f.location_id)} เมนู</b> · ผู้โหวตเลือก <b>${rankFor(f.location_id)} อันดับ</b> · ผลโหวตแสดง <b>${rankFor(f.location_id)} อันดับ</b></div>
+        <div class="field-hint">ค่าเริ่มต้น 10 เมนูทุกกลุ่ม แก้ได้ หรือกำหนดเอง (อย่างน้อย 5 เซท) ให้ระบบสุ่มเลือกมาเปิดโหวต — สุ่มแยกอิสระต่อมื้ออาหาร ถ้าเซทของมื้อนั้นมีน้อยกว่าจำนวนที่กำหนด จะเปิดให้หมดโดยไม่ต้องสุ่ม</div>
+        <input type="number" id="schRandomCount" min="5" placeholder="เว้นว่าง = เปิดทุกเซท" value="${f.random_set_count||openCountFor(f.location_id)}">
       </div>
       <div class="field-block" style="border-left-color:#B5720A;">
         <div class="field-label">สุ่มเปิดโหวต: ขนมหวาน/ผลไม้ (ไม่บังคับ)</div>
@@ -909,6 +910,11 @@ function renderSchedule(){
       </table></div>
     </div>`;
 }
+// ทุกกลุ่มเปิดโหวต 10 เมนู · กลุ่ม 1 และ 5 เลือก/แสดงผล 7 อันดับ, กลุ่ม 2–4 เลือก/แสดงผล 5 อันดับ
+const OPEN_COUNT_DEFAULT = 10, RANK_BY_LOC = { g1:7, g5:7 };
+function locCodeOf(id){ const l = state.locations.find(x=>x.id===id); return l ? l.code : ''; }
+function openCountFor(id){ return OPEN_COUNT_DEFAULT; }
+function rankFor(id){ return RANK_BY_LOC[locCodeOf(id)] || 5; }
 function setScheduleLocation(id){ state.scheduleForm.location_id = id; render(); }
 function editSchedule(id){
   const r = state.schedule.find(s=>s.id===id);

@@ -1,6 +1,6 @@
 // ครัวหมุนเวียน — service worker
 // เปลี่ยน CACHE_VERSION ทุกครั้งที่อัปเดตไฟล์หน้าเว็บ เพื่อให้เครื่องผู้ใช้โหลดหน้าใหม่
-const CACHE_VERSION = 'rk-v2-2026-10-09g';
+const CACHE_VERSION = 'rk-v2-2026-10-13b';
 const CORE = [
   'rk_vote.html',
   'rk_feedback.html',
